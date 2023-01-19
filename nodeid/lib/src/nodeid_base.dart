@@ -2,28 +2,35 @@ import 'dart:typed_data';
 
 import 'package:basic_utils/basic_utils.dart';
 
-class LocalNodeID {
-  late String nodeID;
-  dynamic pvtKey;
+class NodeID {
   dynamic pubKey;
-  late AsymmetricKeyPair keyPair;
+  late String hashID;
   late Uint8List sign;
-  late bool verify;
 
-  LocalNodeID() {
-    keyPair = CryptoUtils.generateRSAKeyPair(keySize: 2048);
-    dynamic rPub = keyPair.publicKey;
-    Uint8List pubBytes = CryptoUtils.rsaPublicKeyModulusToBytes(rPub);
-    nodeID = CryptoUtils.getHash(pubBytes,
-        algorithmName: 'SHA-1'); //default is SHA256
-
-    final List<int> codeUnits = nodeID.codeUnits;
-    final Uint8List unit8List = Uint8List.fromList(codeUnits);
+  NodeID(AsymmetricKeyPair keyPair) {
     pubKey = keyPair.publicKey;
 
-    pvtKey = keyPair.privateKey;
+    Uint8List pubBytes = CryptoUtils.rsaPublicKeyModulusToBytes(pubKey);
+    hashID = CryptoUtils.getHash(pubBytes, algorithmName: 'SHA-1');
 
+    final List<int> codeUnits = (hashID + pubKey.toString()).codeUnits;
+    final Uint8List unit8List = Uint8List.fromList(codeUnits);
+    dynamic pvtKey = keyPair.privateKey;
     sign = CryptoUtils.rsaSign(pvtKey, unit8List, algorithmName: 'SHA-256/RSA');
-    verify = CryptoUtils.rsaVerify(pubKey, unit8List, sign);
   }
 }
+
+class LocalNodeID {
+  dynamic pvtKey;
+  late NodeID nodeid;
+
+  LocalNodeID() {
+    AsymmetricKeyPair keyPair = CryptoUtils.generateRSAKeyPair(keySize: 2048);
+    pvtKey = keyPair.privateKey;
+    nodeid = NodeID(keyPair);
+  }
+  LocalNodeID.k(AsymmetricKeyPair keyPair) {
+    pvtKey = keyPair.privateKey;
+    nodeid = NodeID(keyPair);
+  }
+
