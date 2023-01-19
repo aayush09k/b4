@@ -33,4 +33,4 @@ class LocalNodeID {
     pvtKey = keyPair.privateKey;
     nodeid = NodeID(keyPair);
   }
-
+}
