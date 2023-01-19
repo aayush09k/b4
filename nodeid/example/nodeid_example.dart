@@ -2,9 +2,9 @@ import 'package:nodeid/nodeid.dart';
 
 void main() {
   LocalNodeID localnd = LocalNodeID();
-  print(localnd.nodeID);
-  print(localnd.pubKey);
+  print(localnd.nodeid);
   print(localnd.pvtKey);
-  print(localnd.sign);
-  print(localnd.verify);
+  print(localnd.nodeid.hashID);
+  print(localnd.nodeid.pubKey);
+  print(localnd.nodeid.sign);
 }
