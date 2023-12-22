@@ -15,7 +15,7 @@ void main() {
   //LocalNodeID localnd = LocalNodeID();
   LocalNodeID localId;
   localId = LocalNodeID();
-  localId.nodeid.hashID = "357E7DFC3E4616381DACA70A90CDF3C59EA80D32";
+  localId.nodeid.hashID = "357E7DFC3E4616381DACA70A90CDF3C59EA80D32";// setting hash ID of local node ID for testing purposes.
   AsymmetricKeyPair keyPair1 = CryptoUtils.generateRSAKeyPair(keySize: 2048);
   NodeID nodeID=NodeID(keyPair1);
   var rtt = Duration(hours: 0, minutes: 0, seconds: 0,milliseconds: 766);
