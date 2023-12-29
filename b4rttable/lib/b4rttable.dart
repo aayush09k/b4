@@ -1,4 +1,4 @@
-// Written by Sqn Ldr Aman Sharma...
+// Written by Sqn Ldr Aman Sharma & Sqn Ldr Tarun Chaudhary...
 
 library b4rttable;
 
@@ -9,8 +9,7 @@ class B4RoutingTable {
   Map<NodeID, int>? onHoldNodes; //NodeId & attemptsCounter
   Map<NodeID, Duration> mRtt = {};
   LocalNodeID? localIdb;
-  List<List<NodeID?>> RoutingTable = List.generate(
-      3, (_) => List.filled(40, null));
+  List<List<NodeID?>> RoutingTable = List.generate( 3, (_) => List.filled(40, null));
 
   B4RoutingTable(LocalNodeID localId) {
     onHoldNodes = {};
@@ -59,43 +58,37 @@ class B4RoutingTable {
         List<String>? midNodeIdC = midNodeId!.split('');
         List<String>? sucNodeIdC = sucNodeId!.split('');
 
-        int preNodeIdint = int.parse(preNodeIdC[m],
-            radix: 16); // coverting hexadecimal value into int for comparison
+        int preNodeIdint = int.parse(preNodeIdC[m],radix: 16); // coverting hexadecimal value into int for comparison
         int midNodeIdint = int.parse(midNodeIdC[m], radix: 16);
         int sucNodeIdint = int.parse(sucNodeIdC[m], radix: 16);
         int localnodeIdint = int.parse(localNodeIdC[m], radix: 16);
         int nodeIdint = int.parse(nodeIdC[m], radix: 16);
         int idealMidNodeIdint = (localnodeIdint + 16) % 16;
 
-        if (((localnodeIdint - preNodeIdint + 16) % 16) >
-            ((nodeIdint - preNodeIdint + 16) % 16)) {
-          if (mRtt.containsKey(RoutingTable[2][m]!.hashID) &&
-              (RoutingTable[2][m] != RoutingTable[1][m] ||
-                  RoutingTable[2][m] != RoutingTable[0][m])) {
-            mRtt.remove(RoutingTable[2][m]!
-                .hashID); // this is done so that if node ID is not present anywhere in RT then it should also not be present in mRTT table.
+        if (((localnodeIdint - preNodeIdint + 16) % 16) > ((nodeIdint - preNodeIdint + 16) % 16))
+        {
+
+          if (mRtt.containsKey(RoutingTable[2][m]!.hashID) && (RoutingTable[2][m] != RoutingTable[1][m] || RoutingTable[2][m] != RoutingTable[0][m]))
+          {
+            mRtt.remove(RoutingTable[2][m]!.hashID); // this is done so that if node ID is not present anywhere in RT then it should also not be present in mRTT table.
           }
           RoutingTable[2][m] = nodeID; //replacing pre-decessor nodeID
 
 
-        } else if (((sucNodeIdint - localnodeIdint + 16) % 16) >
-            ((nodeIdint - localnodeIdint + 16) % 16)) {
-          if (mRtt.containsKey(RoutingTable[0][m]) &&
-              (RoutingTable[0][m]!.hashID != RoutingTable[1][m]!.hashID ||
-                  RoutingTable[0][m]!.hashID != RoutingTable[2][m]!.hashID)) {
+        }
+        else if (((sucNodeIdint - localnodeIdint + 16) % 16) >((nodeIdint - localnodeIdint + 16) % 16)) {
+
+          if (mRtt.containsKey(RoutingTable[0][m]) && (RoutingTable[0][m]!.hashID != RoutingTable[1][m]!.hashID || RoutingTable[0][m]!.hashID != RoutingTable[2][m]!.hashID))
+          {
             mRtt.remove(RoutingTable[0][m]);
           }
 
           RoutingTable[0][m] = nodeID; //replacing successor node id
 
 
-        } else if (min(((idealMidNodeIdint - midNodeIdint + 16) % 16),
-            ((midNodeIdint - idealMidNodeIdint + 16) % 16)) >
-            min(((idealMidNodeIdint - nodeIdint + 16) % 16),
-                ((nodeIdint - idealMidNodeIdint + 16) % 16))) {
-          if (mRtt.containsKey(RoutingTable[1][m]!.hashID) &&
-              (RoutingTable[1][m] != RoutingTable[0][m] ||
-                  RoutingTable[1][m] != RoutingTable[2][m])) {
+        } else if (min(((idealMidNodeIdint - midNodeIdint + 16) % 16),((midNodeIdint - idealMidNodeIdint + 16) % 16)) > min(((idealMidNodeIdint - nodeIdint + 16) % 16),((nodeIdint - idealMidNodeIdint + 16) % 16))) {
+          if (mRtt.containsKey(RoutingTable[1][m]!.hashID) &&  (RoutingTable[1][m] != RoutingTable[0][m] || RoutingTable[1][m] != RoutingTable[2][m]))
+          {
             mRtt.remove(RoutingTable[1][m]!.hashID);
           }
 
@@ -103,9 +96,8 @@ class B4RoutingTable {
           RoutingTable[1][m] = nodeID; // replacing middle node id
 
         } else if (nodeIdint == preNodeIdint && mRtt[nodeID]! > rtt) {
-          if (mRtt.containsKey(RoutingTable[2][m]!.hashID) &&
-              (RoutingTable[2][m] != RoutingTable[1][m] ||
-                  RoutingTable[2][m] != RoutingTable[0][m])) {
+          if (mRtt.containsKey(RoutingTable[2][m]!.hashID) && (RoutingTable[2][m] != RoutingTable[1][m] || RoutingTable[2][m] != RoutingTable[0][m]))
+          {
             mRtt.remove(RoutingTable[2][m]!.hashID);
           }
 
@@ -113,20 +105,19 @@ class B4RoutingTable {
           //Next 3 conditions are checking rtt if nodeID nibble matches which any of pre,success,mid nodeID.
 
 
-          RoutingTable[2][m] =
-              nodeID; // NodeID having less rtt is kept in the routing table.
+          RoutingTable[2][m] = nodeID; // NodeID having less rtt is kept in the routing table.
 
         } else if (nodeIdint == midNodeIdint && mRtt[nodeID]! > rtt) {
-          if (mRtt.containsKey(RoutingTable[1][m]!.hashID) &&
-              (RoutingTable[1][m] != RoutingTable[0][m] ||
-                  RoutingTable[1][m] != RoutingTable[2][m])) {
+
+          if (mRtt.containsKey(RoutingTable[1][m]!.hashID) && (RoutingTable[1][m] != RoutingTable[0][m] || RoutingTable[1][m] != RoutingTable[2][m]))
+          {
             mRtt.remove(RoutingTable[1][m]!.hashID);
           }
           RoutingTable[1][m] = nodeID;
         } else if (nodeIdint == sucNodeIdint && mRtt[nodeID]! > rtt) {
-          if (mRtt.containsKey(RoutingTable[0][m]!.hashID) &&
-              (RoutingTable[0][m] != RoutingTable[1][m] ||
-                  RoutingTable[0][m] != RoutingTable[2][m])) {
+
+          if (mRtt.containsKey(RoutingTable[0][m]!.hashID) && (RoutingTable[0][m] != RoutingTable[1][m] || RoutingTable[0][m] != RoutingTable[2][m]))
+          {
             mRtt.remove(RoutingTable[0][m]!.hashID);
           }
           RoutingTable[0][m] = nodeID;
@@ -205,16 +196,18 @@ class B4RoutingTable {
   //   return "";
   // }
 
-  int calculateDistance(String nodeID, String hashId) {
+
+
+  int calculateDistanceHop(String nodeID, String hashId) {
     int nodeIDint = int.parse(nodeID, radix: 16);
     int hashIdint = int.parse(hashId, radix: 16);
 
     int distance1 = (nodeIDint - hashIdint + 16) % 16;
-    int distance2 = (hashIdint - nodeIDint + 16) % 16;
 
-    int result = min(distance1, distance2);
 
-    return result;
+
+
+    return distance1;
   }
 
 
@@ -226,10 +219,12 @@ class B4RoutingTable {
     //based on location changes the End Point Add may changed
   }
 
-// DISTANCE METRIC
+
 
   String nextHop(String hashID) {
+
     if (localIdb!.nodeid.hashID == hashID) {
+
       return localIdb!.nodeid.hashID; // current node is the root node
 
     }
@@ -237,20 +232,22 @@ class B4RoutingTable {
       List<String> hashIdC = hashID.split('');
       String localNodeId = localIdb!.nodeid.hashID;
       List<String> localNodeIdC = localNodeId.split('');
-      List<int>? distanceHashId;
+      List<int>? distanceHashId=[0,0,0];
       int distanceLocalID;
-      int firstMisMatch = -1;
+      int misMatch = -1;
       int l = -1,
           i = -1;
 
       for (i = 0; i < 40; i++) {
         if (hashIdC[i] != localNodeIdC[i]) {
-          firstMisMatch = i;
+          misMatch = i;
           if (RoutingTable[0][i] == null) {
             for ( l = i; l < 40; l++) {
-              if (RoutingTable[0][l] == null) {
-                l++;
-                i++;
+              if (RoutingTable[0][l] == null || hashIdC[l] == localNodeIdC[l] ) {
+                misMatch++;
+                if(misMatch==40){
+                  return localNodeId;
+                }
               }
               else {
                 l = 40;
@@ -261,43 +258,41 @@ class B4RoutingTable {
         }
       }
 
-      String? preNodeId = RoutingTable[2][i]?.hashID;
-      String? midNodeId = RoutingTable[1][i]?.hashID;
-      String? sucNodeId = RoutingTable[0][i]?.hashID;
+      String? preNodeId = RoutingTable[2][misMatch]?.hashID;
+      String? midNodeId = RoutingTable[1][misMatch]?.hashID;
+      String? sucNodeId = RoutingTable[0][misMatch]?.hashID;
 
       List<String>? preNodeIdC = preNodeId!.split('');
       List<String>? midNodeIdC = midNodeId!.split('');
       List<String>? sucNodeIdC = sucNodeId!.split('');
 
 
-      if (hashIdC[firstMisMatch] != localNodeIdC[firstMisMatch])
-      {
-        distanceHashId![0] = calculateDistance(preNodeIdC[firstMisMatch], hashIdC[firstMisMatch]);
-        distanceHashId[1] = calculateDistance(midNodeIdC[firstMisMatch], hashIdC[firstMisMatch]);
-        distanceHashId[2] = calculateDistance(sucNodeIdC[firstMisMatch], hashIdC[firstMisMatch]);
-        distanceLocalID = calculateDistance(localNodeIdC[firstMisMatch], hashIdC[firstMisMatch]);
+        distanceHashId![0] = calculateDistanceHop(preNodeIdC[misMatch], hashIdC[misMatch]);
+        distanceHashId[1] = calculateDistanceHop(midNodeIdC[misMatch], hashIdC[misMatch]);
+        distanceHashId[2] = calculateDistanceHop(sucNodeIdC[misMatch], hashIdC[misMatch]);
+        distanceLocalID = calculateDistanceHop(localNodeIdC[misMatch], hashIdC[misMatch]);
 
+        int minValue = distanceHashId.reduce((min, current) => current < min ? current : min);
 
-        if (distanceHashId[0] < distanceLocalID && distanceHashId[1] > distanceLocalID && distanceHashId[2] > distanceLocalID)
-        {
-          return preNodeId;
-        }
-        else if (distanceHashId[1] < distanceLocalID && distanceHashId[0] > distanceLocalID && distanceHashId[2] > distanceLocalID) {
-          return midNodeId;
-        }
+        if(distanceHashId.indexOf(minValue)<distanceLocalID){
+             if(distanceHashId.indexOf(minValue)==0){
+               return preNodeId;}
 
-        else if (distanceHashId[2] < distanceLocalID && distanceHashId[1] > distanceLocalID && distanceHashId[0] > distanceLocalID) {
-          return sucNodeId;
-        }
+             if(distanceHashId.indexOf(minValue)==1){
+               return midNodeId;}
 
+             else{
+               return sucNodeId;}
 
         }
-      else {
-        return localNodeId;
-      }
+
+        else{
+          return localNodeId;}
+
+
 
     }
-   throw(e);
+
   }
 
 }

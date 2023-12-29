@@ -8,14 +8,14 @@ import 'package:b4rttable/b4rttable.dart';
 import 'package:pointycastle/api.dart';
 import 'package:basic_utils/basic_utils.dart';
 
-// Written by Sqn Ldr Aman Sharma....
+
 
 void main() {
 
   //LocalNodeID localnd = LocalNodeID();
   LocalNodeID localId;
   localId = LocalNodeID();
-  localId.nodeid.hashID = "357E7DFC3E4616381DACA70A90CDF3C59EA80D32";// setting hash ID of local node ID for testing purposes.
+  localId.nodeid.hashID = "3B7E7DFC3E4616381DACA70A90CDF3C59EA80D32";// setting hash ID of local node ID for testing purposes.
   AsymmetricKeyPair keyPair1 = CryptoUtils.generateRSAKeyPair(keySize: 2048);
   NodeID nodeID=NodeID(keyPair1);
   var rtt = Duration(hours: 0, minutes: 0, seconds: 0,milliseconds: 766);
@@ -211,7 +211,7 @@ void main() {
       print("\n");
       for(int i=0;i<3;i++){
 
-        print("suc,mid,pre node ids after calling put on hold ${b4RoutingTable.RoutingTable[i][1]!.hashID}"); // printing the node id of pre,suc and mid node IDs
+        print("suc,mid,pre node ids after ${b4RoutingTable.RoutingTable[i][1]!.hashID}"); // printing the node id of pre,suc and mid node IDs
 
 
       }
@@ -223,6 +223,81 @@ void main() {
 
 
       expect(result,  nodeID.hashID);
+
+    });
+    test('Testing  function for finding Next Hop when column contains null', () {
+
+      // Arrange
+
+      B4RoutingTable b4RoutingTable = B4RoutingTable(localId);
+      nodeID.hashID="3C3DFF86B4573BAC05C8BD40FAAE7FE4938D3E13";
+      nodeID2.hashID="3AE815704A566EB541D91F5D58DEE4E627D2BB1E";
+      //localID =3B7E7DFC3E4616381DACA70A90CDF3C59EA80D32
+
+      // Act
+      b4RoutingTable.updateNodeID(nodeID, rtt);
+      b4RoutingTable.updateNodeID(nodeID2, rtt2);
+
+      print(b4RoutingTable.RoutingTable);
+      print("\n");
+
+
+      for(int i=0;i<3;i++){
+
+        print("suc,mid,pre node ids before calling put on hold  ${b4RoutingTable.RoutingTable[i][1]!.hashID}"); // printing the node id of pre,suc and mid node IDs before put on hold
+
+
+      }
+     
+
+
+      String result=b4RoutingTable.nextHop("4CE815704A566EB541D91F5D58DEE4E627D2BB1E");
+
+
+      // Assert
+      print("\n");
+
+
+
+      expect(result,  "3C3DFF86B4573BAC05C8BD40FAAE7FE4938D3E13");
+
+    });
+
+    test('Testing  function for finding Next Hop when all column after first mismatch between local id and hashid are null', () {
+
+      // Arrange
+
+      B4RoutingTable b4RoutingTable = B4RoutingTable(localId);
+      nodeID.hashID="3C3DFF86B4573BAC05C8BD40FAAE7FE4938D3E13";
+      nodeID2.hashID="3AE815704A566EB541D91F5D58DEE4E627D2BB1E";
+      //localID =3B7E7DFC3E4616381DACA70A90CDF3C59EA80D32
+
+      // Act
+      b4RoutingTable.updateNodeID(nodeID, rtt);
+      b4RoutingTable.updateNodeID(nodeID2, rtt2);
+
+      print(b4RoutingTable.RoutingTable);
+      print("\n");
+
+
+      for(int i=0;i<3;i++){
+
+        print("suc,mid,pre node ids before calling put on hold  ${b4RoutingTable.RoutingTable[i][1]!.hashID}"); // printing the node id of pre,suc and mid node IDs before put on hold
+
+
+      }
+
+
+
+      String result=b4RoutingTable.nextHop("3BE815704A566EB541D91F5D58DEE4E627D2BB1E");
+
+
+      // Assert
+      print("\n");
+
+
+
+      expect(result,  "3B7E7DFC3E4616381DACA70A90CDF3C59EA80D32");
 
     });
     // Add more tests as needed
