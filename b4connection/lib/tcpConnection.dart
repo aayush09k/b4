@@ -1,105 +1,130 @@
-import 'dart:convert';
-import 'dart:ffi';
 import 'dart:io';
-import 'dart:typed_data';
-import 'stungetip.dart';
+
 
 class TcpClient {
 
-  late Socket _socket;
-  bool _isConnected = false;
-  ServerSocket? _serverSocket;
+    late Socket _socket;
+    bool _isConnected = false;
+    ServerSocket? _serverSocket;
+    Socket? _remoteSocket;
+    bool _isListening = false;
 
-  // Connect to the server
-  Future<void> connect(String ip,int port) async {
-    try {
-      _socket = await Socket.connect(ip, port);
-      _isConnected = true;
-      print('Connected to remoteNode: ${_socket.remoteAddress.address}:${_socket.remotePort}');
-    } on SocketException catch (e) {
-      print('Failed to connect: $e');
-      _isConnected = false;
+    // Connect to the server
+    Future<void> connect(String ip,int port) async {
+        try {
+            _socket = await Socket.connect(ip, port);
+            _isConnected = true;
+            print('Connected to remoteNode: ${_socket.remoteAddress.address}:${_socket.remotePort}');
+        }
+        on SocketException catch (e) {
+            print('Failed to connect: $e');
+            _isConnected = false;
+        }
     }
-  }
 
-  // Start as a server
-  Future<ServerSocket>? startServer() async {
+    // Start as a server
+    Future<void> startServer() async {
 
-    try{_serverSocket = await ServerSocket.bind(InternetAddress.anyIPv6, 0, v6Only: false);}
-    catch(e){
-      print('not able to create server on ipv6 so now creating on ipv4...');
-      _serverSocket = await ServerSocket.bind(InternetAddress.anyIPv4, 0);
+        try {
+            _serverSocket = await ServerSocket.bind(InternetAddress.anyIPv6, 0, v6Only: false);
+            _isListening=true;
+        }
+        catch(e) {
+            print('not able to create server on ipv6 so now creating on ipv4...');
+            _serverSocket = await ServerSocket.bind(InternetAddress.anyIPv4, 0);
+            _isListening=true;
+        }
+        print('Server: started  on port ${_serverSocket!.port}');
+        try {
+            _serverSocket!.listen((socket)  {
+                _remoteSocket=socket;
+                print('RemoteNode is Connected to us from ${socket.remoteAddress.address}:${socket.remotePort}');
+                try {
+                    socket.listen(
+                            (List<int> data)  {
+                            // Convert the received data to a string and trim whitespace
+                            final clientMessage = String.fromCharCodes(data).trim();
+                          print(clientMessage);
+
+                        },
+                        onError: (error) {
+                            print('Server: Error: $error');
+                        },
+                        onDone: () {
+                            print('Server: Client left.');
+                            socket.destroy();
+                        },
+                    );
+                }
+                catch(e) {
+                    print(e);
+                }
+            });
+        }
+        catch(e) {
+            print(e);
+        }
+
+
     }
-    print('Server: started  on port ${_serverSocket!.port}');
 
-    return _serverSocket!;
-  }
+    // Send a message to the server
+    void send(String message) {
 
-  // Send a message to the server
-  void send(String message) {
+        if (!_isConnected) {
+            print('Client is not connected to a server.');
+            return;
+        }
+        else {
+            _socket.write(message);
+        }
 
-    if (!_isConnected) {
-      print('Client is not connected to a server.');
-      return;
     }
-    else{
-      _socket.write(message);}
 
-  }
 
-  // Receive data from the server
-  void receive(Function(String message) onDataReceived) {
-    print('recive function ivoke');
-    if (!_isConnected) {
-      print('Client is not connected to a server.');
-      return;
-    }
-    _socket.listen(
-          ( dynamic data) {
-        print(data);
-        String jsonString = utf8.decode(data);
 
-// Decode the JSON string into a Map<String, dynamic>
-            Map<String, dynamic> dataMap = jsonDecode(jsonString);
+    // Receive data from the server
+    void receive(Function(String message) onDataReceived) {
+        print('recive function ivoke');
+        if (!_isConnected) {
+            print('Client is not connected to a server.');
+            return;
+        }
+        _socket.listen(
+        ( dynamic data) {
+            final serverMessage = String.fromCharCodes(data).trim();
 
-// Now you can access your data
-            String proxyIp = dataMap['proxyIp'];
-            String proxyPort = dataMap['proxyPort'].toString(); // Converting int to String for consistency
-            String yourIp = dataMap['yourIp'];
-            String yourPort = dataMap['yourPort'];
-            String myResponse = dataMap['myResponse'];
-        print('Proxy IP: $proxyIp');
-        print('Proxy Port: $proxyPort');
-        print('Your IP: $yourIp');
-        print('Your Port: $yourPort');
-        print('My Response: $myResponse');
+            print(serverMessage);
+
         },
 
-      onError: (error) {
-        print('Error: $error');
+        onError: (error) {
+            print('Error: $error');
+            _isConnected = false;
+        },
+        onDone: () {
+            print('Server left.');
+            _isConnected = false;
+            _socket.destroy();
+        },
+        );
+    }
+
+    // Close the connection
+    Future<void> disconnect() async {
+        await _socket.close();
         _isConnected = false;
-      },
-      onDone: () {
-        print('Server left.');
-        _isConnected = false;
-        _socket.destroy();
-      },
-    );
-  }
-
-  // Close the connection
-  Future<void> disconnect() async {
-    await _socket.close();
-    _isConnected = false;
-    print('Disconnected from the server');
-  }
+        print('Disconnected from the server');
+    }
 
 
-  bool isConnected()=>_isConnected;
+    bool isConnected()=>_isConnected;
+    Socket? getRemoteSocket()=>_remoteSocket;
+    bool isListening()=>_isListening;
 
-  // Stop the server
-  Future<void> stopServer() async {
-    await _serverSocket?.close();
-    print('Server stopped.');
-  }
+    // Stop the server
+    Future<void> stopServer() async {
+        await _serverSocket?.close();
+        print('Server stopped.');
+    }
 }
