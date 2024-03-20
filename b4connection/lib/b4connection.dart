@@ -27,7 +27,7 @@ class B4connection {
     List<List<String>>? rtTable;
     InternetAddress? targetIp;
     String? ipv4Pub='172.17.85.135';
-    int? ipv4Port=65248;
+    int? ipv4Port=52598;
     final monitor = ConnectivityMonitor();
 
     StunClient stunClient = StunClient();
@@ -104,7 +104,7 @@ Future<void> startServerTcp()async{
         print('layerID not defined');
     }
 
-}
+    }
 
 //Start connection will always call by the initiating peer who wants to connect.
 Future<void>startConnection(targetIp,targetPort) async {
@@ -138,8 +138,8 @@ if(tcpClient.isConnected()){
     tcpClient.send(message);
     reset=1;}
 else if(tcpClient.isListening()) {
-    var remoteSocket = tcpClient.getRemoteSocket();
-    remoteSocket!.write(message);
+var key="dell";
+  tcpClient.sendBackToClient(key,message);
 }
 
 else{

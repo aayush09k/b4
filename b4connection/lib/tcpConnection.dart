@@ -1,13 +1,18 @@
 import 'dart:io';
 
+import 'package:psjapp/stungetip.dart';
+
 
 class TcpClient {
 
     late Socket _socket;
     bool _isConnected = false;
     ServerSocket? _serverSocket;
-    Socket? _remoteSocket;
+    List? _remoteSocket;
     bool _isListening = false;
+    var key;
+    String? message;
+    final stunGet=StunClient();
 
     // Connect to the server
     Future<void> connect(String ip,int port) async {
@@ -37,7 +42,7 @@ class TcpClient {
         print('Server: started  on port ${_serverSocket!.port}');
         try {
             _serverSocket!.listen((socket)  {
-                _remoteSocket=socket;
+
                 print('RemoteNode is Connected to us from ${socket.remoteAddress.address}:${socket.remotePort}');
                 try {
                     socket.listen(
@@ -45,6 +50,20 @@ class TcpClient {
                             // Convert the received data to a string and trim whitespace
                             final clientMessage = String.fromCharCodes(data).trim();
                           print(clientMessage);
+                            List<String> parts = clientMessage.split('|');
+                            // Check if the split operation produced the expected two parts
+                            if (parts.length == 4) {
+                                // Extract individual parts
+                                final action = parts[0];
+                                final ip = parts[1];
+                                final port = parts[2];
+                                   key = parts[3];
+                                   message='${stunGet.getPublicIPv4()}|${socket.port}|';
+                            }
+
+                            else{
+                                print(clientMessage);
+                            }
 
                         },
                         onError: (error) {
@@ -59,6 +78,9 @@ class TcpClient {
                 catch(e) {
                     print(e);
                 }
+
+                _remoteSocket?[key]=socket;
+                sendBackToClient(key,message);
             });
         }
         catch(e) {
@@ -68,6 +90,10 @@ class TcpClient {
 
     }
 
+    void sendBackToClient(key,message){
+        _remoteSocket?[key].write(message);
+
+    }
     // Send a message to the server
     void send(String message) {
 
@@ -119,7 +145,8 @@ class TcpClient {
 
 
     bool isConnected()=>_isConnected;
-    Socket? getRemoteSocket()=>_remoteSocket;
+
+
     bool isListening()=>_isListening;
 
     // Stop the server
