@@ -8,11 +8,12 @@ class TcpClient {
     late Socket _socket;
     bool _isConnected = false;
     ServerSocket? _serverSocket;
-    List? _remoteSocket;
+    final Map<String,Socket> _remoteSocket={};
     bool _isListening = false;
     var key;
     String? message;
     final stunGet=StunClient();
+    var publicIpv4;
 
     // Connect to the server
     Future<void> connect(String ip,int port) async {
@@ -29,10 +30,10 @@ class TcpClient {
 
     // Start as a server
     Future<void> startServer() async {
-
         try {
             _serverSocket = await ServerSocket.bind(InternetAddress.anyIPv6, 0, v6Only: false);
             _isListening=true;
+
         }
         catch(e) {
             print('not able to create server on ipv6 so now creating on ipv4...');
@@ -49,19 +50,42 @@ class TcpClient {
                             (List<int> data)  {
                             // Convert the received data to a string and trim whitespace
                             final clientMessage = String.fromCharCodes(data).trim();
-                          print(clientMessage);
+
                             List<String> parts = clientMessage.split('|');
                             // Check if the split operation produced the expected two parts
+
                             if (parts.length == 4) {
                                 // Extract individual parts
-                                final action = parts[0];
+                                final type = parts[0];
                                 final ip = parts[1];
                                 final port = parts[2];
-                                   key = parts[3];
-                                   message='${stunGet.getPublicIPv4()}|${socket.port}|';
+                                key = parts[3];
+                                if(type=='P'){
+                                    message='$publicIpv4|${socket.port}|I am your proxy server i will let you connect to the world bro';
+                                    _remoteSocket![key]=socket;
+
+                                    sendBackToClient(key,message);}
+                                else{
+                                    _remoteSocket![key]=socket;
+                                    message='your are now directly connected to me as we both are publicly available';
+                                    sendBackToClient(key, message);
+                                }
+
+                            }
+                            else if(parts.length==3){
+                                final key=parts[1];
+                                final message=parts[2];
+                                final type=parts[0];
+                                if(type=='P') {
+                                    sendBackToClient(key, message);
+                                }
+                                else{
+                                    print(clientMessage);
+                                }
                             }
 
                             else{
+                                print('lulu');
                                 print(clientMessage);
                             }
 
@@ -79,8 +103,8 @@ class TcpClient {
                     print(e);
                 }
 
-                _remoteSocket?[key]=socket;
-                sendBackToClient(key,message);
+
+
             });
         }
         catch(e) {
@@ -91,7 +115,8 @@ class TcpClient {
     }
 
     void sendBackToClient(key,message){
-        _remoteSocket?[key].write(message);
+
+        _remoteSocket[key]?.write(message);
 
     }
     // Send a message to the server
@@ -117,22 +142,22 @@ class TcpClient {
             return;
         }
         _socket.listen(
-        ( dynamic data) {
-            final serverMessage = String.fromCharCodes(data).trim();
+                ( dynamic data) {
+                final serverMessage = String.fromCharCodes(data).trim();
 
-            print(serverMessage);
+                print(serverMessage);
 
-        },
+            },
 
-        onError: (error) {
-            print('Error: $error');
-            _isConnected = false;
-        },
-        onDone: () {
-            print('Server left.');
-            _isConnected = false;
-            _socket.destroy();
-        },
+            onError: (error) {
+                print('Error: $error');
+                _isConnected = false;
+            },
+            onDone: () {
+                print('Server left.');
+                _isConnected = false;
+                _socket.destroy();
+            },
         );
     }
 
