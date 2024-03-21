@@ -266,7 +266,7 @@ Future<void> systemInformation() async {
                 print('Behind NAT in ipv4system');
                 layerID=0;
                 tcpClient.relayToNodeKey=null;
-                startConnection(ipv4Pub, ipv4Port, 'MP');
+                startServerTcp();
 
             }
             }
