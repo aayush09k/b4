@@ -153,9 +153,15 @@ class TcpClient {
         _socket.listen(
                 ( dynamic data) {
                 final serverMessage = String.fromCharCodes(data).trim();
+
                 List<String> parts = serverMessage.split('|');
-                relayToNodeKey=parts[3];
-                print(serverMessage);
+                if(parts.length==5) {
+                    relayToNodeKey = parts[3];
+                    print(serverMessage);
+                }
+                else{
+                    print(serverMessage);
+                }
 
             },
 
