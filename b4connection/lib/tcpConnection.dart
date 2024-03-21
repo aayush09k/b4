@@ -10,10 +10,12 @@ class TcpClient {
     ServerSocket? _serverSocket;
     final Map<String,Socket> _remoteSocket={};
     bool _isListening = false;
-    var key;
+    var relayToNodeKey;
     String? message;
     final stunGet=StunClient();
     var publicIpv4;
+    int step=0;
+    var myKey;
 
     // Connect to the server
     Future<void> connect(String ip,int port) async {
@@ -54,21 +56,28 @@ class TcpClient {
                             List<String> parts = clientMessage.split('|');
                             // Check if the split operation produced the expected two parts
 
-                            if (parts.length == 4) {
+                            if (parts.length == 5) {
                                 // Extract individual parts
                                 final type = parts[0];
                                 final ip = parts[1];
                                 final port = parts[2];
-                                key = parts[3];
-                                if(type=='P'){
+                                relayToNodeKey = parts[3];
+                                myKey=parts[4];
+                                if(type=='MP'){
                                     message='$publicIpv4|${socket.port}|I am your proxy server i will let you connect to the world bro';
-                                    _remoteSocket![key]=socket;
+                                    _remoteSocket[myKey]=socket;
+                                    sendBackToClient(myKey,message);}
+                                else if(type=='TP'){
+                                    sendBackToClient(relayToNodeKey,clientMessage);
+                                    message='you can relay your message to the key:$relayToNodeKey';
+                                    sendBackToClient(myKey, message);
 
-                                    sendBackToClient(key,message);}
+                                }
                                 else{
-                                    _remoteSocket![key]=socket;
+                                    step=3; //for terminal app purpose.
+                                    _remoteSocket[myKey]=socket;
                                     message='your are now directly connected to me as we both are publicly available';
-                                    sendBackToClient(key, message);
+                                    sendBackToClient(myKey, message);
                                 }
 
                             }
@@ -76,7 +85,7 @@ class TcpClient {
                                 final key=parts[1];
                                 final message=parts[2];
                                 final type=parts[0];
-                                if(type=='P') {
+                                if(type=='TP') {
                                     sendBackToClient(key, message);
                                 }
                                 else{
@@ -144,7 +153,8 @@ class TcpClient {
         _socket.listen(
                 ( dynamic data) {
                 final serverMessage = String.fromCharCodes(data).trim();
-
+                List<String> parts = serverMessage.split('|');
+                relayToNodeKey=parts[3];
                 print(serverMessage);
 
             },

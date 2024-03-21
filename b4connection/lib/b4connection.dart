@@ -34,7 +34,8 @@ class B4connection {
     bool? chatMode;
     ConnectionType? connectionType;
     String? type;
-    String? key='macbook';
+    String remoteKey='linux';
+    String? myKey='macbook';
 
 
     B4connection(this.stunServer,this.stunPort) {
@@ -110,7 +111,7 @@ Future<void> startServerTcp()async{
 //Start connection will always call by the initiating peer who wants to connect.
 Future<void>startConnection(targetIp,targetPort, T) async {
     // here below you can send the offer and ice candidates to the remote peer and you will switch to Webrtc. you should close tcpserver then.
-    step=3;
+    tcpClient.step=3;
     type=T;
 
     if(reset==0) {
@@ -119,16 +120,16 @@ Future<void>startConnection(targetIp,targetPort, T) async {
 
         switch (layerID) {
         case 0:
-            String toSend = "$type|$_localIPv4|$_publicPortIPv4|$key";
+            String toSend = "$type|$_localIPv4|$_publicPortIPv4|null|$myKey";
             tcpClient.receive((message) => null);
             sendMessage(toSend);
             break;
         case 1:
-            String toSend = "$type|$_publicIPv4|${Listening!.port}|$key";
+            String toSend = "$type|$_publicIPv4|${Listening!.port}|$remoteKey|$myKey";
             sendMessage(toSend);
             break;
         case 2:
-            String toSend = "$type|$_publicIPv6|${Listening!.port}|$key";
+            String toSend = "$type|$_publicIPv6|${Listening!.port}|$remoteKey|$myKey";
             sendMessage(toSend);
             break;
         }
@@ -137,18 +138,44 @@ Future<void>startConnection(targetIp,targetPort, T) async {
 }
 
 void sendMessage(message) {
-    String toSend = "$type|$key|$message";
-if(tcpClient.isConnected()){
-    tcpClient.send(toSend);
-    reset=1;}
-else if(tcpClient.isListening()) {
-var key="dell";
-  tcpClient.sendBackToClient(key,message);
-}
+        var i=0;
+        if(i>0) {
+            if(tcpClient.relayToNodeKey!=null) {
+                String toSend = "$type|${tcpClient.relayToNodeKey}|$message";
+                if (tcpClient.isConnected()) {
+                    tcpClient.send(toSend);
+                    reset = 1;
+                }
+                else if (tcpClient.isListening()) {
+                    var key = "dell";
+                    tcpClient.sendBackToClient(key, message);
+                }
 
-else{
-    print('neither Listening nor connected cant send message');
-}
+                else {
+                    print('neither Listening nor connected cant send message');
+                }
+            }
+            else{
+                String toSend = "$type|$remoteKey|$message";
+                if (tcpClient.isConnected()) {
+                    tcpClient.send(toSend);
+                    reset = 1;
+                }
+                else if (tcpClient.isListening()) {
+                    var key = "dell";
+                    tcpClient.sendBackToClient(key, message);
+                }
+
+                else {
+                    print('neither Listening nor connected cant send message');
+                }
+            }
+        }
+        else{
+            tcpClient.send(message);
+            reset = 1;
+            i++;
+        }
 
 }
 
@@ -238,7 +265,8 @@ Future<void> systemInformation() async {
             case false: {
                 print('Behind NAT in ipv4system');
                 layerID=0;
-                startServerTcp();
+                tcpClient.relayToNodeKey=null;
+                startConnection(ipv4Pub, ipv4Port, 'MP');
 
             }
             }
