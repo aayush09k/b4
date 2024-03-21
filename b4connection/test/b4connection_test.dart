@@ -3,11 +3,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:psjapp/b4connection.dart';
  // Adjust the import path as necessary
-
+enum ConnectionType{P,D}
 Future<void> main() async {
   // Initialize your STUN connection or other setup here
   B4connection b4connection = B4connection('stun.l.google.com', 19302);
-
+  int? targetPort;
 
   // Create a stream subscription to handle each line of input
   StreamSubscription<String>? inputSubscription;
@@ -24,19 +24,24 @@ Future<void> main() async {
         print('your IP invalid enter a valid IP');
        }
     } else if (b4connection.step == 1) { // Second step, expecting port
-          final targetPort = int.tryParse(line);
+           targetPort = int.tryParse(line);
           if (targetPort == null) {
              print('Invalid port. Please enter a valid port number:');
           } else{
             print('Port entered: $targetPort');
+            print('Please enter the ConnectionType');
 
-            await b4connection.startConnection(b4connection.targetIp!.address, targetPort);
 
             b4connection.step=2;
 
           }
     }
-    else if(b4connection.step==2) {
+    else if(b4connection.step==2){
+
+      await b4connection.startConnection(b4connection.targetIp!.address, targetPort,line);
+
+    }
+    else if(b4connection.step==3) {
       if(b4connection.tcpClient.isConnected()) {
         if (line == 'exit') {
           b4connection.tcpClient.disconnect();

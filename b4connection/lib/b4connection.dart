@@ -4,7 +4,7 @@ import 'dart:io';
 import 'connectivity_monitor.dart';
 import 'stungetip.dart';
 import 'tcpConnection.dart';
-
+enum ConnectionType{P,D} //defined for using connection type either P or D.
 class B4connection {
 
 
@@ -27,13 +27,14 @@ class B4connection {
     List<List<String>>? rtTable;
     InternetAddress? targetIp;
     String? ipv4Pub='172.17.85.135';
-    int? ipv4Port=52598;
+    int? ipv4Port=56897;
     final monitor = ConnectivityMonitor();
-
     StunClient stunClient = StunClient();
     ServerSocket? Listening;
     bool? chatMode;
-    Socket? socketMe;
+    ConnectionType? connectionType;
+    String? type;
+    String? key='macbook';
 
 
     B4connection(this.stunServer,this.stunPort) {
@@ -107,25 +108,27 @@ Future<void> startServerTcp()async{
     }
 
 //Start connection will always call by the initiating peer who wants to connect.
-Future<void>startConnection(targetIp,targetPort) async {
+Future<void>startConnection(targetIp,targetPort, T) async {
     // here below you can send the offer and ice candidates to the remote peer and you will switch to Webrtc. you should close tcpserver then.
-    step=2;
+    step=3;
+    type=T;
+
     if(reset==0) {
         print(reset);
         await tcpClient.connect(targetIp, targetPort);
 
         switch (layerID) {
         case 0:
-            String toSend = "D|$_localIPv4|$_publicPortIPv4|macbook";
+            String toSend = "$type|$_localIPv4|$_publicPortIPv4|$key";
             tcpClient.receive((message) => null);
             sendMessage(toSend);
             break;
         case 1:
-            String toSend = "D|$_publicIPv4|${Listening!.port}";
+            String toSend = "$type|$_publicIPv4|${Listening!.port}|$key";
             sendMessage(toSend);
             break;
         case 2:
-            String toSend = "D|$_publicIPv6|${Listening!.port}|dellpublic";
+            String toSend = "$type|$_publicIPv6|${Listening!.port}|$key";
             sendMessage(toSend);
             break;
         }
@@ -134,8 +137,9 @@ Future<void>startConnection(targetIp,targetPort) async {
 }
 
 void sendMessage(message) {
+    String toSend = "$type|$key|$message";
 if(tcpClient.isConnected()){
-    tcpClient.send(message);
+    tcpClient.send(toSend);
     reset=1;}
 else if(tcpClient.isListening()) {
 var key="dell";
@@ -234,7 +238,8 @@ Future<void> systemInformation() async {
             case false: {
                 print('Behind NAT in ipv4system');
                 layerID=0;
-                startConnection(ipv4Pub,ipv4Port);
+                startServerTcp();
+
             }
             }
         }
