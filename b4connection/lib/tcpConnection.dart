@@ -76,13 +76,16 @@ class TcpClient {
                                 }
                                 else{
                                     step=3; //for terminal app purpose.
-
+                                    print(relayToNodeKey);
                                     partGlobal = relayToNodeKey.split('-');
+                                    if(partGlobal!.length==2){
+
                                     final toDo=partGlobal![2];
                                     if(toDo=='GP'){
                                         _remoteSocket['server']=socket;
 
                                     }
+                                   }
                                     else{
                                         _remoteSocket[myKey]=socket;
                                     message='your are now directly connected to me as we both are publicly available';
