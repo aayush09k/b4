@@ -60,14 +60,13 @@ class B4connection {
 //When you are not requesting for connection to someone . then you will be listening in background automatically.
 //function for starting server. if you are publicly available then this function will invoke automatically.
 Future<void> startServerTcp()async{
-    print('layerID=$layerID');
-    print(reset);
+
     print('\nPlease enter the target IP:');
     switch(layerID) {
     case 0: {
         print('server is running for private nodes');
         try {
-            await tcpClient.startServer();
+           Listening= await tcpClient.startServer();
         }
         catch(e) {
             print('problem in socket');
@@ -76,7 +75,7 @@ Future<void> startServerTcp()async{
     }
     case 1:
         try {
-            await tcpClient.startServer();
+            Listening=await tcpClient.startServer();
         }
         catch(e) {
             print('problem in scoket');
@@ -84,19 +83,18 @@ Future<void> startServerTcp()async{
         break;
     case 2:
         try {
-            await tcpClient.startServer();
+            Listening=     await tcpClient.startServer();
         }
         catch(e) {
             print('problem in socket');
         }
         break;
     case 3:
-        await tcpClient.startServer();
-        tcpClient.startServer();
+        Listening=await tcpClient.startServer();
         break;
     case 4:
         try {
-            await tcpClient.startServer();
+            Listening=await tcpClient.startServer();
         }
         catch(e) {
             print('problem in socket');
@@ -165,7 +163,6 @@ void sendMessage(message) {
                     print(remoteKey);
                     if (tcpClient.isConnected()) {
                         tcpClient.send(message);
-                        [p=}_]
                         reset = 1;
                     }
                     else if (tcpClient.isListening()) {

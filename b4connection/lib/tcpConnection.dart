@@ -32,7 +32,7 @@ class TcpClient {
     }
 
     // Start as a server
-    Future<void> startServer() async {
+    Future<ServerSocket?> startServer() async {
         try {
             _serverSocket = await ServerSocket.bind(InternetAddress.anyIPv6, 0, v6Only: false);
             _isListening=true;
@@ -144,7 +144,7 @@ class TcpClient {
             print(e);
         }
 
-
+     return _serverSocket;
     }
 
     void sendBackToClient(key,message){
