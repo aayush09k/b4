@@ -16,6 +16,7 @@ class TcpClient {
     var publicIpv4;
     int step=0;
     var myKey;
+    List<dynamic>? partGlobal;
 
     // Connect to the server
     Future<void> connect(String ip,int port) async {
@@ -75,24 +76,47 @@ class TcpClient {
                                 }
                                 else{
                                     step=3; //for terminal app purpose.
-                                    _remoteSocket[myKey]=socket;
+
+                                    partGlobal = relayToNodeKey.split('-');
+                                    final toDo=partGlobal![2];
+                                    if(toDo=='GP'){
+                                        _remoteSocket['server']=socket;
+
+                                    }
+                                    else{
+                                        _remoteSocket[myKey]=socket;
                                     message='your are now directly connected to me as we both are publicly available';
                                     sendBackToClient(myKey, message);
+                                    }
                                 }
 
                             }
                             else if(parts.length==3){
-                                final key=parts[1];
-                                final message=parts[2];
-                                final type=parts[0];
+                                    final key=parts[1];
+                                    final message=parts[2];
+                                    final type=parts[0];
                                 if(type=='TP') {
                                     sendBackToClient(key, message);
                                 }
-                                else{
+                                else if(type=='MP'){
+                                       List<dynamic> part = message.split('-');
+                                       final ips=part[0];
+                                       final ipPort=part[1];
+                                       final toDo=part[2];
+                                    if(toDo=='GP'){
+                                        String typeNew='D';
+                                        connect(ips, ipPort);
+                                        String toSend='$typeNew|$ips|$ipPort|$message|$myKey';
+                                        send(toSend);
+                                    }
+                                    else {
+                                            send(message);
+                                    }
+                                }
+                                else {
                                     print(clientMessage);
                                 }
                             }
-
                             else{
                                 print('lulu');
                                 print(clientMessage);
@@ -158,9 +182,11 @@ class TcpClient {
                 if(parts.length==5) {
                     relayToNodeKey = parts[3];
                     print(serverMessage);
+                    print(relayToNodeKey);
                 }
                 else{
                     print(serverMessage);
+
                 }
 
             },

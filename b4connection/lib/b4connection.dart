@@ -36,7 +36,7 @@ class B4connection {
     String? type;
     String remoteKey='linux';
     String? myKey='macbook';
-
+    int i=0;
 
     B4connection(this.stunServer,this.stunPort) {
         var i=0;
@@ -120,7 +120,7 @@ Future<void>startConnection(targetIp,targetPort, T) async {
 
         switch (layerID) {
         case 0:
-            String toSend = "$type|$_localIPv4|$_publicPortIPv4|null|$myKey";
+            String toSend = "$type|$_localIPv4|$_publicPortIPv4|$remoteKey|$myKey";
             tcpClient.receive((message) => null);
             sendMessage(toSend);
             break;
@@ -138,45 +138,63 @@ Future<void>startConnection(targetIp,targetPort, T) async {
 }
 
 void sendMessage(message) {
-        var i=0;
-        if(i>0) {
-            if(tcpClient.relayToNodeKey!=null) {
-                String toSend = "$type|${tcpClient.relayToNodeKey}|$message";
-                if (tcpClient.isConnected()) {
-                    tcpClient.send(toSend);
-                    reset = 1;
-                }
-                else if (tcpClient.isListening()) {
-                    var key = "dell";
-                    tcpClient.sendBackToClient(key, message);
-                }
 
+
+            print(type);
+            print(tcpClient.relayToNodeKey);
+            if(i>0) {
+                if (tcpClient.relayToNodeKey != null) {
+                    String toSend = "$type|${tcpClient.relayToNodeKey}|$message";
+                    if (tcpClient.isConnected()) {
+                        tcpClient.send(toSend);
+                        reset = 1;
+                    }
+                    else if (tcpClient.isListening()) {
+                        var key = "dell";
+                        tcpClient.sendBackToClient(key, message);
+                    }
+
+                    else {
+                        print(
+                            'neither Listening nor connected cant send message');
+                    }
+                }
                 else {
-                    print('neither Listening nor connected cant send message');
+                    String toSend = "$type|$remoteKey|$message";
+                    print(type);
+                    print(remoteKey);
+                    if (tcpClient.isConnected()) {
+                        tcpClient.send(message);
+                        [p=}_]
+                        reset = 1;
+                    }
+                    else if (tcpClient.isListening()) {
+                        var key = "dell";
+                        tcpClient.sendBackToClient(key, message);
+                    }
+                    else {
+                        print(
+                            'neither Listening nor connected cant send message');
+                    }
                 }
             }
             else{
-                String toSend = "$type|$remoteKey|$message";
-                if (tcpClient.isConnected()) {
-                    tcpClient.send(toSend);
+                if(tcpClient.partGlobal![2]!=null){
+                   if(tcpClient.partGlobal![2]=='GP'){
+                      String toSend = "TP|${tcpClient.myKey}|$message";
+                      tcpClient.sendBackToClient('server', toSend);}
+                  else{
+                    tcpClient.send(message);
                     reset = 1;
+                    i=2;
+                  }
                 }
-                else if (tcpClient.isListening()) {
-                    var key = "dell";
-                    tcpClient.sendBackToClient(key, message);
-                }
-
                 else {
-                    print('neither Listening nor connected cant send message');
+                        tcpClient.send(message);
+                        reset = 1;
+                        i=2;
                 }
-            }
-        }
-        else{
-            tcpClient.send(message);
-            reset = 1;
-            i++;
-        }
-
+           }
 }
 
     Future<void> getAllIpPort() async{
