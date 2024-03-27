@@ -176,6 +176,7 @@ void sendMessage(message) {
                 }
             }
             else{
+                try{
                 if(tcpClient.partGlobal![2]!=null){
                    if(tcpClient.partGlobal![2]=='GP'){
                       String toSend = "TP|${tcpClient.myKey}|$message";
@@ -190,6 +191,11 @@ void sendMessage(message) {
                         tcpClient.send(message);
                         reset = 1;
                         i=2;
+                }}
+                    catch(e){print(e);
+                    tcpClient.send(message);
+                    reset = 1;
+                    i=2;
                 }
            }
 }
