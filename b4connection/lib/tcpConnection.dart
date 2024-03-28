@@ -15,7 +15,7 @@ class TcpClient {
     final stunGet=StunClient();
     var publicIpv4;
     int step=0;
-    var myKey;
+    String? _myKey;
     List<dynamic>? partGlobal;
 
     // Connect to the server
@@ -63,15 +63,17 @@ class TcpClient {
                                 final ip = parts[1];
                                 final port = parts[2];
                                 relayToNodeKey = parts[3];
-                                myKey=parts[4];
+                                final Key=parts[4];
                                 if(type=='MP'){
                                     message='$publicIpv4|${socket.port}|I am your proxy server i will let you connect to the world bro';
-                                    _remoteSocket[myKey]=socket;
-                                    sendBackToClient(myKey,message);}
+                                    _remoteSocket[Key]=socket;
+                                    _myKey=Key;
+                                    sendBackToClient(Key,message);}
                                 else if(type=='TP'){
                                     sendBackToClient(relayToNodeKey,clientMessage);
                                     message='you can relay your message to the key:$relayToNodeKey';
-                                    sendBackToClient(myKey, message);
+                                    _myKey=Key;
+                                    sendBackToClient(Key, message);
 
                                 }
                                 else{
@@ -87,10 +89,10 @@ class TcpClient {
                                     }
                                    }
                                     else{
-                                        print(myKey);
-                                        _remoteSocket[myKey]=socket;
+                                        _myKey=Key;
+                                        _remoteSocket[Key]=socket;
                                     message='your are now directly connected to me as we both are publicly available';
-                                    sendBackToClient(myKey, message);
+                                    sendBackToClient(Key, message);
                                     }
                                 }
 
@@ -110,7 +112,7 @@ class TcpClient {
                                     if(toDo=='GP'){
                                         String typeNew='D';
                                         connect(ips, ipPort);
-                                        String toSend='$typeNew|$ips|$ipPort|$message|$myKey';
+                                        String toSend='$typeNew|$ips|$ipPort|$message|$_myKey';
                                         send(toSend);
                                     }
                                     else {
@@ -180,7 +182,7 @@ class TcpClient {
         }
         _socket.listen(
                 ( dynamic data) {
-                    print('recevive hua ');
+
                 final serverMessage = String.fromCharCodes(data).trim();
 
                 List<String> parts = serverMessage.split('|');
@@ -215,6 +217,7 @@ class TcpClient {
         print('Disconnected from the server');
     }
 
+    String? Key()=>_myKey;
 
     bool isConnected()=>_isConnected;
 

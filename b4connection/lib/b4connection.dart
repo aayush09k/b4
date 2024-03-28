@@ -139,8 +139,6 @@ Future<void>startConnection(targetIp,targetPort, T) async {
 void sendMessage(message) {
 
 
-            print(type);
-            print(tcpClient.relayToNodeKey);
             if(i>0) {
                 if (tcpClient.relayToNodeKey != null) {
                     String toSend = "$type|${tcpClient.relayToNodeKey}|$message";
@@ -160,8 +158,7 @@ void sendMessage(message) {
                 }
                 else {
                     String toSend = "$type|$remoteKey|$message";
-                    print(type);
-                    print(remoteKey);
+
                     if (tcpClient.isConnected()) {
                         tcpClient.send(message);
                         reset = 1;
@@ -179,7 +176,7 @@ void sendMessage(message) {
             else{
                 try{
                    if(tcpClient.partGlobal![2]=='GP'){
-                      String toSend = "TP|${tcpClient.myKey}|$message";
+                      String toSend = "TP|${tcpClient.Key()}|$message";
                       tcpClient.sendBackToClient('server', toSend);}
                   else{
                     tcpClient.send(message);
@@ -189,9 +186,14 @@ void sendMessage(message) {
 
                 }
                     catch(e){print(e);
+                    if(tcpClient.isConnected()){
                     tcpClient.send(message);
                     reset = 1;
-                    i=2;
+                    i=2;}
+                    else{
+                        var key=tcpClient.Key();
+                        tcpClient.sendBackToClient(key, message);
+                    }
                 }
            }
 }

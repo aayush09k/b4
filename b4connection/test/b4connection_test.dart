@@ -42,10 +42,10 @@ Future<void> main() async {
 
       await b4connection.startConnection(b4connection.targetIp!.address, targetPort,line);
      tcpClient.step=3;
-     print(tcpClient.step);
+
     }
     else if(tcpClient.step==3) {
-      print('step 3 me agya');
+
       if(b4connection.tcpClient.isConnected()) {
         if (line == 'exit') {
           b4connection.tcpClient.disconnect();
