@@ -67,6 +67,7 @@ Future<void> startServerTcp()async{
         print('server is running for private nodes');
         try {
            Listening= await tcpClient.startServer();
+
         }
         catch(e) {
             print('problem in socket');
@@ -109,16 +110,16 @@ Future<void> startServerTcp()async{
 //Start connection will always call by the initiating peer who wants to connect.
 Future<void>startConnection(targetIp,targetPort, T) async {
     // here below you can send the offer and ice candidates to the remote peer and you will switch to Webrtc. you should close tcpserver then.
-    tcpClient.step=3;
+
     type=T;
 
     if(reset==0) {
         print(reset);
         await tcpClient.connect(targetIp, targetPort);
-
+        tcpClient.receive((message) => null);
         switch (layerID) {
         case 0:
-            String toSend = "$type|$_localIPv4|$_publicPortIPv4|$remoteKey|$myKey";
+            String toSend = "$type|$_localIPv4|$_localPortIPv4|null|$myKey";
             tcpClient.receive((message) => null);
             sendMessage(toSend);
             break;
@@ -177,7 +178,6 @@ void sendMessage(message) {
             }
             else{
                 try{
-                if(tcpClient.partGlobal![2]!=null){
                    if(tcpClient.partGlobal![2]=='GP'){
                       String toSend = "TP|${tcpClient.myKey}|$message";
                       tcpClient.sendBackToClient('server', toSend);}
@@ -186,12 +186,8 @@ void sendMessage(message) {
                     reset = 1;
                     i=2;
                   }
+
                 }
-                else {
-                        tcpClient.send(message);
-                        reset = 1;
-                        i=2;
-                }}
                     catch(e){print(e);
                     tcpClient.send(message);
                     reset = 1;

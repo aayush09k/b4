@@ -87,6 +87,7 @@ class TcpClient {
                                     }
                                    }
                                     else{
+                                        print(myKey);
                                         _remoteSocket[myKey]=socket;
                                     message='your are now directly connected to me as we both are publicly available';
                                     sendBackToClient(myKey, message);
@@ -179,6 +180,7 @@ class TcpClient {
         }
         _socket.listen(
                 ( dynamic data) {
+                    print('recevive hua ');
                 final serverMessage = String.fromCharCodes(data).trim();
 
                 List<String> parts = serverMessage.split('|');
