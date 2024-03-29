@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:psjapp/b4connection.dart';
 import 'package:psjapp/tcpConnection.dart';
- // Adjust the import path as necessary
-enum ConnectionType{P,D}
+
+
 Future<void> main() async {
   // Initialize your STUN connection or other setup here
   B4connection b4connection = B4connection('stun.l.google.com', 19302);
