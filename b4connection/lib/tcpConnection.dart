@@ -13,7 +13,7 @@ class TcpClient {
     String? message;
     final stunGet = StunClient();
     var publicIpv4;
-    int step = 0;
+    int? k;
     String? _myKey;
     List<dynamic>? partGlobal;
     int j=0;
@@ -36,7 +36,7 @@ class TcpClient {
     Future<ServerSocket?> startServer() async {
         try {
             _serverSocket =
-            await ServerSocket.bind(InternetAddress.anyIPv6, 0, v6Only: false);
+            await ServerSocket.bind(InternetAddress.anyIPv6, 22300, v6Only: false);
             _isListening = true;
         }
         catch (e) {
@@ -68,22 +68,19 @@ class TcpClient {
                                 relayToNodeKey = parts[3];
                                 final Key = parts[4];
                                 if (type == 'MP') {
-                                    message = '$publicIpv4|${socket
-                                        .port}|I am your proxy server i will let you connect to the world bro';
+                                    message = '$publicIpv4|${socket.port}|I am your proxy server i will let you connect to the world bro';
                                     _remoteSocket[Key] = socket;
                                     _myKey = Key;
                                     sendBackToClient(Key, message);
                                 }
                                 else if (type == 'TP') {
-                                    sendBackToClient(
-                                        relayToNodeKey, clientMessage);
-                                    message =
-                                    'you can relay your message to the key:$relayToNodeKey';
+                                    sendBackToClient(relayToNodeKey, clientMessage);
+                                    message = 'you can relay your message to the key:$relayToNodeKey';
                                     _myKey = Key;
                                     sendBackToClient(Key, message);
                                 }
                                 else {
-                                    step = 3; //for terminal app purpose.
+                                    k = 3; //for terminal app purpose.
                                     print(relayToNodeKey);
                                     partGlobal = relayToNodeKey.split('-');
                                     if (partGlobal!.length == 2) {

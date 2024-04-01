@@ -117,35 +117,36 @@ class B4connection {
         }
     }
 
-//Below function can be use to connect with other peer.Here you have to give the type of connection 'TP(To proxy)','MP(be my proxy)','D'(direct connection).
+//Below function can be use to connect with other peer.Here you have to give the type of connection 'TP(To proxy)','MP(be my proxy)','D'(direct connection),'DTP'(Direct through NAT).
     Future<void> startConnection(targetIp, targetPort, T) async {
         type = T;
-        if (reset == 0) {
-            await tcpClient.connect(targetIp, targetPort);
-            tcpClient.receive((message) => null);
-            switch (natStatus) {
-                case 0:
-                    String toSend = "$type|$_localIPv4|$_localPortIPv4|null|$myKey";
-                    tcpClient.receive((message) => null);
-                    sendMessage(toSend);
-                    break;
-                case 1:
-                    String toSend = "$type|$_publicIPv4|${Listening!
-                        .port}|$remoteKey|$myKey";
-                    sendMessage(toSend);
-                    break;
-                case 2:
-                    String toSend = "$type|$_publicIPv6|${Listening!
-                        .port}|$remoteKey|$myKey";
-                    sendMessage(toSend);
-                    break;
-            }
+        if (T == 'DTN') {
+            tcpClient.connect(targetIp, targetPort);
+            return;
+        }
+        await tcpClient.connect(targetIp, targetPort);
+        tcpClient.receive((message) => null);
+        switch (natStatus) {
+            case 0:
+                String toSend = "$type|$_localIPv4|$_localPortIPv4|null|$myKey";
+                tcpClient.receive((message) => null);
+                sendMessage(toSend);
+                break;
+            case 1:
+                String toSend = "$type|$_publicIPv4|${Listening!
+                    .port}|$remoteKey|$myKey";
+                sendMessage(toSend);
+                break;
+            case 2:
+                String toSend = "$type|$_publicIPv6|${Listening!
+                    .port}|$remoteKey|$myKey";
+                sendMessage(toSend);
+                break;
         }
     }
 
-
-//sendMessage is used to sent message to any node either relayed msg or normal message.
-//For different scenarios message function is developed in such a way that you can send your message to any node.
+   //sendMessage is used to sent message to any node either relayed msg or normal message.
+   //For different scenarios message function is developed in such a way that you can send your message to any node.
     void sendMessage(message) {
         if (M > 0) {
             if (tcpClient.relayToNodeKey != null) {
