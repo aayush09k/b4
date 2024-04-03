@@ -28,6 +28,7 @@ class B4connection {
     InternetAddress? targetIp;
     String? proxyIpv4Pub = '172.17.85.135';
     int? proxyIpv4Port = 56897;
+    int K=0;
 
     ServerSocket? Listening;
     bool? chatMode;
@@ -47,6 +48,7 @@ class B4connection {
         monitor.onConnectivityChanged.listen((interfaces) {
             natStatus = 0;
             reset = 0;
+            M=0;
             if (i > 1) {
                 tcpClient.stopServer();
                 Listening!.close();
@@ -60,8 +62,8 @@ class B4connection {
         });
     }
 
-   //When you are not requesting for connection to someone . then you will be listening in background automatically.
-   //function for starting server. if you are publicly available then this function will invoke automatically according to layerID assigned.
+    //When you are not requesting for connection to someone . then you will be listening in background automatically.
+    //function for starting server. if you are publicly available then this function will invoke automatically according to layerID assigned.
     Future<void> startServerTcp() async {
         switch (natStatus) {
             case 0:
@@ -112,7 +114,7 @@ class B4connection {
                 }
             case null:
                 {
-                    print('layerID not defined');
+                    print('natStatus not defined');
                 }
         }
     }
@@ -120,8 +122,11 @@ class B4connection {
 //Below function can be use to connect with other peer.Here you have to give the type of connection 'TP(To proxy)','MP(be my proxy)','D'(direct connection),'DTP'(Direct through NAT).
     Future<void> startConnection(targetIp, targetPort, T) async {
         type = T;
+        K=3;// for dart terminal app purpose.
         if (T == 'DTN') {
             tcpClient.connect(targetIp, targetPort);
+            String toSend ="$type|$_localIPv4|$_localPortIPv4|null|$myKey";
+            tcpClient.send(toSend);
             return;
         }
         await tcpClient.connect(targetIp, targetPort);
@@ -130,87 +135,63 @@ class B4connection {
             case 0:
                 String toSend = "$type|$_localIPv4|$_localPortIPv4|null|$myKey";
                 tcpClient.receive((message) => null);
-                sendMessage(toSend);
+                tcpClient.send(toSend);
                 break;
             case 1:
                 String toSend = "$type|$_publicIPv4|${Listening!
                     .port}|$remoteKey|$myKey";
-                sendMessage(toSend);
+                tcpClient.send(toSend);
                 break;
             case 2:
                 String toSend = "$type|$_publicIPv6|${Listening!
                     .port}|$remoteKey|$myKey";
-                sendMessage(toSend);
+                tcpClient.send(toSend);
                 break;
         }
     }
 
-   //sendMessage is used to sent message to any node either relayed msg or normal message.
-   //For different scenarios message function is developed in such a way that you can send your message to any node.
+    //sendMessage is used to sent message to any node either relayed msg or normal message.
+    //For different scenarios message function is developed in such a way that you can send your message to any node.
     void sendMessage(message) {
-        if (M > 0) {
-            if (tcpClient.relayToNodeKey != null) {
-                String toSend = "$type|${tcpClient.relayToNodeKey}|$message";
-                if (tcpClient.isConnected()) {
-                    tcpClient.send(toSend);
-                    reset = 1;
+        switch (tcpClient.nodeHandler()) {
+            case 0:
+                {
+                    if (tcpClient.relayToNodeKey != null) {
+                        String toSend='$type|${tcpClient.relayToNodeKey}|$message';
+                        tcpClient.send(toSend);
+                    }
+                    else{
+                        String msg='null-null-$message';
+                        String toSend='$type|${tcpClient.relayToNodeKey}|$msg';
+                        tcpClient.send(toSend);
+                    }
                 }
-                else if (tcpClient.isListening()) {
-                    var key = "dell";
-                    tcpClient.sendBackToClient(key, message);
-                }
-
-                else {
-                    print('neither Listening nor connected cant send message');
-                }
+            case 1:{
+                String toSend='$type|$remoteKey|$message';
+                tcpClient.send(toSend);
             }
-            else {
-                String toSend = "$type|$remoteKey|$message";
+            case 2:{
+                if(tcpClient.isListening()){
+                    String toSend='TP|${tcpClient.relayToNodeKey}|$message';
+                    tcpClient.sendBackToClient('ipv6', toSend);
+                }
 
-                if (tcpClient.isConnected()) {
+            }
+            case 3:{
+                if(tcpClient.isConnected()){
                     tcpClient.send(message);
-                    reset = 1;
+
                 }
-                else if (tcpClient.isListening()) {
-                    var key = "dell";
+                else if(tcpClient.isListening()){
+                    var key=tcpClient.Key();
                     tcpClient.sendBackToClient(key, message);
                 }
-                else {
-                    print(
-                        'neither Listening nor connected cant send message');
-                }
-            }
         }
-        else {
-            try {
-                if (tcpClient.partGlobal![2] == 'GP') {
-                    String toSend = "TP|${tcpClient.Key()}|$message";
-                    tcpClient.sendBackToClient('server', toSend);
-                }
-                else {
-                    tcpClient.send(message);
-                    reset = 1;
-                    M = 2;
-                }
-            }
-            catch (e) {
-                print(e);
-                if (tcpClient.isConnected()) {
-                    tcpClient.send(message);
-                    reset = 1;
-                    M = 2;
-                }
-                else {
-                    var key = tcpClient.Key();
-                    tcpClient.sendBackToClient(key, message);
-                }
-            }
         }
     }
 
     //Putting all the ip and port inside the global variables.
     Future<void> _getAllIpPort() async {
-
         try {
             if (stunClient.getPublicIPv4() != null) {
                 _localIPv4 = stunClient.getLocalIPv4()!.address;
@@ -260,25 +241,29 @@ class B4connection {
             }
         }
     }
-   //Below function is for checking your network environment. According to your network you will be provided a layerID.
-   //Hence after getting a layerID either you will be working as a server or  a leaf node.
-   //You behaving as server can connect with other public node also you can help others to connect(Those are behind NAT) .
+
+    //Below function is for checking your network environment. According to your network you will be provided a layerID.
+    //Hence after getting a layerID either you will be working as a server or  a leaf node.
+    //You behaving as server can connect with other public node also you can help others to connect(Those are behind NAT) .
     Future<void> getNetworkInformation() async {
         //Start connection with STUN server for all the network information.
         //first try to connect to stun server by ipv4 and ipv6 both one by one.
         try {
             await stunClient.initializeIpv4();
             await stunClient.fetchPublicIPIpv4(stunServer, stunPort);
-            await stunClient.closeIpv4();//After getting information closed immediately.
+            await stunClient
+                .closeIpv4(); //After getting information closed immediately.
             stunClient.N = 2;
             stunClient.resetIP();
             try {
                 await stunClient.initializeIpv6();
                 await stunClient.fetchPublicIPIpv6(stunServer, stunPort);
-                await stunClient.closeIpv6();//After getting information closed immediately.
+                await stunClient
+                    .closeIpv6(); //After getting information closed immediately.
             }
             catch (e) {
-                  print('Node can not bind to both at a time . Node is not on dual network ');
+                print(
+                    'Node can not bind to both at a time . Node is not on dual network ');
             }
         }
         catch (e) {
@@ -287,7 +272,8 @@ class B4connection {
                 //error connecting by ipv4 hence shift to ipv6.
                 await stunClient.initializeIpv6();
                 await stunClient.fetchPublicIPIpv6(stunServer, stunPort);
-                await stunClient.closeIpv6(); //After getting information closed immediately.
+                await stunClient
+                    .closeIpv6(); //After getting information closed immediately.
                 //Below logic is implemented to making previous values of ip and port null.
                 stunClient.N = 0;
                 stunClient.resetIP();
