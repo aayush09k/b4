@@ -64,7 +64,7 @@ class B4connection {
 
     //When you are not requesting for connection to someone . then you will be listening in background automatically.
     //function for starting server. if you are publicly available then this function will invoke automatically according to layerID assigned.
-    Future<void> startServerTcp() async {
+    Future<void> _startServerTcp() async {
         switch (natStatus) {
             case 0:
                 {
@@ -122,7 +122,7 @@ class B4connection {
 //Below function can be use to connect with other peer.Here you have to give the type of connection 'TP(To proxy)','MP(be my proxy)','D'(direct connection),'DTP'(Direct through NAT).
     Future<void> startConnection(targetIp, targetPort, T) async {
         type = T;
-        K=3;// for dart terminal app purpose.
+        K=4;// for dart terminal app purpose.
         if (T == 'DTN') {
             tcpClient.connect(targetIp, targetPort);
             String toSend ="$type|$_localIPv4|$_localPortIPv4|null|$myKey";
@@ -153,6 +153,7 @@ class B4connection {
     //sendMessage is used to sent message to any node either relayed msg or normal message.
     //For different scenarios message function is developed in such a way that you can send your message to any node.
     void sendMessage(message) {
+        print('tcpclientnodehandler=${tcpClient.nodeHandler()}');
         switch (tcpClient.nodeHandler()) {
             case 0:
                 {
@@ -211,7 +212,7 @@ class B4connection {
         catch (e) {
             print('error in getting all ports');
         }
-        printAllPort();
+        _printAllPort();
     }
 
     //This below function will check whether node is behind NAT or not  also public availability.
@@ -220,7 +221,7 @@ class B4connection {
         if (_publicIPv6 != null) {
             print('System is on ipv6 ');
             natStatus = 2;
-            startServerTcp();
+            _startServerTcp();
         }
         else {
             switch (stunClient.NATcheckIpv4()) {
@@ -228,7 +229,7 @@ class B4connection {
                     {
                         print('Not behind NAT in ipv4 system');
                         natStatus = 1;
-                        startServerTcp();
+                        _startServerTcp();
                         break;
                     }
                 case false:
@@ -236,7 +237,7 @@ class B4connection {
                         print('Behind NAT in ipv4system');
                         natStatus = 0;
                         tcpClient.relayToNodeKey = null;
-                        startServerTcp();
+                        startConnection(proxyIpv4Pub,proxyIpv4Port,'MP');
                     }
             }
         }
@@ -293,7 +294,7 @@ class B4connection {
         monitor.dispose();
     }
 
-    void printAllPort() {
+    void _printAllPort() {
         print('PUBLIC IPV4=${stunClient
             .getPublicIPv4()}, PUBLIC IPV4 PORT=${stunClient
             .getPublicPortIPv4()}');

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:psjapp/b4connection.dart';
-import 'package:psjapp/tcpConnection.dart';
 
 
 Future<void> main() async {
@@ -14,11 +13,20 @@ Future<void> main() async {
 
   // Create a stream subscription to handle each line of input
   StreamSubscription<String>? inputSubscription;
-
+  print('type anything to start');
   inputSubscription =
       stdin.transform(utf8.decoder).transform(const LineSplitter()).listen((
           String line) async {
-        if (b4connection.K == 0) { // First step, expecting IP address
+        if(b4connection.K==0){
+          if(b4connection.tcpClient.nodeHandler()!=null){
+            b4connection.K=4;
+          }
+          else{
+            b4connection.K=1;
+            print('enter target IP');
+          }
+        }
+        else if (b4connection.K == 1) { // First step, expecting IP address
           b4connection.targetIp = InternetAddress.tryParse(line);
           if (b4connection.targetIp != null) {
             print('IPv4  entered: ${b4connection.targetIp!.address}');
@@ -28,7 +36,7 @@ Future<void> main() async {
           else {
             print('your IP invalid enter a valid IP');
           }
-        } else if (b4connection.K == 1) { // Second step, expecting port
+        } else if (b4connection.K == 2) { // Second step, expecting port
           targetPort = int.tryParse(line);
           if (targetPort == null) {
             print('Invalid port. Please enter a valid port number:');
@@ -40,12 +48,12 @@ Future<void> main() async {
             b4connection.K = 2;
           }
         }
-        else if (b4connection.K == 2) {
+        else if (b4connection.K == 3) {
           await b4connection.startConnection(
               b4connection.targetIp!.address, targetPort, line);
           b4connection.K = 3;
         }
-        else if (b4connection.K == 3) {
+        else if (b4connection.K == 4) {
           print(
               'want to connect to some public node , then press c.if you are publicly connected to some node then press n');
 
@@ -54,11 +62,11 @@ Future<void> main() async {
             print('enter target IP');
           }
           else {
-            b4connection.K = 4;
+            b4connection.K = 5;
             print('go send message to connected node');
           }
         }
-        else if (b4connection.K == 4) {
+        else if (b4connection.K == 5) {
           if (b4connection.tcpClient.isConnected()) {
             if (line == 'exit') {
               b4connection.tcpClient.disconnect();
@@ -66,8 +74,19 @@ Future<void> main() async {
             }
             else {
               b4connection.sendMessage(line);
-              print('send ho rha be');
+
             }
+          }
+          else if(b4connection.tcpClient.isListening()){
+            if (line == 'exit') {
+              b4connection.tcpClient.stopServer();
+              b4connection.K = 0;
+            }
+            else {
+              b4connection.sendMessage(line);
+
+            }
+
           }
           else {
             print('not connected again enter proper IP');

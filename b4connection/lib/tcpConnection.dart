@@ -13,7 +13,6 @@ class TcpClient {
     String? message;
     final stunGet = StunClient();
     var publicIpv4;
-    int? k;
     String? _myKey;
     List<dynamic>? partGlobal;
     int j = 0;
@@ -38,7 +37,7 @@ class TcpClient {
         try {
             _serverSocket =
             await ServerSocket.bind(
-                InternetAddress.anyIPv6, 22300, v6Only: false);
+                InternetAddress.anyIPv6, 0, v6Only: false);
             _isListening = true;
         }
         catch (e) {
@@ -177,7 +176,7 @@ class TcpClient {
 
     // Send a message to the server
     void send(String message) {
-        List<dynamic> split = message.split('-');
+        List<dynamic> split = message.split('|');
         switch(split[0]){
             case 'MP': _nodeHandler=0;
             case 'TP':_nodeHandler=1;
