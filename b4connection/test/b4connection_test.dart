@@ -24,6 +24,7 @@ Future<void> main() async {
           else{
             b4connection.K=1;
             print('enter target IP');
+
           }
         }
         else if (b4connection.K == 1) { // First step, expecting IP address
@@ -31,7 +32,7 @@ Future<void> main() async {
           if (b4connection.targetIp != null) {
             print('IPv4  entered: ${b4connection.targetIp!.address}');
             print('Please enter the target port:');
-            b4connection.K = 1;
+            b4connection.K = 2;
           }
           else {
             print('your IP invalid enter a valid IP');
@@ -45,13 +46,13 @@ Future<void> main() async {
             print('Please enter the ConnectionType');
 
 
-            b4connection.K = 2;
+            b4connection.K = 3;
           }
         }
         else if (b4connection.K == 3) {
           await b4connection.startConnection(
               b4connection.targetIp!.address, targetPort, line);
-          b4connection.K = 3;
+          b4connection.K = 4;
         }
         else if (b4connection.K == 4) {
           print(
