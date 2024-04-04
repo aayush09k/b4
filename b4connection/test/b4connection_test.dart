@@ -20,6 +20,7 @@ Future<void> main() async {
         if(b4connection.K==0){
           if(b4connection.tcpClient.nodeHandler()!=null){
             b4connection.K=4;
+            print('want to connect to some public node , then press c.if you are publicly connected to some node then press n');
           }
           else{
             b4connection.K=1;
@@ -53,18 +54,21 @@ Future<void> main() async {
           await b4connection.startConnection(
               b4connection.targetIp!.address, targetPort, line);
           b4connection.K = 4;
+          print('want to connect to some public node , then press c.if you are publicly connected to some node then press n');
         }
         else if (b4connection.K == 4) {
-          print(
-              'want to connect to some public node , then press c.if you are publicly connected to some node then press n');
+
 
           if (line == 'c') {
             b4connection.K = 0;
             print('enter target IP');
           }
-          else {
+          else if(line=='n'){
             b4connection.K = 5;
             print('go send message to connected node');
+          }
+          else{
+            print('enter proper input');
           }
         }
         else if (b4connection.K == 5) {
