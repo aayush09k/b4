@@ -4,27 +4,33 @@ import 'package:psjapp/stungetip.dart';
 
 class TcpClient {
 
-    final Map<int, Socket> _socket = {};
+    final stunGet = StunClient();
+    final Map<int, Socket> _socket = {}; // Sockets as Map. so that we can differentiate connected clients.
     bool _isConnected = false;
     ServerSocket? _serverSocket;
-    final Map<String, Socket> _remoteSocket = {};
+
+    final Map<String, Socket> _remoteSocket = {}; // To save all remote Sockets.
     bool _isListening = false;
-    var relayToNodeKey;
-    String? message;
-    final stunGet = StunClient();
-    var publicIpv4;
-    String? _myKey;
+    dynamic relayToNodeKey; //The receiving node sets a unique node key to facilitate the  brokering of messages from the proxy server.
+
+
+    String? _message;
+    dynamic _publicIpv4;
+    String? _connectionKey;
+
     List<dynamic>? partGlobal;
-    int j = 0;
+    int _j = 0;
     int? _nodeHandler;
+    int? _relayCount;
 
     // Connect to the server
-    Future<void> connect(String ip, int port) async {
+    Future<void> connect( ip,  port) async {
+        _nodeHandler=null;
         try {
-            _socket[j] = await Socket.connect(ip, port);
+            _socket[_j] = await Socket.connect(ip, port);
             _isConnected = true;
-            print('Connected to remoteNode: ${_socket[j]!.remoteAddress
-                .address}:${_socket[j]!.remotePort}');
+            print('Connected to remoteNode: ${_socket[_j]!.remoteAddress
+                .address}:${_socket[_j]!.remotePort}');
         }
         on SocketException catch (e) {
             print('Failed to connect: $e');
@@ -34,6 +40,7 @@ class TcpClient {
 
     // Start as a server
     Future<ServerSocket?> startServer() async {
+        _nodeHandler=null;
         try {
             _serverSocket =
             await ServerSocket.bind(
@@ -69,25 +76,26 @@ class TcpClient {
                                 relayToNodeKey = parts[3];
                                 final Key = parts[4];
                                 if (type == 'MP') {
-                                    message = '$publicIpv4|${socket.port}|I am your proxy server i will let you connect to the world bro';
+                                    _message = '$_publicIpv4|${socket.port}|I am your proxy server i will let you connect to the world bro';
                                     _remoteSocket[Key] = socket;
-                                    _myKey = Key;
-                                    sendBackToClient(Key, message);
+                                    _connectionKey = Key;
+                                    sendBackToClient(Key, _message);
                                     _nodeHandler = 0;
                                 }
                                 else if (type=='DTN'){
-                                    _myKey = Key;
+                                    _connectionKey = Key;
                                     _remoteSocket[Key] = socket;
-                                    message = 'your are now directly connected to me as we both are publicly available';
-                                    sendBackToClient(Key, message);
+                                    _message = 'your are now directly connected to me as we both are publicly available';
+                                    sendBackToClient(Key, _message);
                                     _nodeHandler = 3;
                                 }
                                 else if (type == 'TP') {
+                                    _relayCount=1;
                                     sendBackToClient(relayToNodeKey, clientMessage);
                                     _remoteSocket[Key]= socket;
-                                    message = 'you can relay your message to the key:$relayToNodeKey';
-                                    _myKey = Key;
-                                    sendBackToClient(Key, message);
+                                    _message = 'you can relay your message to the key:$relayToNodeKey';
+                                    _connectionKey = Key;
+                                    sendBackToClient(Key, _message);
                                     _nodeHandler = 1;
                                 }
                                 else {
@@ -99,16 +107,16 @@ class TcpClient {
                                         if (toDo == 'GP') {
                                             _remoteSocket['ipv6'] = socket;
                                             var msg='you can relay message to me through your proxy node';
-                                            String toSend='TP|$_myKey|$msg';
+                                            String toSend='TP|$_connectionKey|$msg';
                                             sendBackToClient('ipv6', toSend);
                                             _nodeHandler = 2;
                                         }
                                     }
                                     else {
-                                        _myKey = Key;
+                                        _connectionKey= Key;
                                         _remoteSocket[Key] = socket;
-                                        message = 'your are now directly connected to me as we both are publicly available';
-                                        sendBackToClient(Key, message);
+                                        _message = 'your are now directly connected to me as we both are publicly available';
+                                        sendBackToClient(Key, _message);
                                         _nodeHandler = 3;
                                     }
                                 }
@@ -124,12 +132,15 @@ class TcpClient {
                                     List<dynamic> part = message.split('-');
                                     if (part.length == 3) {
                                         final ips = part[0];
+                                        print(ips);
                                         final ipPort = part[1];
+                                        print(ipPort);
                                         final toDo = part[2];
+                                        print(toDo);
                                         if (toDo == 'GP') {
                                             String typeNew = 'D';
                                             connect(ips, ipPort);
-                                            String toSend = '$typeNew|$ips|$ipPort|$message|$_myKey';
+                                            String toSend = '$typeNew|$ips|$ipPort|$message|$_connectionKey';
                                             send(toSend);
                                         }
                                         else {
@@ -137,7 +148,13 @@ class TcpClient {
                                         }
                                     }
                                     else {
-                                        sendBackToClient(key, message);
+                                        if(_isConnected) {
+                                            sendBackToClient(key, message);
+                                        }
+                                        else{
+                                            String toSend='you are not connected to ipv6 node ';
+                                            sendBackToClient(_connectionKey,toSend);
+                                        }
                                     }
                                 }
                                 else {
@@ -153,6 +170,13 @@ class TcpClient {
                         },
                         onDone: () {
                             print('Server: Client left.');
+                            if (_relayCount!=0) {
+                            String? toSend = 'client of ${socket
+                                .address} left.';
+                            sendBackToClient(_connectionKey, toSend);
+
+                            sendBackToClient(relayToNodeKey, toSend);
+                        }
                             socket.close();
                         },
                     );
@@ -188,11 +212,14 @@ class TcpClient {
             return;
         }
         else {
-            _socket[j]!.write(message);
+            _socket[_j]!.write(message);
         }
     }
 
-
+   void remoteSocketCloses(key){
+    _remoteSocket[key]!.close();
+    _connectionKey=null;
+   }
     // Receive data from the server
     void receive(Function(String message) onDataReceived) {
         print('recive function ivoke');
@@ -200,7 +227,7 @@ class TcpClient {
             print('Client is not connected to a server.');
             return;
         }
-        _socket[j]!.listen(
+        _socket[_j]!.listen(
                 (dynamic data) {
                 final serverMessage = String.fromCharCodes(data).trim();
 
@@ -221,19 +248,20 @@ class TcpClient {
             onDone: () {
                 print('Server left.');
                 _isConnected = false;
-                _socket[j]!.close();
+                _socket[_j]!.close();
             },
         );
     }
 
     // Close the connection
     Future<void> disconnect() async {
-        await _socket[j]!.close();
+        await _socket[_j]!.close();
         _isConnected = false;
+        _nodeHandler=null;
         print('Disconnected from the server');
     }
 
-    String? Key() => _myKey;
+    String? Key() => _connectionKey;
 
     bool isConnected() => _isConnected;
 
@@ -244,6 +272,8 @@ class TcpClient {
     // Stop the server
     Future<void> stopServer() async {
         await _serverSocket?.close();
+        _isListening=false;
         print('Server stopped.');
+        _nodeHandler=null;
     }
 }

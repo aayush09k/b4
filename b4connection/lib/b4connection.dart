@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'connectivity_monitor.dart';
 import 'stungetip.dart';
@@ -26,8 +25,8 @@ class B4connection {
     String? remoteOffer;
 
     InternetAddress? targetIp;
-    String? proxyIpv4Pub = '172.17.85.135';
-    int? proxyIpv4Port = 56897;
+    String? proxyIpv4Pub = '35.185.142.164';
+    int? proxyIpv4Port = 22300;
     int K=0;
 
     ServerSocket? Listening;
@@ -36,6 +35,7 @@ class B4connection {
     String remoteKey = 'linux';
     String? myKey = 'macbook';
     int M = 0; //for Handling sendMessage function for different kinds of scenarios.
+    int interface=0;
 
     //Instance of class used.
     final monitor = ConnectivityMonitor();
@@ -44,17 +44,17 @@ class B4connection {
 
 
     B4connection(this.stunServer, this.stunPort) {
-        var i = 0;
         monitor.onConnectivityChanged.listen((interfaces) {
             natStatus = 0;
             reset = 0;
             M=0;
-            if (i > 1) {
+            if (interface>= 1) {
+                if(tcpClient.isListening()){
                 tcpClient.stopServer();
-                Listening!.close();
+                Listening!.close();}
             }
             getNetworkInformation();
-            i++;
+            interface=2;
             print('Network interfaces changed');
             for (var interface in interfaces) {
                 print('Interface: ${interface.name}');
@@ -118,7 +118,11 @@ class B4connection {
                 }
         }
     }
-
+   void remoteSocketClose(){
+        if(tcpClient.Key()!=null) {
+            tcpClient.remoteSocketCloses(tcpClient.Key());
+        }
+   }
 //Below function can be use to connect with other peer.Here you have to give the type of connection 'TP(To proxy)','MP(be my proxy)','D'(direct connection),'DTP'(Direct through NAT).
     Future<void> startConnection(targetIp, targetPort, T) async {
         type = T;
@@ -162,8 +166,7 @@ class B4connection {
                         tcpClient.send(toSend);
                     }
                     else{
-                        String msg='null-null-$message';
-                        String toSend='$type|${tcpClient.relayToNodeKey}|$msg';
+                        String toSend='$type|${tcpClient.relayToNodeKey}|$message';
                         tcpClient.send(toSend);
                     }
                 }
@@ -243,6 +246,7 @@ class B4connection {
         }
     }
 
+
     //Below function is for checking your network environment. According to your network you will be provided a layerID.
     //Hence after getting a layerID either you will be working as a server or  a leaf node.
     //You behaving as server can connect with other public node also you can help others to connect(Those are behind NAT) .
@@ -265,6 +269,8 @@ class B4connection {
             catch (e) {
                 print(
                     'Node can not bind to both at a time . Node is not on dual network ');
+                stunClient.N=2;
+                stunClient.resetIP();
             }
         }
         catch (e) {

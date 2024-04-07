@@ -13,7 +13,7 @@ Future<void> main() async {
 
   // Create a stream subscription to handle each line of input
   StreamSubscription<String>? inputSubscription;
-  print('type anything to start');
+
   inputSubscription =
       stdin.transform(utf8.decoder).transform(const LineSplitter()).listen((
           String line) async {
@@ -31,7 +31,7 @@ Future<void> main() async {
         else if (b4connection.K == 1) { // First step, expecting IP address
           b4connection.targetIp = InternetAddress.tryParse(line);
           if (b4connection.targetIp != null) {
-            print('IPv4  entered: ${b4connection.targetIp!.address}');
+            print('Ip  entered: ${b4connection.targetIp!.address}');
             print('Please enter the target port:');
             b4connection.K = 2;
           }
@@ -72,10 +72,14 @@ Future<void> main() async {
           }
         }
         else if (b4connection.K == 5) {
-          if (b4connection.tcpClient.isConnected()) {
+          if(line=='connect'){
+            b4connection.K=1;
+            print('write Target IP');
+          }
+          else if (b4connection.tcpClient.isConnected()) {
             if (line == 'exit') {
               b4connection.tcpClient.disconnect();
-              b4connection.K = 0;
+              b4connection.K = 1;
             }
             else {
               b4connection.sendMessage(line);
@@ -84,8 +88,8 @@ Future<void> main() async {
           }
           else if(b4connection.tcpClient.isListening()){
             if (line == 'exit') {
-              b4connection.tcpClient.stopServer();
-              b4connection.K = 0;
+              b4connection.remoteSocketClose();
+              b4connection.K = 1;
             }
             else {
               b4connection.sendMessage(line);
@@ -95,7 +99,7 @@ Future<void> main() async {
           }
           else {
             print('not connected again enter proper IP');
-            b4connection.K = 0;
+            b4connection.K = 1;
           }
         }
       }, onDone: () {
