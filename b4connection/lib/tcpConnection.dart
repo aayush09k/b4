@@ -138,9 +138,9 @@ class TcpClient {
                                         final toDo = part[2];
                                         print(toDo);
                                         if (toDo == 'GP') {
-                                            String typeNew = 'D';
+                                            print('i am inside GP');
                                             connect(ips, ipPort);
-                                            String toSend = '$typeNew|$ips|$ipPort|$message|$_connectionKey';
+                                            String toSend = 'D|$ips|$ipPort|$message|$_connectionKey';
                                             send(toSend);
                                         }
                                         else {

@@ -138,7 +138,6 @@ class B4connection {
         switch (natStatus) {
             case 0:
                 String toSend = "$type|$_localIPv4|$_localPortIPv4|null|$myKey";
-                tcpClient.receive((message) => null);
                 tcpClient.send(toSend);
                 break;
             case 1:
