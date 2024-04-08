@@ -26,7 +26,7 @@ class B4connection {
 
     InternetAddress? targetIp;
     String? proxyIpv4Pub = '35.185.142.164';
-    int? proxyIpv4Port = 22300;
+    int? proxyIpv4Port = 22355;
     int K=0;
 
     ServerSocket? Listening;
@@ -125,10 +125,13 @@ class B4connection {
    }
 //Below function can be use to connect with other peer.Here you have to give the type of connection 'TP(To proxy)','MP(be my proxy)','D'(direct connection),'DTP'(Direct through NAT).
     Future<void> startConnection(targetIp, targetPort, T) async {
+        if(tcpClient.isConnected()){
+            tcpClient.disconnect();
+        }
         type = T;
         K=4;// for dart terminal app purpose.
         if (T == 'DTN') {
-            tcpClient.connect(targetIp, targetPort);
+            await tcpClient.connect(targetIp, targetPort);
             String toSend ="$type|$_localIPv4|$_localPortIPv4|null|$myKey";
             tcpClient.send(toSend);
             return;
@@ -137,7 +140,7 @@ class B4connection {
         tcpClient.receive((message) => null);
         switch (natStatus) {
             case 0:
-                String toSend = "$type|$_localIPv4|$_localPortIPv4|null|$myKey";
+                String toSend = "$type|$_localIPv4|$_localPortIPv4|$remoteKey|$myKey";
                 tcpClient.send(toSend);
                 break;
             case 1:
@@ -163,9 +166,11 @@ class B4connection {
                     if (tcpClient.relayToNodeKey != null) {
                         String toSend='$type|${tcpClient.relayToNodeKey}|$message';
                         tcpClient.send(toSend);
+                        print('yha hu me ');
                     }
                     else{
-                        String toSend='$type|${tcpClient.relayToNodeKey}|$message';
+
+                        String toSend='$type|${tcpClient.relayToNodeKey}|$myKey|$message';
                         tcpClient.send(toSend);
                     }
                 }
