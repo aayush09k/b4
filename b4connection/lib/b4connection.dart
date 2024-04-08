@@ -26,7 +26,7 @@ class B4connection {
 
     InternetAddress? targetIp;
     String? proxyIpv4Pub = '35.185.142.164';
-    int? proxyIpv4Port = 22355;
+    int? proxyIpv4Port = 22350;
     int K=0;
 
     ServerSocket? Listening;

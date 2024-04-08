@@ -60,7 +60,7 @@ Future<void> main() async {
 
 
           if (line == 'c') {
-            b4connection.K = 0;
+            b4connection.K = 1;
             print('enter target IP');
           }
           else if(line=='n'){

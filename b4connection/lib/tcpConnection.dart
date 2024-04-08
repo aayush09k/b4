@@ -94,10 +94,10 @@ class TcpClient {
                                 }
                                 else if (type == 'TP') {
                                     _relayCount = 1;
-                                    sendBackToClient(NodeKey, clientMessage);
+                                     sendBackToClient(NodeKey, clientMessage);
                                     _remoteSocket[Key] = socket;
                                     _message =
-                                    'you can relay your message to the key:$relayToNodeKey';
+                                    'you can relay your message to the key:$NodeKey';
                                     _connectionKey = Key;
                                     sendBackToClient(Key, _message);
                                     _nodeHandler = 1;
