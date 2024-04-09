@@ -77,8 +77,8 @@ class TcpClient {
                                 final NodeKey = parts[3];
                                 final Key = parts[4];
                                 if (type == 'MP') {
-                                    _message = '$_publicIpv4|${socket
-                                        .port}|I am your proxy server i will let you connect to the world bro';
+                                    _message = '${stunGet.getPublicIPv4()}|${socket
+                                        .port}|I am your proxy server i will let you connect to the world bro . \n Please press any key to continue.';
                                     _remoteSocket[Key] = socket;
                                     _connectionKey = Key;
                                     sendBackToClient(Key, _message);
@@ -179,13 +179,6 @@ class TcpClient {
                         },
                         onDone: () {
                             print('Server: Client left.');
-                            if (_relayCount != 0) {
-                                String? toSend = 'client of ${socket
-                                    .address.toString()} left.';
-                                sendBackToClient(_connectionKey, toSend);
-                                sendBackToClient(relayToNodeKey, toSend);
-                                _relayCount = 0;
-                            }
                             socket.close();
                         },
                     );
@@ -251,7 +244,18 @@ class TcpClient {
                     print(serverMessage);
                     print(relayToNodeKey);
                 }
-                else {
+                else if(parts.length==2){
+
+                 if(parts[1]=='disconnect')
+                     {
+                         relayToNodeKey=null;
+                     }
+                 else{
+                     print(serverMessage);
+                 }
+
+                }
+                else{
                     print(serverMessage);
                 }
             },
@@ -269,11 +273,12 @@ class TcpClient {
 
     // Close the connection
     Future<void> disconnect() async {
-        // await _socket[_j]!.close();
-        _socket[_j]!.destroy();
+        await _socket[_j]!.close();
+       // _socket[_j]!.destroy();
         _isConnected = false;
         _nodeHandler = null;
         print('Disconnected from the proxy');
+        relayToNodeKey=null;
     }
 
     String? Key() => _connectionKey;

@@ -20,12 +20,12 @@ Future<void> main() async {
           String line) async {
         if(b4connection.K==0){
           if(b4connection.tcpClient.nodeHandler()!=null){
-            b4connection.K=4;
+            b4connection.K=6;
             print('want to connect to some public node , then press c.if you are publicly connected to some node then press n');
           }
           else{
             b4connection.K=1;
-            print('enter target IP');
+            print('If you want to connect to Behind NAT node then enter Proxy Target IP. If you want to connect to public node then enter target IP');
 
           }
         }
@@ -83,7 +83,7 @@ Future<void> main() async {
 
           if (line == 'c') {
             b4connection.K = 1;
-            print('if you want to connect to Behind NAT node then enter Proxy Address. If you want to connect to public node then enter target Address');
+            print('If you want to connect to Behind NAT node then enter Proxy Target IP. If you want to connect to public node then enter target IP');
           }
           else if(line=='n'){
             b4connection.K = 7;
@@ -96,11 +96,11 @@ Future<void> main() async {
         else if (b4connection.K == 7) {
           if(line=='connect'){
             b4connection.K=1;
-            print('if you want to connect to Behind NAT node then enter Proxy Address. If you want to connect to public node then enter target Address');
+            print('If you want to connect to Behind NAT node then enter Proxy Target IP. If you want to connect to public node then enter target IP');
           }
           else if (b4connection.tcpClient.isConnected()) {
             if (line == 'exit') {
-              b4connection.tcpClient.disconnect();
+              b4connection.disconnectFromRemoteNode();
               b4connection.K = 1;
             }
             else {

@@ -127,6 +127,11 @@ class B4connection {
             tcpClient.remoteSocketCloses(tcpClient.Key());
         }
    }
+   void disconnectFromRemoteNode(){
+        String toSend='relay|Disconnect';
+        sendMessage(toSend);
+        tcpClient.disconnect();
+   }
 //Below function can be use to connect with other peer.Here you have to give the type of connection 'TP(To proxy)','MP(be my proxy)','D'(direct connection),'DTP'(Direct through NAT).
     Future<void> startConnection(targetIp, targetPort, T) async {
         if(tcpClient.isConnected()){
