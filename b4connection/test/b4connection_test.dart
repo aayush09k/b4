@@ -96,7 +96,7 @@ Future<void> main() async {
         else if (b4connection.K == 7) {
           if(line=='connect'){
             b4connection.K=1;
-            print('If you want to connect to Behind NAT node then enter Proxy Target IP. If you want to connect to public node then enter target IP');
+            print('if you want to connect to Behind NAT node then enter Proxy Target IP. If you want to connect to public node then enter target IP');
           }
           else if (b4connection.tcpClient.isConnected()) {
             if (line == 'exit') {

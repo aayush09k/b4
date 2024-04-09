@@ -131,7 +131,11 @@ class TcpClient {
                                 final message = parts[2];
                                 final type = parts[0];
                                 if (type == 'TP') {
-                                    sendBackToClient(key, message);
+                                    try{
+                                    sendBackToClient(key, message);}
+                                        catch(e){
+                                        socket.write('Other Node is no more connected. error=$e');
+                                        }
                                 }
                                 else if (type == 'MP') {
                                     sendBackToClient(key, message);
