@@ -71,6 +71,7 @@ Future<void> main() async {
             b4connection.K = 5;
           }
           print('Do you want to connect to some node , then press c.if you are already connected to some node then press n');
+          b4connection.K=5;
         }
         else if (b4connection.K == 5) {
 
