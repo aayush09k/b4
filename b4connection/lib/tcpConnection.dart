@@ -253,6 +253,7 @@ class TcpClient {
                  if(parts[1]=='disconnect')
                      {
                          relayToNodeKey=null;
+                         print('relaytonodekey=$relayToNodeKey');
                      }
                  else{
                      print(serverMessage);
