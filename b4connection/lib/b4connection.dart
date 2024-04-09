@@ -133,7 +133,7 @@ class B4connection {
             tcpClient.disconnect();
         }
         type = T;
-        K=4;// for dart terminal app purpose.
+        K=5;// for dart terminal app purpose.
         if (T == 'DTN') {
             await tcpClient.connect(targetIp, targetPort);
             String toSend ="$type|$_localIPv4|$_localPortIPv4|null|$myKey";

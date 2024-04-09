@@ -54,26 +54,31 @@ Future<void> main() async {
         else if(b4connection.K==3){
           type=line;
           if(line=='TP'){
-          b4connection.setRemoteNodeKey(line);
           b4connection.K=4;
-          print("Press 'enter' to start the conneciton");
+          print("Press enter the remote key");
           }
           else{
             await b4connection.startConnection(
                 b4connection.targetIp!.address, targetPort, type);
-            b4connection.K = 5;
+            b4connection.K = 6;
           }
         }
-        else if (b4connection.K == 4) {
-          if(line=='enter') {
-            await b4connection.startConnection(
-                b4connection.targetIp!.address, targetPort, type);
-            b4connection.K = 5;
-          }
-          print('Do you want to connect to some node , then press c.if you are already connected to some node then press n');
-          b4connection.K=5;
+        else if(b4connection.K==4){
+        b4connection.setRemoteNodeKey(line);
+        b4connection.K=5;
+        print("press 'enter ' to connect ");
         }
         else if (b4connection.K == 5) {
+          if(line=='enter') {
+            await b4connection.startConnection(b4connection.targetIp!.address, targetPort, type);
+            b4connection.K = 6;
+            print('Do you want to connect to some node , then press c.if you are already connected to some node then press n');
+          }
+          else{
+          print('Do you want to connect to some node , then press c.if you are already connected to some node then press n');
+          b4connection.K=6;}
+        }
+        else if (b4connection.K == 6) {
 
 
           if (line == 'c') {
@@ -81,14 +86,14 @@ Future<void> main() async {
             print('if you want to connect to Behind NAT node then enter Proxy Address. If you want to connect to public node then enter target Address');
           }
           else if(line=='n'){
-            b4connection.K = 6;
+            b4connection.K = 7;
             print('go send message to connected node');
           }
           else{
             print('enter proper input (Input should be either c or n)');
           }
         }
-        else if (b4connection.K == 6) {
+        else if (b4connection.K == 7) {
           if(line=='connect'){
             b4connection.K=1;
             print('if you want to connect to Behind NAT node then enter Proxy Address. If you want to connect to public node then enter target Address');
