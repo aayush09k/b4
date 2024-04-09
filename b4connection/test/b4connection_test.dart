@@ -9,6 +9,7 @@ Future<void> main() async {
 
   B4connection b4connection = B4connection('stun.l.google.com', 19302);
   int? targetPort;
+  String? type;
 
 
   // Create a stream subscription to handle each line of input
@@ -50,31 +51,46 @@ Future<void> main() async {
             b4connection.K = 3;
           }
         }
-        else if (b4connection.K == 3) {
-          await b4connection.startConnection(
-              b4connection.targetIp!.address, targetPort, line);
-          b4connection.K = 4;
-          print('want to connect to some public node , then press c.if you are publicly connected to some node then press n');
+        else if(b4connection.K==3){
+          type=line;
+          if(line=='TP'){
+          b4connection.setRemoteNodeKey(line);
+          b4connection.K=4;
+          print("Press 'enter' to start the conneciton");
+          }
+          else{
+            await b4connection.startConnection(
+                b4connection.targetIp!.address, targetPort, type);
+            b4connection.K = 5;
+          }
         }
         else if (b4connection.K == 4) {
+          if(line=='enter') {
+            await b4connection.startConnection(
+                b4connection.targetIp!.address, targetPort, type);
+            b4connection.K = 5;
+          }
+          print('Do you want to connect to some node , then press c.if you are already connected to some node then press n');
+        }
+        else if (b4connection.K == 5) {
 
 
           if (line == 'c') {
             b4connection.K = 1;
-            print('enter target IP');
+            print('if you want to connect to Behind NAT node then enter Proxy Address. If you want to connect to public node then enter target Address');
           }
           else if(line=='n'){
-            b4connection.K = 5;
+            b4connection.K = 6;
             print('go send message to connected node');
           }
           else{
-            print('enter proper input');
+            print('enter proper input (Input should be either c or n)');
           }
         }
-        else if (b4connection.K == 5) {
+        else if (b4connection.K == 6) {
           if(line=='connect'){
             b4connection.K=1;
-            print('write Target IP');
+            print('if you want to connect to Behind NAT node then enter Proxy Address. If you want to connect to public node then enter target Address');
           }
           else if (b4connection.tcpClient.isConnected()) {
             if (line == 'exit') {

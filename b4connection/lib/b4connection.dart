@@ -32,7 +32,7 @@ class B4connection {
     ServerSocket? Listening;
     bool? chatMode;
     String? type; //It stores the input from the user.It helps in connection and messaging.
-    String remoteKey = 'linux';
+    String? remoteKey;
     String? myKey = 'macbook';
     int M = 0; //for Handling sendMessage function for different kinds of scenarios.
     int interface=0;
@@ -117,6 +117,10 @@ class B4connection {
                     print('natStatus not defined');
                 }
         }
+    }
+
+    void setRemoteNodeKey(key){
+        remoteKey=key;
     }
    void remoteSocketClose(){
         if(tcpClient.Key()!=null) {
