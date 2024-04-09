@@ -127,9 +127,9 @@ class B4connection {
             tcpClient.remoteSocketCloses(tcpClient.Key());
         }
    }
-   void disconnectFromRemoteNode(){
+   Future<void> disconnectFromRemoteNode() async {
         String toSend='relay|Disconnect';
-        sendMessage(toSend);
+        await sendMessage(toSend);
         tcpClient.disconnect();
    }
 //Below function can be use to connect with other peer.Here you have to give the type of connection 'TP(To proxy)','MP(be my proxy)','D'(direct connection),'DTP'(Direct through NAT).
@@ -138,13 +138,13 @@ class B4connection {
             tcpClient.disconnect();
         }
         type = T;
-        K=5;// for dart terminal app purpose.
-        if (T == 'DTN') {
+        K=7;// for dart terminal app purpose.
+       /* if (T == 'DTN') {
             await tcpClient.connect(targetIp, targetPort);
             String toSend ="$type|$_localIPv4|$_localPortIPv4|null|$myKey";
             tcpClient.send(toSend);
             return;
-        }
+        }*/
         await tcpClient.connect(targetIp, targetPort);
         tcpClient.receive((message) => null);
         switch (natStatus) {
@@ -167,15 +167,15 @@ class B4connection {
 
     //sendMessage is used to sent message to any node either relayed msg or normal message.
     //For different scenarios message function is developed in such a way that you can send your message to any node.
-    void sendMessage(message) {
-        print('tcpclientnodehandler=${tcpClient.nodeHandler()}');
+    Future<void> sendMessage(message) async {
+
         switch (tcpClient.nodeHandler()) {
             case 0:
                 {
                     if (tcpClient.relayToNodeKey != null) {
                         String toSend='$type|${tcpClient.relayToNodeKey}|$message';
                         tcpClient.send(toSend);
-                        print('yha hu me ');
+
                     }
                     else{
 
