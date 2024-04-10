@@ -93,7 +93,7 @@ class TcpClient {
                                     _nodeHandler = 3;
                                 }
                                 else if (type == 'TP') {
-                                    _relayCount = 1;
+
                                      sendBackToClient(NodeKey, clientMessage);
                                     _remoteSocket[Key] = socket;
                                     _message =
@@ -183,7 +183,11 @@ class TcpClient {
                         },
                         onDone: () {
                             print('Server: Client left.');
-                            socket.close();
+                            try{
+                            socket.close();}
+                                catch(e){
+                                print('error=$e');
+                                }
                         },
                     );
                 }
@@ -254,6 +258,7 @@ class TcpClient {
                      {
                          relayToNodeKey=null;
                          print('relaytonodekey=$relayToNodeKey');
+                         print('relayDisconnected');
                      }
                  else{
                      print(serverMessage);
@@ -272,6 +277,7 @@ class TcpClient {
                 print('remoteNode  left.');
                 _isConnected = false;
                 _socket[_j]!.close();
+
             },
         );
     }

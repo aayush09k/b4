@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:psjapp/b4connection.dart';
+import 'package:psjapp/tcpConnection.dart';
 
 
 Future<void> main() async {
@@ -72,7 +73,7 @@ Future<void> main() async {
           if(line=='enter') {
             await b4connection.startConnection(b4connection.targetIp!.address, targetPort, type);
             b4connection.K = 6;
-            print('Do you want to connect to some node , then press c.if you are already connected to some node then press n');
+            print('Do you want to connect to some node , then press c.if you are already connected to some node then press n.Press "exit relay" to exit from relay.');
           }
           else{
           print('Do you want to connect to some node , then press c.if you are already connected to some node then press n');
@@ -83,11 +84,11 @@ Future<void> main() async {
 
           if (line == 'c') {
             b4connection.K = 1;
-            print('If you want to connect to Behind NAT node then enter Proxy Target IP. If you want to connect to public node then enter target IP');
+            print('If you want to connect to Behind NAT node then enter Proxy Target IP. If you want to connect to public node then enter target IP. ');
           }
           else if(line=='n'){
             b4connection.K = 7;
-            print('go send message to connected node');
+            print('go send message to connected node.Press "connect" if you want to get connect further.Press "exitRelay" to exit from relay.Press exit to disconnect from either Proxy or remoteNode' );
           }
           else{
             print('enter proper input (Input should be either c or n)');
@@ -99,9 +100,12 @@ Future<void> main() async {
             print('if you want to connect to Behind NAT node then enter Proxy Target IP. If you want to connect to public node then enter target IP');
           }
           else if (b4connection.tcpClient.isConnected()) {
-            if (line == 'exit') {
-              b4connection.disconnectFromRemoteNode();
+            if (line == 'exitRelay') {
+              b4connection.disconnectRelay();
               b4connection.K = 1;
+            }
+            else if(line=='exit'){
+              b4connection.tcpClient.disconnect();
             }
             else {
               b4connection.sendMessage(line);

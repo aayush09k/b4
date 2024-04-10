@@ -127,10 +127,10 @@ class B4connection {
             tcpClient.remoteSocketCloses(tcpClient.Key());
         }
    }
-   Future<void> disconnectFromRemoteNode() async {
+   Future<void> disconnectRelay() async {
         String toSend='relay|Disconnect';
         await sendMessage(toSend);
-        tcpClient.disconnect();
+        tcpClient.relayToNodeKey=null;
    }
 //Below function can be use to connect with other peer.Here you have to give the type of connection 'TP(To proxy)','MP(be my proxy)','D'(direct connection),'DTP'(Direct through NAT).
     Future<void> startConnection(targetIp, targetPort, T) async {
@@ -138,7 +138,7 @@ class B4connection {
             tcpClient.disconnect();
         }
         type = T;
-        K=7;// for dart terminal app purpose.
+        K=5;// for dart terminal app purpose.
        /* if (T == 'DTN') {
             await tcpClient.connect(targetIp, targetPort);
             String toSend ="$type|$_localIPv4|$_localPortIPv4|null|$myKey";
