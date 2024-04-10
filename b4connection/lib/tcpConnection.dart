@@ -22,7 +22,7 @@ class TcpClient {
     List<dynamic>? partGlobal;
     int _j = 0;
     int? _nodeHandler;
-    int? _relayCount;
+    dynamic _remoteKeyNull='good';
 
     // Connect to the server
     Future<void> connect(ip, port) async {
@@ -273,7 +273,7 @@ class TcpClient {
                 else if(part.length==2){
 
                  if(part[1]=='disconnect')
-                     {
+                     {   _remoteKeyNull=null;
                          relayToNodeKey=null;
                          print('relaytonodekey=$relayToNodeKey');
                          print('relayDisconnected');
@@ -317,6 +317,8 @@ class TcpClient {
     bool isListening() => _isListening;
 
     int? nodeHandler() => _nodeHandler;
+
+    dynamic nullMaker()=>_remoteKeyNull;
 
     // Stop the server
     Future<void> stopServer() async {
