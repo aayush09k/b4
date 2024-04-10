@@ -250,16 +250,11 @@ class TcpClient {
 
                 List<String> parts = serverMessage.split('|');
                 List<String> part = serverMessage.split('-');
-              /*  if(serverMessage=='qwertyui'){
-                    try{
-                        sendBackToClient(relayToNodeKey,'response.qwertyui');
-                    }
-                    catch(e){
-                        print('error=$e');
-                    }
-                }*/
+
                 if (parts.length == 5) {
+                    print(relayToNodeKey);
                     if(relayToNodeKey!=null){
+                        print('me andr aya');
                         sendBackToClient(relayToNodeKey, 'relay-disconnect');
                     }
                     relayToNodeKey = parts[4];
