@@ -77,30 +77,41 @@ class TcpClient {
                                 final NodeKey = parts[3];
                                 final Key = parts[4];
                                 if (type == 'MP') {
+                                    try{
                                     _message = '${stunGet.getPublicIPv4()}|${socket
-                                        .port}|I am your proxy server i will let you connect to the world bro . \n Please press any key to continue.';
+                                        .port}|I am your proxy server i will let you connect to the world bro . Please press any key to continue.';
                                     _remoteSocket[Key] = socket;
                                     _connectionKey = Key;
                                     sendBackToClient(Key, _message);
-                                    _nodeHandler = 0;
+                                    _nodeHandler = 0;}
+                                        catch(e){
+                                        sendBackToClient(Key,'error in proxy connection=$e');
+                                        }
                                 }
                                 else if (type == 'DTN') {
+                                    try{
                                     _connectionKey = Key;
                                     _remoteSocket[Key] = socket;
                                     _message =
                                     'your are now directly connected to me as we both are publicly available';
                                     sendBackToClient(Key, _message);
-                                    _nodeHandler = 3;
+                                    _nodeHandler = 3;}
+                                        catch(e){
+                                        sendBackToClient(Key,'having error in connection=$e');
+                                        }
                                 }
                                 else if (type == 'TP') {
-
+                                  try{
                                      sendBackToClient(NodeKey, clientMessage);
                                     _remoteSocket[Key] = socket;
                                     _message =
                                     'you can relay your message to the key:$NodeKey';
                                     _connectionKey = Key;
                                     sendBackToClient(Key, _message);
-                                    _nodeHandler = 1;
+                                    _nodeHandler = 1;}
+                                      catch(e){
+                                      sendBackToClient(Key,'having some error in your entered key=$e' );
+                                      }
                                 }
                                 else {
                                     print(NodeKey);
@@ -252,10 +263,8 @@ class TcpClient {
                 List<String> part = serverMessage.split('-');
 
                 if (parts.length == 5) {
-                    print(relayToNodeKey);
                     if(relayToNodeKey!=null){
-                        print('me andr aya');
-                        sendBackToClient(relayToNodeKey, 'relay-disconnect');
+                        send('TP|$relayToNodeKey|relay-disconnect');
                     }
                     relayToNodeKey = parts[4];
                     print(serverMessage);
