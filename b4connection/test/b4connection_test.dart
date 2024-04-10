@@ -101,7 +101,8 @@ Future<void> main() async {
           }
           else if (b4connection.tcpClient.isConnected()) {
             if (line == 'exitRelay') {
-              await b4connection.disconnectRelay();
+              b4connection.disconnectRelay();
+              print('exitRelay');
               b4connection.K = 1;
             }
             else if(line=='exit'){

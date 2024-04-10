@@ -169,7 +169,7 @@ class TcpClient {
                                         send(message);
                                     }
                                     else {
-                                        String toSend = 'you are not connected to ipv6 node ';
+                                        String toSend = 'no relaying connection exits ';
                                         sendBackToClient(requestingNodeKey, toSend);
                                     }
                                 }
@@ -210,6 +210,14 @@ class TcpClient {
 
     // Send a message to the server
     void send(String message) {
+        print('message sent=$message');
+        if (!_isConnected) {
+            print('Client is not connected to a server.');
+            return;
+        }
+        else {
+            _socket[_j]!.write(message);
+        }
         List<dynamic> split = message.split('|');
         switch (split[0]) {
             case 'MP':
@@ -221,13 +229,7 @@ class TcpClient {
             case 'D' :
                 _nodeHandler = 3;
         }
-        if (!_isConnected) {
-            print('Client is not connected to a server.');
-            return;
-        }
-        else {
-            _socket[_j]!.write(message);
-        }
+
     }
 
     void remoteSocketCloses(key) {
