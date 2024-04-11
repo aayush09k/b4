@@ -9,6 +9,7 @@ class TcpClient {
     }; // Sockets as Map. so that we can differentiate connected clients.
     bool _isConnected = false;
     ServerSocket? _serverSocket;
+    Map<dynamic,dynamic>? _keySocketMap;
 
     final Map<String, Socket> _remoteSocket = {}; // To save all remote Sockets.
     bool _isListening = false;
@@ -23,7 +24,7 @@ class TcpClient {
     int _j = 0;
     int? _nodeHandler;
     int Null=4;
-    String? _extraKey;
+
 
     // Connect to the server
     Future<void> connect(ip, port) async {
@@ -81,8 +82,7 @@ class TcpClient {
                                 final Key = parts[4];
                                 if (type == 'MP') {
                                     try{
-                                    _message = '${stunGet.getPublicIPv4()}|${socket
-                                        .port}|I am your proxy server i will let you connect to the world bro . Please press any key to continue.';
+                                    _message = '${stunGet.getPublicIPv4()}|${socket.port}|I am your proxy server i will let you connect to the world bro . Please press any key to continue.';
                                     _remoteSocket[Key] = socket;
                                     _connectionKey = Key;
                                     sendBackToClient(Key, _message);
@@ -104,10 +104,10 @@ class TcpClient {
                                         }
                                 }
                                 else if (type == 'TP') {
+                                    _keySocketMap![socket.remoteAddress]=NodeKey;
                                   try{
                                      sendBackToClient(NodeKey, clientMessage);
                                     _remoteSocket[Key] = socket;
-                                    _extraKey=NodeKey;
                                     _message =
                                     'you can relay your message to the key:$NodeKey';
                                     _connectionKey = Key;
@@ -206,13 +206,10 @@ class TcpClient {
                             print('Server: Error: $error');
                         },
                         onDone: () {
-                            print('${socket.address} Node left.');
+                            print('${socket.remoteAddress} Node left.');
+
                             try{
-                                sendBackToClient(_connectionKey,'relay-disconnect');
-                            }
-                            catch(e){print('error=$e');}
-                            try{
-                                sendBackToClient(_extraKey,'relay-disconnect');
+                                sendBackToClient(_keySocketMap,'relay-disconnect');
                             }
                             catch(e){print('error=$e');}
 
