@@ -22,11 +22,12 @@ class TcpClient {
     List<dynamic>? partGlobal;
     int _j = 0;
     int? _nodeHandler;
-    dynamic _remoteKeyNull='good';
+    dynamic? _remoteKeyNull;
 
     // Connect to the server
     Future<void> connect(ip, port) async {
         _nodeHandler = null;
+        _remoteKeyNull='r';
         try {
             _socket[_j] = await Socket.connect(ip, port);
             _isConnected = true;
@@ -42,6 +43,7 @@ class TcpClient {
     // Start as a server
     Future<ServerSocket?> startServer() async {
         _nodeHandler = null;
+        _remoteKeyNull='r';
         try {
             _serverSocket =
             await ServerSocket.bind(
