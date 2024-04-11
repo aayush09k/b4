@@ -131,6 +131,7 @@ class B4connection {
         print('me hu yha pr');
         String toSend='$type|${remoteKey}|relay-disconnect';
         tcpClient.send(toSend);
+        remoteKey=null;
 
    }
 //Below function can be use to connect with other peer.Here you have to give the type of connection 'TP(To proxy)','MP(be my proxy)','D'(direct connection),'DTP'(Direct through NAT).
@@ -169,7 +170,9 @@ class B4connection {
     //sendMessage is used to sent message to any node either relayed msg or normal message.
     //For different scenarios message function is developed in such a way that you can send your message to any node.
     Future<void> sendMessage(message) async {
-       if(tcpClient.nullMaker()==null){
+       if(tcpClient.nullMaker()==0){
+           print(tcpClient.Null);
+           print(tcpClient.nullMaker());
         remoteKey=null;
        }
         switch (tcpClient.nodeHandler()) {

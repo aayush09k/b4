@@ -22,12 +22,13 @@ class TcpClient {
     List<dynamic>? partGlobal;
     int _j = 0;
     int? _nodeHandler;
-    dynamic? _remoteKeyNull;
+    int Null=4;
+    String? _extraKey;
 
     // Connect to the server
     Future<void> connect(ip, port) async {
         _nodeHandler = null;
-        _remoteKeyNull='r';
+        Null=1;
         try {
             _socket[_j] = await Socket.connect(ip, port);
             _isConnected = true;
@@ -43,7 +44,7 @@ class TcpClient {
     // Start as a server
     Future<ServerSocket?> startServer() async {
         _nodeHandler = null;
-        _remoteKeyNull='r';
+        Null=2;
         try {
             _serverSocket =
             await ServerSocket.bind(
@@ -106,6 +107,7 @@ class TcpClient {
                                   try{
                                      sendBackToClient(NodeKey, clientMessage);
                                     _remoteSocket[Key] = socket;
+                                    _extraKey=NodeKey;
                                     _message =
                                     'you can relay your message to the key:$NodeKey';
                                     _connectionKey = Key;
@@ -121,21 +123,29 @@ class TcpClient {
                                     if (partGlobal!.length == 2) {
                                         final toDo = partGlobal![2];
                                         if (toDo == 'GP') {
+                                            try{
                                             _remoteSocket['ipv6'] = socket;
                                             var msg = 'you can relay message to me through your proxy node';
                                             String toSend = 'TP|$Key|$msg';
                                             relayToNodeKey=Key;
                                             sendBackToClient('ipv6', toSend);
-                                            _nodeHandler = 2;
+                                            _nodeHandler = 2;}
+                                                catch(e){
+                                                print(e);
+                                                }
                                         }
                                     }
                                     else {
+                                        try{
                                         _connectionKey = Key;
                                         _remoteSocket[Key] = socket;
                                         _message =
                                         'your are now directly connected to me as we both are publicly available';
                                         sendBackToClient(Key, _message);
-                                        _nodeHandler = 3;
+                                        _nodeHandler = 3;}
+                                            catch(e){
+                                            print(e);
+                                            }
                                     }
                                 }
                             }
@@ -151,7 +161,9 @@ class TcpClient {
                                         }
                                 }
                                 else if (type == 'MP') {
-                                    sendBackToClient(key, message);
+                                    try{
+                                    sendBackToClient(key, message);}
+                                    catch(e){print(e);}
                                 }
                                 else {
                                     print(clientMessage);
@@ -165,11 +177,8 @@ class TcpClient {
                                 List<dynamic> part = message.split('-');
                                 if (part.length == 3) {
                                     final ips = part[0];
-                                    print(ips);
                                     final ipPort = part[1];
-                                    print(ipPort);
                                     final toDo = part[2];
-                                    print(toDo);
                                     if (toDo == 'GP') {
                                         print('i am inside GP');
                                         connect(ips, ipPort);
@@ -182,8 +191,10 @@ class TcpClient {
                                         send(message);
                                     }
                                     else {
+                                        try{
                                         String toSend = 'no relaying connection exits ';
-                                        sendBackToClient(requestingNodeKey, toSend);
+                                        sendBackToClient(requestingNodeKey, toSend);}
+                                            catch(e){print(e);}
                                     }
                                 }
                             }
@@ -195,7 +206,16 @@ class TcpClient {
                             print('Server: Error: $error');
                         },
                         onDone: () {
-                            print('Server: Client left.');
+                            print('${socket.address} Node left.');
+                            try{
+                                sendBackToClient(_connectionKey,'relay-disconnect');
+                            }
+                            catch(e){print('error=$e');}
+                            try{
+                                sendBackToClient(_extraKey,'relay-disconnect');
+                            }
+                            catch(e){print('error=$e');}
+
                             try{
                             socket.close();}
                                 catch(e){
@@ -275,7 +295,7 @@ class TcpClient {
                 else if(part.length==2){
 
                  if(part[1]=='disconnect')
-                     {   _remoteKeyNull=null;
+                     {   Null=0;
                          relayToNodeKey=null;
                          print('relaytonodekey=$relayToNodeKey');
                          print('relayDisconnected');
@@ -320,7 +340,7 @@ class TcpClient {
 
     int? nodeHandler() => _nodeHandler;
 
-    dynamic nullMaker()=>_remoteKeyNull;
+    dynamic nullMaker()=>Null;
 
     // Stop the server
     Future<void> stopServer() async {
