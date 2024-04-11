@@ -26,8 +26,8 @@ class B4connection {
 
     InternetAddress? targetIp;
     String? proxyIpv4Pub = '35.185.142.164';
-    int? proxyIpv4Port = 22355;
-    int K=0;
+    int? proxyIpv4Port = 22356;
+    int K = 0;
 
     ServerSocket? Listening;
     bool? chatMode;
@@ -35,7 +35,7 @@ class B4connection {
     String? remoteKey;
     String? myKey = 'macbook';
     int M = 0; //for Handling sendMessage function for different kinds of scenarios.
-    int interface=0;
+    int interface = 0;
 
     //Instance of class used.
     final monitor = ConnectivityMonitor();
@@ -47,14 +47,15 @@ class B4connection {
         monitor.onConnectivityChanged.listen((interfaces) {
             natStatus = 0;
             reset = 0;
-            M=0;
-            if (interface>= 1) {
-                if(tcpClient.isListening()){
-                tcpClient.stopServer();
-                Listening!.close();}
+            M = 0;
+            if (interface >= 1) {
+                if (tcpClient.isListening()) {
+                    tcpClient.stopServer();
+                    Listening!.close();
+                }
             }
             getNetworkInformation();
-            interface=2;
+            interface = 2;
             print('Network interfaces changed');
             for (var interface in interfaces) {
                 print('Interface: ${interface.name}');
@@ -119,29 +120,31 @@ class B4connection {
         }
     }
 
-    void setRemoteNodeKey(key){
-        remoteKey=key;
+    void setRemoteNodeKey(key) {
+        remoteKey = key;
     }
-   void remoteSocketClose(){
-        if(tcpClient.Key()!=null) {
+
+    void remoteSocketClose() {
+        if (tcpClient.Key() != null) {
             tcpClient.remoteSocketCloses(tcpClient.Key());
         }
-   }
-   void disconnectRelay() {
-        print('me hu yha pr');
-        String toSend='$type|${remoteKey}|relay-disconnect';
-        tcpClient.send(toSend);
-        remoteKey=null;
+    }
 
-   }
+    void disconnectRelay() {
+        print('me hu yha pr');
+        String toSend = '$type|${remoteKey}|relay-disconnect';
+        tcpClient.send(toSend);
+        remoteKey = null;
+    }
+
 //Below function can be use to connect with other peer.Here you have to give the type of connection 'TP(To proxy)','MP(be my proxy)','D'(direct connection),'DTP'(Direct through NAT).
     Future<void> startConnection(targetIp, targetPort, T) async {
-        if(tcpClient.isConnected()){
+        if (tcpClient.isConnected()) {
             tcpClient.disconnect();
         }
         type = T;
-        K=5;// for dart terminal app purpose.
-       /* if (T == 'DTN') {
+        K = 5; // for dart terminal app purpose.
+        /* if (T == 'DTN') {
             await tcpClient.connect(targetIp, targetPort);
             String toSend ="$type|$_localIPv4|$_localPortIPv4|null|$myKey";
             tcpClient.send(toSend);
@@ -170,51 +173,61 @@ class B4connection {
     //sendMessage is used to sent message to any node either relayed msg or normal message.
     //For different scenarios message function is developed in such a way that you can send your message to any node.
     Future<void> sendMessage(message) async {
-       if(tcpClient.nullMaker()==0){
-           print(tcpClient.Null);
-           print(tcpClient.nullMaker());
-        remoteKey=null;
-       }
+        if (tcpClient.nullMaker() == 0) {
+            print(tcpClient.Null);
+            print(tcpClient.nullMaker());
+            remoteKey = null;
+        }
         switch (tcpClient.nodeHandler()) {
             case 0:
                 {
                     if (tcpClient.relayToNodeKey != null) {
                         print(tcpClient.relayToNodeKey);
-                        String toSend='$type|${tcpClient.relayToNodeKey}|$message';
-                        tcpClient.send(toSend);
-
-                    }
-                    else{
-
-                        String toSend='$type|${tcpClient.relayToNodeKey}|$myKey|$message';
+                        String toSend = '$type|${tcpClient
+                            .relayToNodeKey}|$message';
                         tcpClient.send(toSend);
                     }
+                    else {
+                        String toSend = '$type|${tcpClient
+                            .relayToNodeKey}|$myKey|$message';
+                        tcpClient.send(toSend);
+                    }
                 }
-            case 1:{
-                if(remoteKey!=null){
-                String toSend='$type|$remoteKey|$message';
-                tcpClient.send(toSend);}
-                else{
-                    print('no realy connection exits');
+            case 1:
+                {
+                    if (tcpClient.relayToNodeKey != null) {
+                        String toSend = '$type|${tcpClient
+                            .relayToNodeKey}|$message';
+                        tcpClient.send(toSend);
+                    }
+                    else {
+                        if (remoteKey != null) {
+                            String toSend = '$type|$remoteKey|$message';
+                            tcpClient.send(toSend);
+                        }
+                        else {
+                            print('no realy connection exits');
+                        }
+                    }
                 }
-            }
-            case 2:{
-                if(tcpClient.isListening()){
-                    String toSend='TP|${tcpClient.relayToNodeKey}|$message';
-                    tcpClient.sendBackToClient('ipv6', toSend);
+            case 2:
+                {
+                    if (tcpClient.isListening()) {
+                        String toSend = 'TP|${tcpClient
+                            .relayToNodeKey}|$message';
+                        tcpClient.sendBackToClient('ipv6', toSend);
+                    }
                 }
-
-            }
-            case 3:{
-                if(tcpClient.isConnected()){
-                    tcpClient.send(message);
-
+            case 3:
+                {
+                    if (tcpClient.isConnected()) {
+                        tcpClient.send(message);
+                    }
+                    else if (tcpClient.isListening()) {
+                        var key = tcpClient.Key();
+                        tcpClient.sendBackToClient(key, message);
+                    }
                 }
-                else if(tcpClient.isListening()){
-                    var key=tcpClient.Key();
-                    tcpClient.sendBackToClient(key, message);
-                }
-        }
         }
     }
 
@@ -264,7 +277,7 @@ class B4connection {
                         print('Behind NAT in ipv4system');
                         natStatus = 0;
                         tcpClient.relayToNodeKey = null;
-                        startConnection(proxyIpv4Pub,proxyIpv4Port,'MP');
+                        startConnection(proxyIpv4Pub, proxyIpv4Port, 'MP');
                     }
             }
         }
@@ -293,7 +306,7 @@ class B4connection {
             catch (e) {
                 print(
                     'Node can not bind to both at a time . Node is not on dual network ');
-                stunClient.N=2;
+                stunClient.N = 2;
                 stunClient.resetIP();
             }
         }
