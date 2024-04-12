@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'connectivity_monitor.dart';
 import 'stungetip.dart';
@@ -33,7 +34,7 @@ class B4connection {
     bool? chatMode;
     String? type; //It stores the input from the user.It helps in connection and messaging.
     String? remoteKey;
-    String? myKey = 'macbook';
+    String? _myKey = 'macbook';
     int M = 0; //for Handling sendMessage function for different kinds of scenarios.
     int interface = 0;
 
@@ -54,7 +55,7 @@ class B4connection {
                     Listening!.close();
                 }
             }
-            getNetworkInformation();
+            _getNetworkInformation();
             interface = 2;
             print('Network interfaces changed');
             for (var interface in interfaces) {
@@ -154,17 +155,15 @@ class B4connection {
         tcpClient.receive((message) => null);
         switch (natStatus) {
             case 0:
-                String toSend = "$type|$_localIPv4|$_localPortIPv4|$remoteKey|$myKey";
+                String toSend = tcpClient.createMessageJson(type, _localIPv4, _localPortIPv4, remoteKey, _myKey,6);
                 tcpClient.send(toSend);
                 break;
             case 1:
-                String toSend = "$type|$_publicIPv4|${Listening!
-                    .port}|$remoteKey|$myKey";
+                String toSend = tcpClient.createMessageJson(type, _publicIPv4,Listening!.port, remoteKey, _myKey,6);
                 tcpClient.send(toSend);
                 break;
             case 2:
-                String toSend = "$type|$_publicIPv6|${Listening!
-                    .port}|$remoteKey|$myKey";
+                String toSend = tcpClient.createMessageJson(type, _publicIPv6, Listening!.port, remoteKey, _myKey,6);
                 tcpClient.send(toSend);
                 break;
         }
@@ -173,48 +172,40 @@ class B4connection {
     //sendMessage is used to sent message to any node either relayed msg or normal message.
     //For different scenarios message function is developed in such a way that you can send your message to any node.
     Future<void> sendMessage(message) async {
-        if (tcpClient.nullMaker() == 0) {
-            print(tcpClient.Null);
-            print(tcpClient.nullMaker());
-            remoteKey = null;
-        }
+
         switch (tcpClient.nodeHandler()) {
             case 0:
                 {
                     if (tcpClient.relayToNodeKey != null) {
                         print(tcpClient.relayToNodeKey);
-                        String toSend = '$type|${tcpClient
-                            .relayToNodeKey}|$message';
+                        String toSend = tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey, null,message,4);
                         tcpClient.send(toSend);
                     }
                     else {
-                        String toSend = '$type|${tcpClient
-                            .relayToNodeKey}|$myKey|$message';
+                        String toSend = tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey,_myKey,message,5);
                         tcpClient.send(toSend);
                     }
                 }
             case 1:
                 {
                     if (tcpClient.relayToNodeKey != null) {
-                        String toSend = '$type|${tcpClient
-                            .relayToNodeKey}|$message';
+                        String toSend = tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey, null,message,4);
                         tcpClient.send(toSend);
                     }
                     else {
                         if (remoteKey != null) {
-                            String toSend = '$type|$remoteKey|$message';
+                            String toSend = tcpClient.createMessageJson(type,null,remoteKey, null,message,4);
                             tcpClient.send(toSend);
                         }
                         else {
-                            print('no realy connection exits');
+                            print('no relay connection exits');
                         }
                     }
                 }
             case 2:
                 {
                     if (tcpClient.isListening()) {
-                        String toSend = 'TP|${tcpClient
-                            .relayToNodeKey}|$message';
+                        String toSend = tcpClient.createMessageJson('TP',null,tcpClient.relayToNodeKey, null,message,4);
                         tcpClient.sendBackToClient('ipv6', toSend);
                     }
                 }
@@ -287,7 +278,7 @@ class B4connection {
     //Below function is for checking your network environment. According to your network you will be provided a layerID.
     //Hence after getting a layerID either you will be working as a server or  a leaf node.
     //You behaving as server can connect with other public node also you can help others to connect(Those are behind NAT) .
-    Future<void> getNetworkInformation() async {
+    Future<void> _getNetworkInformation() async {
         //Start connection with STUN server for all the network information.
         //first try to connect to stun server by ipv4 and ipv6 both one by one.
         try {

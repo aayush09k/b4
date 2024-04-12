@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:psjapp/stungetip.dart';
 
@@ -5,10 +6,11 @@ import 'package:psjapp/stungetip.dart';
 class TcpClient {
 
     final stunGet = StunClient();
-    final Map<int, Socket> _socket = {}; // Sockets as Map. so that we can differentiate connected clients.
+    final Map<int, Socket> _socket = {
+    }; // Sockets as Map. so that we can differentiate connected clients.
     bool _isConnected = false;
     ServerSocket? _serverSocket;
-    Map<dynamic, dynamic> _keySocketMap={};
+    Map<dynamic, dynamic> _keySocketMap = {};
 
     final Map<String, Socket> _remoteSocket = {}; // To save all remote Sockets.
     bool _isListening = false;
@@ -68,77 +70,76 @@ class TcpClient {
                             // Convert the received data to a string and trim whitespace
                             final clientMessage = String.fromCharCodes(data)
                                 .trim();
-
-                            List<String> parts = clientMessage.split('|');
-                            List<String> M = clientMessage.split('.');
+                            Map<String,
+                                dynamic> parsedMessage = parseMessageJson(
+                                clientMessage);
+                            List<String> M = parsedMessage['message'].split('.');
                             // Check if the split operation produced the expected two parts
 
-                            if (parts.length == 5) {
+                            if (parsedMessage['length'] == 6) {
                                 // Extract individual parts
-                                final type = parts[0];
-                                final ip = parts[1];
-                                final port = parts[2];
-                                final NodeKey = parts[3];
-                                final Key = parts[4];
+                                final type = parsedMessage['type'];
+                                final ip = parsedMessage['IP'];
+                                final port = parsedMessage['Port'];
+                                final NodeKey = parsedMessage['remoteKey'];
+                                final Key = parsedMessage['myKey'];
                                 if (type == 'MP') {
                                     try {
-                                        _message =
-                                        '${stunGet.getPublicIPv4()}|${socket
-                                            .port}|I am your proxy server i will let you connect to the world bro . Please press any key to continue.';
+                                        _message = createMessageJson(null, stunGet.getPublicIPv4(), socket
+                                            .port, null, 'I am your proxy server i will let you connect to the world bro . Please press any key to continue.', 0);
                                         _remoteSocket[Key] = socket;
                                         _connectionKey = Key;
                                         sendBackToClient(Key, _message);
                                         _nodeHandler = 0;
                                     }
                                     catch (e) {
-                                        sendBackToClient(Key,
-                                            'error in proxy connection=$e');
+                                        sendBackToClient(Key, createMessageJson(null, null, null, null, 'error in proxy connection=$e', 0));
                                     }
                                 }
                                 else if (type == 'DTN') {
                                     try {
                                         _connectionKey = Key;
                                         _remoteSocket[Key] = socket;
-                                        _message =
-                                        'your are now directly connected to me as we both are publicly available';
+                                        _message =createMessageJson(null, null, null, null,'your are now directly connected to me as we both are publicly available', 0);
                                         sendBackToClient(Key, _message);
                                         _nodeHandler = 3;
                                     }
                                     catch (e) {
-                                        sendBackToClient(Key,
-                                            'having error in connection=$e');
+                                        sendBackToClient(Key,createMessageJson(null, null, null, null, 'having error in connection=$e', 0));
                                     }
                                 }
                                 else if (type == 'TP') {
-
-                                    _keySocketMap[socket.remoteAddress] = NodeKey;
+                                    _keySocketMap[socket.remoteAddress] =
+                                        NodeKey;
                                     print(_keySocketMap[socket.remoteAddress]);
 
                                     try {
                                         sendBackToClient(
                                             NodeKey, clientMessage);
                                         _remoteSocket[Key] = socket;
-                                        _message =
-                                        'you can relay your message to the key:$NodeKey';
+                                        _message =createMessageJson(null, null, null, null,  'you can relay your message to the key:$NodeKey', 0);
+
                                         _connectionKey = Key;
                                         sendBackToClient(Key, _message);
                                         _nodeHandler = 1;
                                     }
                                     catch (e) {
-                                        sendBackToClient(Key,
-                                            'having some error in your entered key=$e');
+                                        sendBackToClient(Key,createMessageJson(null, null, null, null,  'having some error in your entered key=$e', 0));
                                     }
                                 }
                                 else {
                                     print(NodeKey);
                                     partGlobal = NodeKey.split('-');
-                                    if (partGlobal!.length == 2) {
+                                    if (partGlobal!.length == 3) {
                                         final toDo = partGlobal![2];
                                         if (toDo == 'GP') {
                                             try {
                                                 _remoteSocket['ipv6'] = socket;
                                                 var msg = 'you can relay message to me through your proxy node';
-                                                String toSend = 'TP|$Key|$msg';
+                                                //  String toSend = 'TP|$Key|$msg';
+                                                String toSend = createMessageJson(
+                                                    'TP', null, Key, null, msg,
+                                                    4);
                                                 relayToNodeKey = Key;
                                                 sendBackToClient(
                                                     'ipv6', toSend);
@@ -153,8 +154,7 @@ class TcpClient {
                                         try {
                                             _connectionKey = Key;
                                             _remoteSocket[Key] = socket;
-                                            _message =
-                                            'your are now directly connected to me as we both are publicly available';
+                                            _message =createMessageJson(null, null, null, null,  'your are now directly connected to me as we both are publicly available', 0);
                                             sendBackToClient(Key, _message);
                                             _nodeHandler = 3;
                                         }
@@ -164,22 +164,21 @@ class TcpClient {
                                     }
                                 }
                             }
-                            else if (parts.length == 3) {
-                                final key = parts[1];
-                                final message = parts[2];
-                                final type = parts[0];
+                            else if (parsedMessage['length'] == 4) {
+                                final key = parsedMessage['relayToNodeKey'];
+                                final message = parsedMessage['message'];
+                                final type = parsedMessage['type'];
                                 if (type == 'TP') {
                                     try {
-                                        sendBackToClient(key, message);
+                                        sendBackToClient(key, createMessageJson(null, null, null, null,message , 0));
                                     }
                                     catch (e) {
-                                        socket.write(
-                                            'Other Node is no more connected. error=$e');
+                                        socket.write( createMessageJson(null, null, null, null,'Other Node is no more connected. error=$e', 0));
                                     }
                                 }
                                 else if (type == 'MP') {
                                     try {
-                                        sendBackToClient(key, message);
+                                        sendBackToClient(key, createMessageJson(null, null, null, null,message , 0));
                                     }
                                     catch (e) {
                                         print(e);
@@ -189,11 +188,11 @@ class TcpClient {
                                     print(clientMessage);
                                 }
                             }
-                            else if (parts.length == 4) {
-                                final key = parts[1];
-                                final message = parts[3];
-                                final type = parts[0];
-                                final requestingNodeKey = parts[2];
+                            else if (parsedMessage['length'] == 5) {
+                                final key = parsedMessage['relayToNodeKey'];
+                                final message = parsedMessage['message'];
+                                final type = parsedMessage['type'];
+                                final requestingNodeKey = parsedMessage['myKey'];
                                 List<dynamic> part = message.split('-');
                                 if (part.length == 3) {
                                     final ips = part[0];
@@ -202,7 +201,10 @@ class TcpClient {
                                     if (toDo == 'GP') {
                                         print('i am inside GP');
                                         connect(ips, ipPort);
-                                        String toSend = 'D|$ips|$ipPort|$message|$requestingNodeKey';
+                                        String toSend = createMessageJson(
+                                            'D', ips, ipPort, message,
+                                            requestingNodeKey,
+                                            6); //'D|$ips|$ipPort|$message|$requestingNodeKey';
                                         send(toSend);
                                     }
                                 }
@@ -212,7 +214,7 @@ class TcpClient {
                                     }
                                     else {
                                         try {
-                                            String toSend = 'no relaying connection exits ';
+                                            String toSend =createMessageJson(null, null, null, null,'no relaying connection exits ' , 0) ;
                                             sendBackToClient(
                                                 requestingNodeKey, toSend);
                                         }
@@ -222,11 +224,12 @@ class TcpClient {
                                     }
                                 }
                             }
-                            else if(M[1]=='SetMap'){
-                                _keySocketMap[socket.remoteAddress]=M[2];
+                            else if (M[1] == 'SetMap') {
+                                _keySocketMap[socket.remoteAddress] = M[2];
                             }
                             else {
                                 print(clientMessage);
+                                print(parsedMessage['message']);
                             }
                         },
                         onError: (error) {
@@ -237,7 +240,8 @@ class TcpClient {
 
                             try {
                                 sendBackToClient(
-                                    _keySocketMap[socket.remoteAddress], 'relay-disconnect');
+                                    _keySocketMap[socket.remoteAddress],
+                                    createMessageJson(null, null, null, null,'relay-disconnect', 0));
                             }
                             catch (e) {
                                 print('error=$e');
@@ -270,7 +274,7 @@ class TcpClient {
     }
 
     // Send a message to the server
-    void send(String message) {
+    void send(message) {
         print('message sent=$message');
         if (!_isConnected) {
             print('Client is not connected to a server.');
@@ -279,8 +283,8 @@ class TcpClient {
         else {
             _socket[_j]!.write(message);
         }
-        List<dynamic> split = message.split('|');
-        switch (split[0]) {
+        Map<dynamic,dynamic> split = parseMessageJson(message);
+        switch (split['type']) {
             case 'MP':
                 _nodeHandler = 0;
             case 'TP':
@@ -308,14 +312,16 @@ class TcpClient {
                 (dynamic data) {
                 final serverMessage = String.fromCharCodes(data).trim();
 
-                List<String> parts = serverMessage.split('|');
-                List<String> part = serverMessage.split('-');
+                Map<String, dynamic> parsedMessage = parseMessageJson(
+                    serverMessage);
+                List<String> part = parsedMessage['message'].split('@');
 
-                if (parts.length == 5) {
+                if (parsedMessage['length'] == 6) {
                     if (relayToNodeKey != null) {
-                        send('TP|$relayToNodeKey|relay-disconnect');
+                        send(createMessageJson('TP', null, relayToNodeKey, null,
+                            'relay@disconnect', 4));
                     }
-                    relayToNodeKey = parts[4];
+                    relayToNodeKey = parsedMessage['myKey'];
                     print(serverMessage);
                     print(relayToNodeKey);
                     send('null.SetMap.${relayToNodeKey}');
@@ -329,10 +335,12 @@ class TcpClient {
                     }
                     else {
                         print(serverMessage);
+                        print(parsedMessage['message']);
                     }
                 }
                 else {
                     print(serverMessage);
+                    print(parsedMessage['message']);
                 }
             },
             onError: (error) {
@@ -366,6 +374,58 @@ class TcpClient {
     int? nodeHandler() => _nodeHandler;
 
     dynamic nullMaker() => Null;
+
+
+    String createMessageJson(type, A, B, C, D, length) {
+        switch (length) {
+            case 6:
+                Map<String, dynamic> message = {
+                    'type': type,
+                    'IP': A,
+                    'Port': B,
+                    'remoteKey': C,
+                    'myKey': D,
+                    'length': length
+                };
+                return json.encode(message);
+
+            case 4:
+                Map<String, dynamic> message = {
+                    'type': type,
+                    'IP': A,
+                    'relayToNodeKey': B,
+                    'myKey': C,
+                    'message': D,
+                    'length': length
+                };
+                return json.encode(message);
+
+            case 5:
+                Map<String, dynamic> message = {
+                    'type': type,
+                    'IP': A,
+                    'relayToNodeKey': B,
+                    'myKey': C,
+                    'message': D,
+                    'length': length
+                };
+                return json.encode(message);
+                default:
+                    Map<String, dynamic> message = {
+                        'type': type,
+                        'IP': A,
+                        'relayToNodeKey': B,
+                        'myKey': C,
+                        'message': D,
+                        'length': length
+                    };
+                    return json.encode(message);
+        }
+    }
+
+    Map<String, dynamic> parseMessageJson(message) {
+        return json.decode(message); // Convert the JSON string back to a Map
+    }
 
     // Stop the server
     Future<void> stopServer() async {
