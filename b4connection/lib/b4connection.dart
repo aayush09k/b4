@@ -25,7 +25,9 @@ class B4connection {
     String? sendLocalOffer = 'hey bro this offer from my side';
     String? remoteOffer;
 
+
     InternetAddress? targetIp;
+    int? targetPort;
     String? proxyIpv4Pub = '35.185.142.164';
     int? proxyIpv4Port = 22356;
     int K = 0;
@@ -34,6 +36,7 @@ class B4connection {
     bool? chatMode;
     String? type; //It stores the input from the user.It helps in connection and messaging.
     String? remoteKey;
+    String? subtype;
     String? _myKey = 'macbook';
     int M = 0; //for Handling sendMessage function for different kinds of scenarios.
     int interface = 0;
@@ -168,7 +171,9 @@ class B4connection {
                 break;
         }
     }
-
+    void setSubtype(){
+        subtype='GP';
+    }
     //sendMessage is used to sent message to any node either relayed msg or normal message.
     //For different scenarios message function is developed in such a way that you can send your message to any node.
     Future<void> sendMessage(message) async {
@@ -182,8 +187,14 @@ class B4connection {
                         tcpClient.send(toSend);
                     }
                     else {
-                        String toSend = tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey,_myKey,message,5);
-                        tcpClient.send(toSend);
+                        if(subtype!=null){
+                        String msg=tcpClient.createMessageJson(subtype,null,null,targetIp,targetPort,3);
+                        String toSend = tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey,_myKey,msg,5);
+                        tcpClient.send(toSend);}
+                        else{
+                            String toSend = tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey,_myKey,message,5);
+                            tcpClient.send(toSend);
+                        }
                     }
                 }
             case 1:
@@ -212,11 +223,11 @@ class B4connection {
             case 3:
                 {
                     if (tcpClient.isConnected()) {
-                        tcpClient.send(message);
+                        tcpClient.send(tcpClient.createMessageJson(null,null,null, null,message,0));
                     }
                     else if (tcpClient.isListening()) {
                         var key = tcpClient.Key();
-                        tcpClient.sendBackToClient(key, message);
+                        tcpClient.sendBackToClient(key, tcpClient.createMessageJson(null,null,null, null,message,0));
                     }
                 }
         }
