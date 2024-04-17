@@ -44,13 +44,14 @@ Future<void> main() async {
         } else if (b4connection.K == 2) { // Second step, expecting port
           b4connection.targetPort = int.tryParse(line);
           if (b4connection.targetPort!= null) {
-            print('Invalid port. Please enter a valid port number:');
-          } else {
             print('Port entered: $targetPort');
             if(b4connection.subtype!=null){b4connection.K=3;print('Write any key to connect');}
             else{
-            print('Please enter the ConnectionType');b4connection.K = 3;}
+              print('Please enter the ConnectionType');b4connection.K = 3;}
 
+          } else {
+
+            print('Invalid port. Please enter a valid port number:');
           }
         }
         else if(b4connection.K==3){

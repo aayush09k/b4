@@ -189,11 +189,11 @@ class B4connection {
                     else {
                         if(subtype!=null){
                         String msg=tcpClient.createMessageJson(subtype,null,null,targetIp,targetPort,3);
-                        String toSend = tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey,_myKey,msg,5);
+                        String toSend = tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey,_myKey,msg,34);
                         tcpClient.send(toSend);}
                         else{
                             String toSend = tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey,_myKey,message,5);
-                            tcpClient.send(toSend);
+                            tcpClient.send('$toSend\n');
                         }
                     }
                 }
