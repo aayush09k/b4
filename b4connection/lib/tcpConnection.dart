@@ -7,16 +7,15 @@ import 'package:psjapp/stungetip.dart';
 class TcpClient {
 
     final stunGet = StunClient();
-    final Map<int, Socket> _socket = {
-    }; // Sockets as Map. so that we can differentiate connected clients.
+    final Map<int, Socket> _socket = {}; // Sockets as Map. so that we can differentiate connected clients.
     bool _isConnected = false;
     ServerSocket? _serverSocket;
+
     Map<dynamic, dynamic> _keySocketMap = {};
     dynamic parsedMessage;
     dynamic messageDecode;
     dynamic decodeNodeMessage;
     Map <dynamic,List<int>> buffer ={};
-
 
 
     final Map<String, Socket> _remoteSocket = {}; // To save all remote Sockets.
@@ -37,6 +36,7 @@ class TcpClient {
     // Connect to the server
     Future<void> connect(ip, port) async {
         _nodeHandler = null;
+        relayToNodeKey=null;
         Null = 1;
         try {
             _socket[_j] = await Socket.connect(ip, port);
@@ -53,6 +53,7 @@ class TcpClient {
     // Start as a server
     Future<ServerSocket?> startServer() async {
         _nodeHandler = null;
+        relayToNodeKey=null;
         Null = 2;
         try {
             _serverSocket =
@@ -82,8 +83,6 @@ class TcpClient {
                       //     final clientMessage = String.fromCharCodes(data).trim();
                                 //    Map<String, dynamic> parsedMessage = parseMessageJson(clientMessage);
                                if(parsedMessage!=null){
-                                   print(parsedMessage);
-                                   print('yha conditionme agya me');
                                 _handleMessagePublic(socket, parsedMessage);}
                                else{
                                    print('$parsedMessage');
@@ -97,10 +96,9 @@ class TcpClient {
                             print('${socket.remoteAddress} Node left.');
 
                             try {
-                                sendBackToClient(
-                                    _keySocketMap[socket.remoteAddress],
+                                sendBackToClient(_keySocketMap[socket.remoteAddress],
                                     createMessageJson(null, null, null, null,
-                                        '1/s;e45rfv.;hn,lgrFp0', 4));
+                                        'disconnect', 4));
                             }
                             catch (e) {
                                 print('error=$e');
@@ -129,8 +127,8 @@ class TcpClient {
 
     //Data send back to the client according to the key.
     void sendBackToClient(key, message) {
-        List<int> messageBytes = utf8.encode(
-            message); // Encode the JSON message
+
+        List<int> messageBytes = utf8.encode(message); // Encode the JSON message
         int length = messageBytes.length; // Calculate the message length
         var lengthBytes = [
             (length >> 24) & 0xFF,
@@ -139,6 +137,7 @@ class TcpClient {
             length & 0xFF
         ]; // Prepare the length header
         try{
+            print(message);
         _remoteSocket[key]!.add(lengthBytes); // Send the length header
         _remoteSocket[key]!.add(messageBytes); // Send the message bytes
         _remoteSocket[key]!.flush();}// Ensure the data is sent immediately
@@ -147,7 +146,7 @@ class TcpClient {
     }
 
     // Send a message to the server
-    void send(message) {
+    Future<void> send(message) async{
         print('message sent=$message');
 
         List<int> messageBytes = utf8.encode(message);  // Encode the JSON message
@@ -197,11 +196,12 @@ class TcpClient {
 
     Future<dynamic> _processData(Socket socket,data) async{
         // Ensure the buffer for this socket exists, or create a new one
+        //putIfAbsent: This method checks if buffer has an entry for socket. If it does not, it initializes it with a new empty list (<int>[]). This ensures that buffer[socket] is never null when you try to use addAll.
         buffer.putIfAbsent(socket, () => <int>[]);
 
         // Now that we're sure buffer[socket] exists, we can add data safely
         buffer[socket]!.addAll(data);
-       print('process data me agya');
+
         while (buffer[socket]!.length >= 4) {
             // Ensure there's enough buffer to read the length
             // Reading length from the buffer
@@ -243,11 +243,10 @@ class TcpClient {
                print(data);
                 //final serverMessage = String.fromCharCodes(data).trim();
                 decodeNodeMessage= await _processData(_socket[_j]!,data);
-                print(decodeNodeMessage);
+
                // Map<String, dynamic> parsedMessage = parseMessageJson(serverMessage);
                 if(decodeNodeMessage!=null){
-                    print(decodeNodeMessage);
-                    print('yha conditionme agya me');
+
                     _handleMessageNode(decodeNodeMessage);}
                 else{
                     print('$decodeNodeMessage');
@@ -260,11 +259,13 @@ class TcpClient {
             onDone: () {
                     try{
                 print('remoteNode  left.');
+                relayToNodeKey=null;
                 _isConnected = false;
                 _socket[_j]!.close();}
                         catch(e){
                             print('remoteNode  left.');
                             _isConnected = false;
+                            relayToNodeKey=null;
                         }
             },
         );
@@ -355,20 +356,17 @@ class TcpClient {
     }
 
     void _handleMessagePublic(Socket socket,decodedMessage) async{
-       print('hanlde msg me agya');
-       print(decodedMessage['length']);
-       print(decodedMessage['type']);
-       print(decodedMessage['myKey']);
+
         if (decodedMessage['length'] == 6) {
             // Extract individual parts
             final type = decodedMessage['type'];
             final NodeKey = decodedMessage['remoteKey'];
             final Key = decodedMessage['myKey'];
             if (type == 'MP') {
-                print('Mp me agya me ');
+
                 try {
                     _message = createMessageJson(null, stunGet.getPublicIPv4(), socket.port, null, 'I am your proxy server i will let you connect to the world bro . Please press any key to continue.', 0);
-                    _remoteSocket[Key] = socket;
+                    _remoteSocket[Key]=socket;
                     _connectionKey = Key;
                     sendBackToClient(Key, _message);
                     _nodeHandler = 0;
@@ -399,28 +397,20 @@ class TcpClient {
                 }
             }
             else if (type == 'TP') {
-                _keySocketMap[socket.remoteAddress] =
-                    NodeKey;
-                print(_keySocketMap[socket.remoteAddress]);
-
+                _keySocketMap[socket.remoteAddress] =NodeKey;
                 try {
-                    sendBackToClient(
-                        NodeKey, decodedMessage);
+                    print(_remoteSocket['dell']);
+                    sendBackToClient(NodeKey, decodedMessage);
                     _remoteSocket[Key] = socket;
-                    _message = createMessageJson(
-                        null, null, null, null,
-                        'you can relay your message to the key:$NodeKey',
+                    _message = createMessageJson(null, null, null, null,'you can relay your message to the key:$NodeKey',
                         0);
-
                     _connectionKey = Key;
                     sendBackToClient(Key, _message);
                     _nodeHandler = 1;
                 }
                 catch (e) {
-                    sendBackToClient(Key, createMessageJson(
-                        null, null, null, null,
-                        'having some error in your entered key=$e',
-                        0));
+                    sendBackToClient(Key, createMessageJson(null, null, null, null,
+                        'having some error in your entered key=$e', 0));
                 }
             }
             else {
@@ -522,8 +512,8 @@ class TcpClient {
             }
         }
         else if (decodedMessage['type'] == 'SetMap') {
-            _keySocketMap[socket.remoteAddress] =
-            decodedMessage['myKey'];
+            _keySocketMap[socket.remoteAddress] = decodedMessage['myKey'];
+            print('Set has maped');
         }
         else {
 
@@ -539,16 +529,13 @@ class TcpClient {
         if (decodeNodeMessage['length'] == 6) {
             if (relayToNodeKey != null) {
                 send(createMessageJson('TP', null, relayToNodeKey, null,
-                    '1/s;e45rfv.;hn,lgrFp0', 4));
+                    'disconnect', 4));
             }
             relayToNodeKey = decodeNodeMessage['myKey'];
-            print(decodeNodeMessage);
-            print(relayToNodeKey);
-            send(createMessageJson(
-                'SetMap', null, null, relayToNodeKey, null, 0));
+            send(createMessageJson('SetMap', null, null, relayToNodeKey, null, 0));
         }
         else if (decodeNodeMessage['length'] == 4) {
-            if (decodeNodeMessage['message'] == '1/s;e45rfv.;hn,lgrFp0') {
+            if (decodeNodeMessage['message'] == 'disconnect') {
                 Null = 0;
                 relayToNodeKey = null;
                 print('relayDisconnected');
@@ -566,12 +553,14 @@ class TcpClient {
         try{
         await _serverSocket?.close();
         _isListening = false;
+        relayToNodeKey=null;
         print('Server stopped.');
         _nodeHandler = null;}
             catch(e){
                 _isListening = false;
                 print('Server Stop error=$e');
                 _nodeHandler = null;
+                relayToNodeKey=null;
             }
     }
 }
