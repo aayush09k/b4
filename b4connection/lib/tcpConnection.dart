@@ -15,7 +15,7 @@ class TcpClient {
     dynamic parsedMessage;
     dynamic messageDecode;
     dynamic decodeNodeMessage;
-    List<int> buffer = [];
+    Map <dynamic,List<int>> buffer ={};
 
 
 
@@ -76,7 +76,8 @@ class TcpClient {
                     socket.listen(
                             (data) async {
 
-                               parsedMessage=await _processData(data);
+
+                               parsedMessage=await _processData(socket,data);
                             // Convert the received data to a string and trim whitespace
                       //     final clientMessage = String.fromCharCodes(data).trim();
                                 //    Map<String, dynamic> parsedMessage = parseMessageJson(clientMessage);
@@ -194,21 +195,25 @@ class TcpClient {
             }
     }
 
-    Future<dynamic> _processData(data) async{
-        buffer.addAll(data);
+    Future<dynamic> _processData(Socket socket,data) async{
+        // Ensure the buffer for this socket exists, or create a new one
+        buffer.putIfAbsent(socket, () => <int>[]);
+
+        // Now that we're sure buffer[socket] exists, we can add data safely
+        buffer[socket]!.addAll(data);
        print('process data me agya');
-        while (buffer.length >= 4) {
+        while (buffer[socket]!.length >= 4) {
             // Ensure there's enough buffer to read the length
             // Reading length from the buffer
-            int length = (buffer[0] << 24) +
-                (buffer[1] << 16) +
-                (buffer[2] << 8) +
-                buffer[3];
+            int length = (buffer[socket]![0] << 24) +
+                (buffer[socket]![1] << 16) +
+                (buffer[socket]![2] << 8) +
+                buffer[socket]![3];
 
-            if (buffer.length >= 4 + length) {
+            if (buffer[socket]!.length >= 4 + length) {
                 // Check if the whole message has arrived
                 // Extract the message bytes after the length header
-                List<int> messageBytes = buffer.sublist(4, 4 + length);
+                List<int> messageBytes = buffer[socket]!.sublist(4, 4 + length);
 
                 // Decode the message from bytes to a UTF-8 string
                 messageDecode = utf8.decode(messageBytes);
@@ -216,7 +221,7 @@ class TcpClient {
 
 
                 // Remove the processed message from the buffer
-                buffer.removeRange(0, 4 + length);
+                buffer[socket]!.removeRange(0, 4 + length);
                 return parseMessageJson(messageDecode);
             } else {
                 print('not enogh data');
@@ -237,7 +242,7 @@ class TcpClient {
                 (data) async {
                print(data);
                 //final serverMessage = String.fromCharCodes(data).trim();
-                decodeNodeMessage= await _processData(data);
+                decodeNodeMessage= await _processData(_socket[_j]!,data);
                 print(decodeNodeMessage);
                // Map<String, dynamic> parsedMessage = parseMessageJson(serverMessage);
                 if(decodeNodeMessage!=null){
