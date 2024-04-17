@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'connectivity_monitor.dart';
 import 'stungetip.dart';
@@ -36,10 +35,11 @@ class B4connection {
     bool? chatMode;
     String? type; //It stores the input from the user.It helps in connection and messaging.
     String? remoteKey;
+
     String? subtype;
     String? _myKey = 'macbook';
     int M = 0; //for Handling sendMessage function for different kinds of scenarios.
-    int interface = 0;
+    int skip = 0;
 
     //Instance of class used.
     final monitor = ConnectivityMonitor();
@@ -52,14 +52,14 @@ class B4connection {
             natStatus = 0;
             reset = 0;
             M = 0;
-            if (interface >= 1) {
+            if (skip >= 1) {
                 if (tcpClient.isListening()) {
                     tcpClient.stopServer();
                     Listening!.close();
                 }
             }
             _getNetworkInformation();
-            interface = 2;
+            skip = 2;
             print('Network interfaces changed');
             for (var interface in interfaces) {
                 print('Interface: ${interface.name}');
@@ -135,9 +135,7 @@ class B4connection {
     }
 
     void disconnectRelay() {
-        print('me hu yha pr');
-        String toSend = '$type|${remoteKey}|relay-disconnect';
-        tcpClient.send(toSend);
+        tcpClient.send(tcpClient.createMessageJson(null, null, null, null, 'disconnect', 4));
         remoteKey = null;
     }
 
@@ -182,7 +180,7 @@ class B4connection {
             case 0:
                 {
                     if (tcpClient.relayToNodeKey != null) {
-                        print(tcpClient.relayToNodeKey);
+
                         String toSend = tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey, null,message,4);
                         tcpClient.send(toSend);
                     }
