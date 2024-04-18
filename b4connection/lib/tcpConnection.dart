@@ -81,6 +81,7 @@ class TcpClient {
                                 _handleMessagePublic(
                                     socket, _parsedPublicMessage);
                             }
+
                         },
                         onError: (error) {
                             print('Server: Error: $error');
@@ -89,10 +90,13 @@ class TcpClient {
                             print('${socket.remoteAddress} Node left.');
 
                             try {
-                                remoteSocket[(_keySocketMap[socket
-                                    .remoteAddress])]!.write(
-                                    createMessageJson(null, null, null, null,
-                                        'disconnect', 4));
+                                var result = relayNodeMessageHandling(createMessageJson(null, null, null, null,
+                                    'disconnect', 4));
+                                remoteSocket[_keySocketMap[socket
+                                    .remoteAddress]]!.add(result[0]);
+                                remoteSocket[_keySocketMap[socket
+                                    .remoteAddress]]!.add(result[1]);
+
                             }
                             catch (e) {
                                 print('error=$e');
@@ -147,7 +151,6 @@ class TcpClient {
 
     // Send a message to the server
     Future<void> send(message) async {
-        print('message sent=$message');
 
         List<int> messageBytes = utf8.encode(
             message); // Encode the JSON message
@@ -198,70 +201,47 @@ class TcpClient {
     }
 
 
-    Future<dynamic> _processData(Socket socket, List<int> data) async {
+
+
+     Future<dynamic> _processData(Socket socket,data) async{
+        // Ensure the buffer for this socket exists, or create a new one
+        //putIfAbsent: This method checks if buffer has an entry for socket. If it does not, it initializes it with a new empty list (<int>[]). This ensures that buffer[socket] is never null when you try to use addAll.
         _buffer.putIfAbsent(socket, () => <int>[]);
+
+        // Now that we're sure buffer[socket] exists, we can add data safely
         _buffer[socket]!.addAll(data);
 
         while (_buffer[socket]!.length >= 4) {
+            // Ensure there's enough buffer to read the length
+            // Reading length from the buffer
             int length = (_buffer[socket]![0] << 24) +
                 (_buffer[socket]![1] << 16) +
                 (_buffer[socket]![2] << 8) +
                 _buffer[socket]![3];
 
             if (_buffer[socket]!.length >= 4 + length) {
-                List<int> messageBytes = _buffer[socket]!.sublist(
-                    4, 4 + length);
-                String messageDecode = utf8.decode(messageBytes);
-                _buffer[socket]!.removeRange(0, 4 + length);
-                return parseMessageJson(
-                    messageDecode); // Handle your JSON parsing
-            }
-            // Wait for more data if not enough is present
-            return Future.delayed(const Duration(microseconds: 0), () =>
-                _processData(socket, []));
-        }
-    }
-
-    /* Future<dynamic> _processData(Socket socket,data) async{
-        // Ensure the buffer for this socket exists, or create a new one
-        //putIfAbsent: This method checks if buffer has an entry for socket. If it does not, it initializes it with a new empty list (<int>[]). This ensures that buffer[socket] is never null when you try to use addAll.
-        buffer.putIfAbsent(socket, () => <int>[]);
-
-        // Now that we're sure buffer[socket] exists, we can add data safely
-        buffer[socket]!.addAll(data);
-
-        while (buffer[socket]!.length >= 4) {
-            // Ensure there's enough buffer to read the length
-            // Reading length from the buffer
-            int length = (buffer[socket]![0] << 24) +
-                (buffer[socket]![1] << 16) +
-                (buffer[socket]![2] << 8) +
-                buffer[socket]![3];
-
-            if (buffer[socket]!.length >= 4 + length) {
                 // Check if the whole message has arrived
                 // Extract the message bytes after the length header
-                List<int> messageBytes = buffer[socket]!.sublist(4, 4 + length);
+                List<int> messageBytes = _buffer[socket]!.sublist(4, 4 + length);
 
                 // Decode the message from bytes to a UTF-8 string
-                messageDecode = utf8.decode(messageBytes);
-                print("Received message: $messageDecode");
-
+                var messageDecode = utf8.decode(messageBytes);
 
                 // Remove the processed message from the buffer
-                buffer[socket]!.removeRange(0, 4 + length);
+                _buffer[socket]!.removeRange(0, 4 + length);
+
                 return parseMessageJson(messageDecode);
             } else {
-                print('not enogh data');
+
                 break; // Not enough data for a full message, wait for more data
             }
 
         }
 
-    }*/
+    }
     // Receive data from the server
     void receive(Function(String message) onDataReceived) {
-        print('receive function invoke');
+
         if (!_isConnected) {
             print('Client is not connected to a server.');
             return;
@@ -397,7 +377,7 @@ class TcpClient {
                     _nodeHandler = 0;
                 }
                 catch (e) {
-                    print('error me agya me =$e');
+
                     var result = relayNodeMessageHandling(createMessageJson(
                         null, null, null, null,
                         'error in proxy connection=$e', 0));
@@ -559,7 +539,7 @@ class TcpClient {
         }
         else if (decodedMessage['type'] == 'SetMap') {
             _keySocketMap[socket.remoteAddress] = decodedMessage['myKey'];
-            print('Set has maped');
+            print('Set has Mapped');
         }
         else {
             print(decodedMessage['message']);
