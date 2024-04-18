@@ -7,18 +7,18 @@ import 'package:psjapp/stungetip.dart';
 class TcpClient {
 
     final stunGet = StunClient();
-    final Map<int, Socket> _socket = {}; // Sockets as Map. so that we can differentiate connected clients.
+    final Map<int, Socket> _socket = {
+    }; // Sockets as Map. so that we can differentiate connected clients.
     bool _isConnected = false;
     ServerSocket? _serverSocket;
 
-    Map<dynamic, dynamic> _keySocketMap = {};
-    dynamic parsedMessage;
-    dynamic messageDecode;
-    dynamic decodeNodeMessage;
-    Map <dynamic,List<int>> buffer ={};
+    final Map<dynamic, dynamic> _keySocketMap = {};
+    dynamic _parsedPublicMessage;
+    dynamic _decodeNodeMessage;
+    final Map <dynamic, List<int>> _buffer = {};
 
 
-    final Map<String, Socket> _remoteSocket = {}; // To save all remote Sockets.
+    final Map<String, Socket> remoteSocket = {}; // To save all remote Sockets.
     bool _isListening = false;
     dynamic relayToNodeKey; //The receiving node sets a unique node key to facilitate the  brokering of messages from the proxy server.
 
@@ -27,17 +27,15 @@ class TcpClient {
     String? _connectionKey;
 
     List<dynamic>? partGlobal;
-    int _j = 0;
+    final int _j = 0;
     int? _nodeHandler;
-    int Null = 4;
-    List<String> M = [];
 
 
     // Connect to the server
     Future<void> connect(ip, port) async {
         _nodeHandler = null;
-        relayToNodeKey=null;
-        Null = 1;
+        relayToNodeKey = null;
+
         try {
             _socket[_j] = await Socket.connect(ip, port);
             _isConnected = true;
@@ -53,8 +51,8 @@ class TcpClient {
     // Start as a server
     Future<ServerSocket?> startServer() async {
         _nodeHandler = null;
-        relayToNodeKey=null;
-        Null = 2;
+        relayToNodeKey = null;
+
         try {
             _serverSocket =
             await ServerSocket.bind(
@@ -72,22 +70,17 @@ class TcpClient {
             _serverSocket!.listen((socket) {
                 print('RemoteNode is Connected to us from ${socket.remoteAddress
                     .address}:${socket.remotePort}');
-                try {// Buffer to store data chunks
+                try { // Buffer to store data chunks
 
                     socket.listen(
                             (data) async {
+                            _parsedPublicMessage =
+                            await _processData(socket, data);
 
-
-                               parsedMessage=await _processData(socket,data);
-                            // Convert the received data to a string and trim whitespace
-                      //     final clientMessage = String.fromCharCodes(data).trim();
-                                //    Map<String, dynamic> parsedMessage = parseMessageJson(clientMessage);
-                               if(parsedMessage!=null){
-                                _handleMessagePublic(socket, parsedMessage);}
-                               else{
-                                   print('$parsedMessage');
-                               }
-
+                            if (_parsedPublicMessage != null) {
+                                _handleMessagePublic(
+                                    socket, _parsedPublicMessage);
+                            }
                         },
                         onError: (error) {
                             print('Server: Error: $error');
@@ -96,7 +89,8 @@ class TcpClient {
                             print('${socket.remoteAddress} Node left.');
 
                             try {
-                                sendBackToClient(_keySocketMap[socket.remoteAddress],
+                                remoteSocket[(_keySocketMap[socket
+                                    .remoteAddress])]!.write(
                                     createMessageJson(null, null, null, null,
                                         'disconnect', 4));
                             }
@@ -121,14 +115,19 @@ class TcpClient {
         catch (e) {
             print(e);
         }
-
-        return _serverSocket;
+        try {
+            return _serverSocket;
+        }
+        catch (e) {
+            print(e);
+            return null;
+        }
     }
 
     //Data send back to the client according to the key.
-    void sendBackToClient(key, message) {
-
-        List<int> messageBytes = utf8.encode(message); // Encode the JSON message
+    List<dynamic> relayNodeMessageHandling(message) {
+        List<int> messageBytes = utf8.encode(
+            message); // Encode the JSON message
         int length = messageBytes.length; // Calculate the message length
         var lengthBytes = [
             (length >> 24) & 0xFF,
@@ -136,38 +135,41 @@ class TcpClient {
             (length >> 8) & 0xFF,
             length & 0xFF
         ]; // Prepare the length header
-        try{
+        /*try{
             print(message);
-        _remoteSocket[key]!.add(lengthBytes); // Send the length header
-        _remoteSocket[key]!.add(messageBytes); // Send the message bytes
+        _remoteSocket[key]!.write(lengthBytes); // Send the length header
+        _remoteSocket[key]!.write(messageBytes); // Send the message bytes
         _remoteSocket[key]!.flush();}// Ensure the data is sent immediately
         catch(e){print(e);
-        }
+        }*/
+        return [lengthBytes, messageBytes];
     }
 
     // Send a message to the server
-    Future<void> send(message) async{
+    Future<void> send(message) async {
         print('message sent=$message');
 
-        List<int> messageBytes = utf8.encode(message);  // Encode the JSON message
-        int length = messageBytes.length;  // Calculate the message length
+        List<int> messageBytes = utf8.encode(
+            message); // Encode the JSON message
+        int length = messageBytes.length; // Calculate the message length
         var lengthBytes = [
             (length >> 24) & 0xFF,
             (length >> 16) & 0xFF,
             (length >> 8) & 0xFF,
             length & 0xFF
-        ];  // Prepare the length header
+        ]; // Prepare the length header
 
         if (!_isConnected) {
             print('Client is not connected to a server.');
             return;
         }
         else {
-            try{
-            _socket[_j]!.add(lengthBytes);  // Send the length header
-            _socket[_j]!.add(messageBytes); // Send the message bytes
-            _socket[_j]!.flush(); } // Ensure the data is sent immediately
-            catch(e){
+            try {
+                _socket[_j]!.add(lengthBytes); // Send the length header
+                _socket[_j]!.add(messageBytes); // Send the message bytes
+                _socket[_j]!.flush();
+            } // Ensure the data is sent immediately
+            catch (e) {
                 print(e);
             }
         }
@@ -186,15 +188,41 @@ class TcpClient {
     }
 
     void remoteSocketCloses(key) {
-        try{
-        _remoteSocket[key]!.close();
-        _connectionKey = null;}
-            catch(e){
+        try {
+            remoteSocket[key]!.close();
+            _connectionKey = null;
+        }
+        catch (e) {
             print(e);
-            }
+        }
     }
 
-    Future<dynamic> _processData(Socket socket,data) async{
+
+    Future<dynamic> _processData(Socket socket, List<int> data) async {
+        _buffer.putIfAbsent(socket, () => <int>[]);
+        _buffer[socket]!.addAll(data);
+
+        while (_buffer[socket]!.length >= 4) {
+            int length = (_buffer[socket]![0] << 24) +
+                (_buffer[socket]![1] << 16) +
+                (_buffer[socket]![2] << 8) +
+                _buffer[socket]![3];
+
+            if (_buffer[socket]!.length >= 4 + length) {
+                List<int> messageBytes = _buffer[socket]!.sublist(
+                    4, 4 + length);
+                String messageDecode = utf8.decode(messageBytes);
+                _buffer[socket]!.removeRange(0, 4 + length);
+                return parseMessageJson(
+                    messageDecode); // Handle your JSON parsing
+            }
+            // Wait for more data if not enough is present
+            return Future.delayed(const Duration(microseconds: 0), () =>
+                _processData(socket, []));
+        }
+    }
+
+    /* Future<dynamic> _processData(Socket socket,data) async{
         // Ensure the buffer for this socket exists, or create a new one
         //putIfAbsent: This method checks if buffer has an entry for socket. If it does not, it initializes it with a new empty list (<int>[]). This ensures that buffer[socket] is never null when you try to use addAll.
         buffer.putIfAbsent(socket, () => <int>[]);
@@ -230,7 +258,7 @@ class TcpClient {
 
         }
 
-    }
+    }*/
     // Receive data from the server
     void receive(Function(String message) onDataReceived) {
         print('receive function invoke');
@@ -240,16 +268,10 @@ class TcpClient {
         }
         _socket[_j]!.listen(
                 (data) async {
-               print(data);
-                //final serverMessage = String.fromCharCodes(data).trim();
-                decodeNodeMessage= await _processData(_socket[_j]!,data);
+                _decodeNodeMessage = await _processData(_socket[_j]!, data);
 
-               // Map<String, dynamic> parsedMessage = parseMessageJson(serverMessage);
-                if(decodeNodeMessage!=null){
-
-                    _handleMessageNode(decodeNodeMessage);}
-                else{
-                    print('$decodeNodeMessage');
+                if (_decodeNodeMessage != null) {
+                    _handleMessageNode(_decodeNodeMessage);
                 }
             },
             onError: (error) {
@@ -257,34 +279,36 @@ class TcpClient {
                 _isConnected = false;
             },
             onDone: () {
-                    try{
-                print('remoteNode  left.');
-                relayToNodeKey=null;
-                _isConnected = false;
-                _socket[_j]!.close();}
-                        catch(e){
-                            print('remoteNode  left.');
-                            _isConnected = false;
-                            relayToNodeKey=null;
-                        }
+                try {
+                    print('remoteNode  left.');
+                    relayToNodeKey = null;
+                    _isConnected = false;
+                    _socket[_j]!.close();
+                }
+                catch (e) {
+                    print('remoteNode  left.');
+                    _isConnected = false;
+                    relayToNodeKey = null;
+                }
             },
         );
     }
 
     // Close the connection
     Future<void> disconnect() async {
-        try{
-        await _socket[_j]!.close();
-        _isConnected = false;
-        _nodeHandler = null;
-        print('Disconnected from the proxy');
-        relayToNodeKey = null;}
-            catch(e){
-                _isConnected = false;
-                _nodeHandler = null;
-                print('Disconnected error=$e');
-                relayToNodeKey = null;
-            }
+        try {
+            await _socket[_j]!.close();
+            _isConnected = false;
+            _nodeHandler = null;
+            print('Disconnected from the proxy');
+            relayToNodeKey = null;
+        }
+        catch (e) {
+            _isConnected = false;
+            _nodeHandler = null;
+            print('Disconnected error=$e');
+            relayToNodeKey = null;
+        }
     }
 
     String? Key() => _connectionKey;
@@ -294,8 +318,6 @@ class TcpClient {
     bool isListening() => _isListening;
 
     int? nodeHandler() => _nodeHandler;
-
-    dynamic nullMaker() => Null;
 
 
     String createMessageJson(type, A, B, C, D, length) {
@@ -355,73 +377,93 @@ class TcpClient {
         }
     }
 
-    void _handleMessagePublic(Socket socket,decodedMessage) async{
-
+    void _handleMessagePublic(Socket socket, decodedMessage) async {
         if (decodedMessage['length'] == 6) {
             // Extract individual parts
             final type = decodedMessage['type'];
             final NodeKey = decodedMessage['remoteKey'];
             final Key = decodedMessage['myKey'];
             if (type == 'MP') {
-
                 try {
-                    _message = createMessageJson(null, stunGet.getPublicIPv4(), socket.port, null, 'I am your proxy server i will let you connect to the world bro . Please press any key to continue.', 0);
-                    _remoteSocket[Key]=socket;
+                    _message = createMessageJson(
+                        null, stunGet.getPublicIPv4(), socket.port, null,
+                        'I am your proxy server i will let you connect to the world bro . Please press any key to continue.',
+                        0);
+                    remoteSocket[Key] = socket;
                     _connectionKey = Key;
-                    sendBackToClient(Key, _message);
+                    var result = relayNodeMessageHandling(_message);
+                    remoteSocket[Key]!.add(result[0]);
+                    remoteSocket[Key]!.add(result[1]);
                     _nodeHandler = 0;
                 }
                 catch (e) {
                     print('error me agya me =$e');
-                    sendBackToClient(Key, createMessageJson(
+                    var result = relayNodeMessageHandling(createMessageJson(
                         null, null, null, null,
                         'error in proxy connection=$e', 0));
+                    remoteSocket[Key]!.add(result[0]);
+                    remoteSocket[Key]!.add(result[1]);
                 }
             }
             else if (type == 'DTN') {
                 try {
                     _connectionKey = Key;
-                    _remoteSocket[Key] = socket;
+                    remoteSocket[Key] = socket;
                     _message = createMessageJson(
                         null, null, null, null,
                         'your are now directly connected to me as we both are publicly available',
                         0);
-                    sendBackToClient(Key, _message);
+                    var result = relayNodeMessageHandling(_message);
+                    remoteSocket[Key]!.add(result[0]);
+                    remoteSocket[Key]!.add(result[1]);
                     _nodeHandler = 3;
                 }
                 catch (e) {
-                    sendBackToClient(Key, createMessageJson(
+                    var result = relayNodeMessageHandling(createMessageJson(
                         null, null, null, null,
                         'having error in connection=$e',
                         0));
+                    remoteSocket[Key]!.add(result[0]);
+                    remoteSocket[Key]!.add(result[1]);
                 }
             }
             else if (type == 'TP') {
-                _keySocketMap[socket.remoteAddress] =NodeKey;
+                _keySocketMap[socket.remoteAddress] = NodeKey;
                 try {
-                    print(_remoteSocket['dell']);
-                    sendBackToClient(NodeKey, decodedMessage);
-                    _remoteSocket[Key] = socket;
-                    _message = createMessageJson(null, null, null, null,'you can relay your message to the key:$NodeKey',
-                        0);
+                    var result = relayNodeMessageHandling(
+                        jsonEncode(decodedMessage));
+                    remoteSocket[NodeKey]!.add(result[0]);
+                    remoteSocket[NodeKey]!.add(result[1]);
+
+                    remoteSocket[Key] = socket;
+                    _message = createMessageJson(null, null, null, null,
+                        'you can relay your message to the key:$NodeKey', 0);
                     _connectionKey = Key;
-                    sendBackToClient(Key, _message);
+
+                    var chat = relayNodeMessageHandling(_message);
+                    remoteSocket[Key]!.add(chat[0]);
+                    remoteSocket[Key]!.add(chat[1]);
                     _nodeHandler = 1;
                 }
                 catch (e) {
-                    sendBackToClient(Key, createMessageJson(null, null, null, null,
-                        'having some error in your entered key=$e', 0));
+                    var result = relayNodeMessageHandling(
+                        createMessageJson(null, null, null, null,
+                            'having some error in your entered key=$e', 0));
+                    remoteSocket[Key]!.add(result[0]);
+                    remoteSocket[Key]!.add(result[1]);
                 }
             }
             else {
                 try {
                     _connectionKey = Key;
-                    _remoteSocket[Key] = socket;
+                    remoteSocket[Key] = socket;
                     _message = createMessageJson(
                         null, null, null, null,
                         'your are now directly connected to me as we both are publicly available',
                         0);
-                    sendBackToClient(Key, _message);
+                    var chat = relayNodeMessageHandling(_message);
+                    remoteSocket[Key]!.add(chat[0]);
+                    remoteSocket[Key]!.add(chat[1]);
                     _nodeHandler = 3;
                 }
                 catch (e) {
@@ -435,22 +477,26 @@ class TcpClient {
             final type = decodedMessage['type'];
             if (type == 'TP') {
                 try {
-                    sendBackToClient(key, createMessageJson(
-                        null, null, null, null, message,
-                        0));
+                    var result = relayNodeMessageHandling(
+                        createMessageJson(null, null, null, null, message, 0));
+                    remoteSocket[key]!.add(result[0]);
+                    remoteSocket[key]!.add(result[1]);
                 }
                 catch (e) {
-                    socket.write(createMessageJson(
+                    var result = relayNodeMessageHandling(createMessageJson(
                         null, null, null, null,
                         'Other Node is no more connected. error=$e',
                         0));
+                    socket.add(result[0]);
+                    socket.add(result[1]);
                 }
             }
             else if (type == 'MP') {
                 try {
-                    sendBackToClient(key, createMessageJson(
-                        null, null, null, null, message,
-                        0));
+                    var result = relayNodeMessageHandling(
+                        createMessageJson(null, null, null, null, message, 0));
+                    remoteSocket[key]!.add(result[0]);
+                    remoteSocket[key]!.add(result[1]);
                 }
                 catch (e) {
                     print(e);
@@ -483,12 +529,13 @@ class TcpClient {
                 }
                 else {
                     try {
-                        String toSend = createMessageJson(
-                            null, null, null, null,
-                            'no relaying connection exits ',
-                            0);
-                        sendBackToClient(
-                            requestingNodeKey, toSend);
+                        var result = relayNodeMessageHandling(
+                            createMessageJson(
+                                null, null, null, null,
+                                'no relaying connection exits ',
+                                0));
+                        remoteSocket[requestingNodeKey]!.add(result[0]);
+                        remoteSocket[requestingNodeKey]!.add(result[1]);
                     }
                     catch (e) {
                         print(e);
@@ -496,16 +543,15 @@ class TcpClient {
                 }
             }
         }
-        else if(decodedMessage['length'] == 5){
-
+        else if (decodedMessage['length'] == 5) {
             final requestingNodeKey = decodedMessage['myKey'];
             try {
-                String toSend = createMessageJson(
+                var result = relayNodeMessageHandling(createMessageJson(
                     null, null, null, null,
                     'no relaying connection exits ',
-                    0);
-                sendBackToClient(
-                    requestingNodeKey, toSend);
+                    0));
+                remoteSocket[requestingNodeKey]!.add(result[0]);
+                remoteSocket[requestingNodeKey]!.add(result[1]);
             }
             catch (e) {
                 print(e);
@@ -516,27 +562,26 @@ class TcpClient {
             print('Set has maped');
         }
         else {
-
             print(decodedMessage['message']);
         }
     }
+
     Map<String, dynamic> parseMessageJson(message) {
         return json.decode(message); // Convert the JSON string back to a Map
     }
 
-    void _handleMessageNode(decodeNodeMessage) async{
-
+    void _handleMessageNode(decodeNodeMessage) async {
         if (decodeNodeMessage['length'] == 6) {
             if (relayToNodeKey != null) {
                 send(createMessageJson('TP', null, relayToNodeKey, null,
                     'disconnect', 4));
             }
             relayToNodeKey = decodeNodeMessage['myKey'];
-            send(createMessageJson('SetMap', null, null, relayToNodeKey, null, 0));
+            send(createMessageJson(
+                'SetMap', null, null, relayToNodeKey, null, 0));
         }
         else if (decodeNodeMessage['length'] == 4) {
             if (decodeNodeMessage['message'] == 'disconnect') {
-                Null = 0;
                 relayToNodeKey = null;
                 print('relayDisconnected');
             }
@@ -548,19 +593,21 @@ class TcpClient {
             print(decodeNodeMessage['message']);
         }
     }
+
     // Stop the server
     Future<void> stopServer() async {
-        try{
-        await _serverSocket?.close();
-        _isListening = false;
-        relayToNodeKey=null;
-        print('Server stopped.');
-        _nodeHandler = null;}
-            catch(e){
-                _isListening = false;
-                print('Server Stop error=$e');
-                _nodeHandler = null;
-                relayToNodeKey=null;
-            }
+        try {
+            await _serverSocket?.close();
+            _isListening = false;
+            relayToNodeKey = null;
+            print('Server stopped.');
+            _nodeHandler = null;
+        }
+        catch (e) {
+            _isListening = false;
+            print('Server Stop error=$e');
+            _nodeHandler = null;
+            relayToNodeKey = null;
+        }
     }
 }

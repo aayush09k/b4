@@ -214,8 +214,9 @@ class B4connection {
             case 2:
                 {
                     if (tcpClient.isListening()) {
-                        String toSend = tcpClient.createMessageJson('TP',null,tcpClient.relayToNodeKey, null,message,4);
-                        tcpClient.sendBackToClient('ipv6', toSend);
+                        var toSend = tcpClient.relayNodeMessageHandling(tcpClient.createMessageJson('TP',null,tcpClient.relayToNodeKey, null,message,4));
+                        tcpClient.remoteSocket['ipv6']!.add(toSend[0]);
+                        tcpClient.remoteSocket['ipv6']!.add(toSend[1]);
                     }
                 }
             case 3:
@@ -225,7 +226,10 @@ class B4connection {
                     }
                     else if (tcpClient.isListening()) {
                         var key = tcpClient.Key();
-                        tcpClient.sendBackToClient(key, tcpClient.createMessageJson(null,null,null, null,message,0));
+                        var toSend = tcpClient.relayNodeMessageHandling(tcpClient.createMessageJson(null,null,null, null,message,0));
+                        tcpClient.remoteSocket[key]!.add(toSend[0]);
+                        tcpClient.remoteSocket[key]!.add(toSend[1]);
+
                     }
                 }
         }
