@@ -484,6 +484,15 @@ class TcpClient {
                         remoteSocket[key]!.add(result[0]);
                         remoteSocket[key]!.add(result[1]);
                         remoteSocket[key]!.flush();
+
+                        //Mapping remove logic when relay is disconnected.
+                        remoteSocket.remove('_keySocketMap[socket.remoteAddress]');
+                        String? keyToRemove = remoteSocket.keys.firstWhere(
+                                (k) => remoteSocket[k] == key, // looking for an age that doesn't exist
+                            orElse: () => 'null'
+                        );
+                        remoteSocket.remove(keyToRemove);
+
                     }
                     else{
                     var result = relayNodeMessageHandling(
@@ -500,6 +509,7 @@ class TcpClient {
                         0));
                     socket.add(result[0]);
                     socket.add(result[1]);
+                    socket.flush();
                 }
             }
             else if (decodedMessage['type'] == 'MP') {
@@ -510,6 +520,15 @@ class TcpClient {
                         remoteSocket[key]!.add(result[0]);
                         remoteSocket[key]!.add(result[1]);
                         remoteSocket[key]!.flush();
+
+                        //Mapping remove logic when relay is disconnected.
+                        remoteSocket.remove('_keySocketMap[socket.remoteAddress]');
+                        String? keyToRemove = remoteSocket.keys.firstWhere(
+                                (k) => remoteSocket[k] == key, // looking for an age that doesn't exist
+                            orElse: () => 'null'
+                        );
+                        remoteSocket.remove(keyToRemove);
+
                     }
                     else{
                     var result = relayNodeMessageHandling(
@@ -608,6 +627,7 @@ class TcpClient {
             if (decodeNodeMessage['message'] == 'disconnect') {
                 relayToNodeKey = null;
                 _nullRemoteKey=true;
+
                 print('relayDisconnected');
             }
             else {
