@@ -100,7 +100,9 @@ class TcpClient {
                                     .remoteAddress]]!.add(result[0]);
                                 remoteSocket[_keySocketMap[socket
                                     .remoteAddress]]!.add(result[1]);
-
+                                remoteSocket[_keySocketMap[socket
+                                    .remoteAddress]]!.flush();
+                                remoteSocket.remove('_keySocketMap[socket.remoteAddress]');
                             }
                             catch (e) {
                                 print('error=$e');
