@@ -136,10 +136,10 @@ class B4connection {
 
     Future<void> disconnectRelay() async {
         if(tcpClient.relayToNodeKey!=null){
-            tcpClient.send(tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey,null,'disconnect',5));
+            tcpClient.send(tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey,null,'disconnect',4));
         }
        else{
-            tcpClient.send(tcpClient.createMessageJson(type,null,remoteKey,null,'disconnect',5));
+            tcpClient.send(tcpClient.createMessageJson(type,null,remoteKey,null,'disconnect',4));
         }
 
         remoteKey = null;

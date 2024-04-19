@@ -462,13 +462,21 @@ class TcpClient {
         else if (decodedMessage['length'] == 4) {
             final key = decodedMessage['relayToNodeKey'];
             final message = decodedMessage['message'];
-            final type = decodedMessage['type'];
-            if (type == 'TP') {
+          //  final type = decodedMessage['type'];
+            if (decodedMessage['type'] == 'TP') {
                 try {
+                    if(decodedMessage['message']=='disconnect'){
+                        var result = relayNodeMessageHandling(
+                            createMessageJson(null, null, null, null, message, 4));
+                        remoteSocket[key]!.add(result[0]);
+                        remoteSocket[key]!.add(result[1]);
+                    }
+                    else{
                     var result = relayNodeMessageHandling(
                         createMessageJson(null, null, null, null, message, 0));
                     remoteSocket[key]!.add(result[0]);
                     remoteSocket[key]!.add(result[1]);
+                    }
                 }
                 catch (e) {
                     var result = relayNodeMessageHandling(createMessageJson(
@@ -479,12 +487,20 @@ class TcpClient {
                     socket.add(result[1]);
                 }
             }
-            else if (type == 'MP') {
+            else if (decodedMessage['type'] == 'MP') {
                 try {
+                    if(decodedMessage['message']=='disconnect'){
+                        var result = relayNodeMessageHandling(
+                            createMessageJson(null, null, null, null, message, 4));
+                        remoteSocket[key]!.add(result[0]);
+                        remoteSocket[key]!.add(result[1]);
+                    }
+                    else{
                     var result = relayNodeMessageHandling(
                         createMessageJson(null, null, null, null, message, 0));
                     remoteSocket[key]!.add(result[0]);
                     remoteSocket[key]!.add(result[1]);
+                    }
                 }
                 catch (e) {
                     print(e);
