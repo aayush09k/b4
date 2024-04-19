@@ -58,7 +58,7 @@ Future<void> main() async {
           type=line;
           if(line=='TP'){
           b4connection.K=4;
-          print("Press enter the remote key");
+          print(" write  the remote key");
           }
           else{
             if(b4connection.subtype!=null){

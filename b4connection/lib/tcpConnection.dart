@@ -29,12 +29,14 @@ class TcpClient {
     List<dynamic>? partGlobal;
     final int _j = 0;
     int? _nodeHandler;
+    bool _nullRemoteKey=false;
 
 
     // Connect to the server
     Future<void> connect(ip, port) async {
         _nodeHandler = null;
         relayToNodeKey = null;
+        _nullRemoteKey=false;
 
         try {
             _socket[_j] = await Socket.connect(ip, port);
@@ -45,6 +47,7 @@ class TcpClient {
         on SocketException catch (e) {
             print('Failed to connect: $e');
             _isConnected = false;
+            _nullRemoteKey=false;
         }
     }
 
@@ -52,6 +55,7 @@ class TcpClient {
     Future<ServerSocket?> startServer() async {
         _nodeHandler = null;
         relayToNodeKey = null;
+        _nullRemoteKey=false;
 
         try {
             _serverSocket =
@@ -177,7 +181,7 @@ class TcpClient {
             }
         }
 
-        Map<dynamic, dynamic> split = parseMessageJson(message);
+        Map<dynamic, dynamic> split = jsonDecode(message);
         switch (split['type']) {
             case 'MP':
                 _nodeHandler = 0;
@@ -230,7 +234,7 @@ class TcpClient {
                 // Remove the processed message from the buffer
                 _buffer[socket]!.removeRange(0, 4 + length);
 
-                return parseMessageJson(messageDecode);
+                return jsonDecode(messageDecode);
             } else {
 
                 break; // Not enough data for a full message, wait for more data
@@ -263,6 +267,7 @@ class TcpClient {
                     print('remoteNode  left.');
                     relayToNodeKey = null;
                     _isConnected = false;
+                    _nullRemoteKey=true;
                     _socket[_j]!.close();
                 }
                 catch (e) {
@@ -282,12 +287,14 @@ class TcpClient {
             _nodeHandler = null;
             print('Disconnected from the proxy');
             relayToNodeKey = null;
+            _nullRemoteKey=true;
         }
         catch (e) {
             _isConnected = false;
             _nodeHandler = null;
             print('Disconnected error=$e');
             relayToNodeKey = null;
+            _nullRemoteKey=true;
         }
     }
 
@@ -299,6 +306,7 @@ class TcpClient {
 
     int? nodeHandler() => _nodeHandler;
 
+    bool makeRemoteKeyNull()=> _nullRemoteKey;
 
     String createMessageJson(type, A, B, C, D, length) {
         switch (length) {
@@ -489,7 +497,7 @@ class TcpClient {
         else if (decodedMessage['length'] == 34) {
             final message = decodedMessage['message'];
             final requestingNodeKey = decodedMessage['myKey'];
-            Map<dynamic, dynamic> part = parseMessageJson(
+            Map<dynamic, dynamic> part = jsonDecode(
                 message);
             if (part['length'] == 3) {
                 if (part['type'] == 'GP') {
@@ -546,12 +554,11 @@ class TcpClient {
         }
     }
 
-    Map<String, dynamic> parseMessageJson(message) {
-        return json.decode(message); // Convert the JSON string back to a Map
-    }
 
     void _handleMessageNode(decodeNodeMessage) async {
+        print(decodeNodeMessage);
         if (decodeNodeMessage['length'] == 6) {
+            print(relayToNodeKey);
             if (relayToNodeKey != null) {
                 send(createMessageJson('TP', null, relayToNodeKey, null,
                     'disconnect', 4));
@@ -559,18 +566,22 @@ class TcpClient {
             relayToNodeKey = decodeNodeMessage['myKey'];
             send(createMessageJson(
                 'SetMap', null, null, relayToNodeKey, null, 0));
+            print(relayToNodeKey);
         }
         else if (decodeNodeMessage['length'] == 4) {
             if (decodeNodeMessage['message'] == 'disconnect') {
                 relayToNodeKey = null;
+                _nullRemoteKey=true;
                 print('relayDisconnected');
             }
             else {
                 print(decodeNodeMessage['message']);
+                _nullRemoteKey=false;
             }
         }
         else {
             print(decodeNodeMessage['message']);
+            _nullRemoteKey=false;
         }
     }
 
@@ -587,6 +598,7 @@ class TcpClient {
             _isListening = false;
             print('Server Stop error=$e');
             _nodeHandler = null;
+            _nullRemoteKey=false;
             relayToNodeKey = null;
         }
     }

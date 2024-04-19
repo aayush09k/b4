@@ -175,7 +175,9 @@ class B4connection {
     //sendMessage is used to sent message to any node either relayed msg or normal message.
     //For different scenarios message function is developed in such a way that you can send your message to any node.
     Future<void> sendMessage(message) async {
-
+       if(tcpClient.makeRemoteKeyNull()){
+        remoteKey=null;
+       }
         switch (tcpClient.nodeHandler()) {
             case 0:
                 {
