@@ -134,9 +134,16 @@ class B4connection {
         }
     }
 
-    void disconnectRelay() {
-        tcpClient.send(tcpClient.createMessageJson(null, null, null, null, 'disconnect', 4));
+    Future<void> disconnectRelay() async {
+        if(tcpClient.relayToNodeKey!=null){
+            tcpClient.send(tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey,null,'disconnect',5));
+        }
+       else{
+            tcpClient.send(tcpClient.createMessageJson(type,null,remoteKey,null,'disconnect',5));
+        }
+
         remoteKey = null;
+        print('relayDisconnected');
     }
 
 //Below function can be use to connect with other peer.Here you have to give the type of connection 'TP(To proxy)','MP(be my proxy)','D'(direct connection),'DTP'(Direct through NAT).

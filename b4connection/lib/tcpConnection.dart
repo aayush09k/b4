@@ -155,7 +155,7 @@ class TcpClient {
 
     // Send a message to the server
     Future<void> send(message) async {
-
+        print(message);
         List<int> messageBytes = utf8.encode(
             message); // Encode the JSON message
         int length = messageBytes.length; // Calculate the message length

@@ -112,7 +112,6 @@ Future<void> main() async {
             if (line == 'exitRelay') {
               b4connection.K = 1;
               b4connection.disconnectRelay();
-              print('exitRelay');
 
             }
             else if(line=='goToIpv6'){
