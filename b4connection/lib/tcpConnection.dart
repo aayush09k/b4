@@ -91,7 +91,6 @@ class TcpClient {
                             print('Server: Error: $error');
                         },
                         onDone: () {
-                            print('${socket.remoteAddress} Node left.');
 
                             try {
                                 var result = relayNodeMessageHandling(createMessageJson(null, null, null, null,
@@ -109,7 +108,11 @@ class TcpClient {
                             }
 
                             try {
-                                socket.close();
+                                try{
+                                socket.close();}
+                                    catch(e){
+                                    print(e);
+                                    }
                             }
                             catch (e) {
                                 print('error=$e');
@@ -384,6 +387,7 @@ class TcpClient {
                     var result = relayNodeMessageHandling(_message);
                     remoteSocket[Key]!.add(result[0]);
                     remoteSocket[Key]!.add(result[1]);
+                    remoteSocket[Key]!.flush();
                     _nodeHandler = 0;
                 }
                 catch (e) {
@@ -393,6 +397,7 @@ class TcpClient {
                         'error in proxy connection=$e', 0));
                     remoteSocket[Key]!.add(result[0]);
                     remoteSocket[Key]!.add(result[1]);
+                    remoteSocket[Key]!.flush();
                 }
             }
             else if (type == 'DTN') {
@@ -406,6 +411,7 @@ class TcpClient {
                     var result = relayNodeMessageHandling(_message);
                     remoteSocket[Key]!.add(result[0]);
                     remoteSocket[Key]!.add(result[1]);
+                    remoteSocket[Key]!.flush();
                     _nodeHandler = 3;
                 }
                 catch (e) {
@@ -415,6 +421,7 @@ class TcpClient {
                         0));
                     remoteSocket[Key]!.add(result[0]);
                     remoteSocket[Key]!.add(result[1]);
+                    remoteSocket[Key]!.flush();
                 }
             }
             else if (type == 'TP') {
@@ -424,6 +431,7 @@ class TcpClient {
                         jsonEncode(decodedMessage));
                     remoteSocket[NodeKey]!.add(result[0]);
                     remoteSocket[NodeKey]!.add(result[1]);
+                    remoteSocket[NodeKey]!.flush();
 
                     remoteSocket[Key] = socket;
                     _message = createMessageJson(null, null, null, null,
@@ -433,6 +441,7 @@ class TcpClient {
                     var chat = relayNodeMessageHandling(_message);
                     remoteSocket[Key]!.add(chat[0]);
                     remoteSocket[Key]!.add(chat[1]);
+                    remoteSocket[Key]!.flush();
                     _nodeHandler = 1;
                 }
                 catch (e) {
@@ -441,6 +450,7 @@ class TcpClient {
                             'having some error in your entered key=$e', 0));
                     remoteSocket[Key]!.add(result[0]);
                     remoteSocket[Key]!.add(result[1]);
+                    remoteSocket[Key]!.flush();
                 }
             }
             else {
@@ -454,6 +464,7 @@ class TcpClient {
                     var chat = relayNodeMessageHandling(_message);
                     remoteSocket[Key]!.add(chat[0]);
                     remoteSocket[Key]!.add(chat[1]);
+                    remoteSocket[Key]!.flush();
                     _nodeHandler = 3;
                 }
                 catch (e) {
@@ -472,12 +483,14 @@ class TcpClient {
                             createMessageJson(null, null, null, null, message, 4));
                         remoteSocket[key]!.add(result[0]);
                         remoteSocket[key]!.add(result[1]);
+                        remoteSocket[key]!.flush();
                     }
                     else{
                     var result = relayNodeMessageHandling(
                         createMessageJson(null, null, null, null, message, 0));
                     remoteSocket[key]!.add(result[0]);
                     remoteSocket[key]!.add(result[1]);
+                    remoteSocket[key]!.flush();
                     }
                 }
                 catch (e) {
@@ -496,12 +509,14 @@ class TcpClient {
                             createMessageJson(null, null, null, null, message, 4));
                         remoteSocket[key]!.add(result[0]);
                         remoteSocket[key]!.add(result[1]);
+                        remoteSocket[key]!.flush();
                     }
                     else{
                     var result = relayNodeMessageHandling(
                         createMessageJson(null, null, null, null, message, 0));
                     remoteSocket[key]!.add(result[0]);
                     remoteSocket[key]!.add(result[1]);
+                    remoteSocket[key]!.flush();
                     }
                 }
                 catch (e) {
@@ -542,6 +557,7 @@ class TcpClient {
                                 0));
                         remoteSocket[requestingNodeKey]!.add(result[0]);
                         remoteSocket[requestingNodeKey]!.add(result[1]);
+                        remoteSocket[requestingNodeKey]!.flush();
                     }
                     catch (e) {
                         print(e);
@@ -558,6 +574,8 @@ class TcpClient {
                     0));
                 remoteSocket[requestingNodeKey]!.add(result[0]);
                 remoteSocket[requestingNodeKey]!.add(result[1]);
+                remoteSocket[requestingNodeKey]!.flush();
+
             }
             catch (e) {
                 print(e);
