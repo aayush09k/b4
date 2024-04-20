@@ -190,7 +190,6 @@ class B4connection {
             case 0:
                 {
                     if (tcpClient.relayToNodeKey != null) {
-
                         String toSend = tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey, null,message,4);
                         tcpClient.send(toSend);
                     }
@@ -201,7 +200,7 @@ class B4connection {
                         tcpClient.send(toSend);}
                         else{
                             String toSend = tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey,_myKey,message,5);
-                            tcpClient.send('$toSend\n');
+                            tcpClient.send(toSend);
                         }
                     }
                 }
