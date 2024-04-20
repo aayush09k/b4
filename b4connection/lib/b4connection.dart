@@ -182,6 +182,7 @@ class B4connection {
     //sendMessage is used to sent message to any node either relayed msg or normal message.
     //For different scenarios message function is developed in such a way that you can send your message to any node.
     Future<void> sendMessage(message) async {
+
        if(tcpClient.makeRemoteKeyNull()){
         remoteKey=null;
        }
@@ -290,6 +291,7 @@ class B4connection {
                         print('Behind NAT in ipv4system');
                         natStatus = 0;
                         startConnection(proxyIpv4Pub, proxyIpv4Port, 'MP');
+                        break;
                     }
             }
         }
