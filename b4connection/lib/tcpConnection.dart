@@ -325,8 +325,8 @@ class TcpClient {
     }
 
     void _handleMessagePublic(Socket socket, decodedMessage) async {
-        if (decodedMessage['length'] == 6) {
-            if (decodedMessage['type'] == 'MP') {
+        if (decodedMessage['l'] == 6) {
+            if (decodedMessage['t'] == 'MP') {
                 try {
                     _message = createMessageJson(
                         null, stunGet.getPublicIPv4(), socket.port, null,
@@ -343,7 +343,7 @@ class TcpClient {
                         'error in proxy connection=$e', 0));
                 }
             }
-            else if (decodedMessage['type'] == 'DTN') {
+            else if (decodedMessage['t'] == 'DTN') {
                 try {
                     _connectionKey = decodedMessage['p4'];
                     remoteSocket[decodedMessage['p4']] = socket;
@@ -362,14 +362,14 @@ class TcpClient {
                         0));
                 }
             }
-            else if (decodedMessage['type'] == 'TP') {
+            else if (decodedMessage['t'] == 'TP') {
                 _keySocketMap[socket.remoteAddress] = decodedMessage['p3'];
                 try {
                     await relayBackToNode(decodedMessage['p3'],
                         jsonEncode(decodedMessage));
 
 
-                    remoteSocket[decodedMessage['myKey']] = socket;
+                    remoteSocket[decodedMessage['p4']] = socket;
                     _message = createMessageJson(null, null, null, null,
                         "you can relay your message to the key:$decodedMessage['remoteKey']",
                         0);
@@ -402,8 +402,8 @@ class TcpClient {
                 }
             }
         }
-        else if (decodedMessage['length'] == 4) {
-            if (decodedMessage['type'] == 'TP') {
+        else if (decodedMessage['l'] == 4) {
+            if (decodedMessage['t'] == 'TP') {
                 try {
                     if (decodedMessage['p4'] == 'disconnect') {
                         await relayBackToNode(decodedMessage['p2'],
@@ -447,9 +447,9 @@ class TcpClient {
                     socket.flush();
                 }
             }
-            else if (decodedMessage['type'] == 'MP') {
+            else if (decodedMessage['t'] == 'MP') {
                 try {
-                    if (decodedMessage['message'] == 'disconnect') {
+                    if (decodedMessage['p4'] == 'disconnect') {
                         await relayBackToNode(decodedMessage['p2'],
                             createMessageJson(
                                 null, null, null, null, decodedMessage['p4'],
@@ -479,11 +479,11 @@ class TcpClient {
                 print(decodedMessage['p4']);
             }
         }
-        else if (decodedMessage['length'] == 34) {
+        else if (decodedMessage['l'] == 34) {
             Map<dynamic, dynamic> part = jsonDecode(
                 decodedMessage['p4']);
-            if (part['length'] == 3) {
-                if (part['type'] == 'GP') {
+            if (part['l'] == 3) {
+                if (part['t'] == 'GP') {
                     print('i am inside GP');
                     connect(part['p3'], part['p4']);
                     String toSend = createMessageJson(
@@ -512,7 +512,7 @@ class TcpClient {
                 }
             }
         }
-        else if (decodedMessage['length'] == 5) {
+        else if (decodedMessage['l'] == 5) {
             try {
                 await relayBackToNode(decodedMessage['p3'], createMessageJson(
                     null, null, null, null,
@@ -523,7 +523,7 @@ class TcpClient {
                 print(e);
             }
         }
-        else if (decodedMessage['type'] == 'SetMap') {
+        else if (decodedMessage['t'] == 'SetMap') {
             _keySocketMap[socket.remoteAddress] = decodedMessage['p3'];
             print('Set has Mapped');
         }
@@ -534,7 +534,7 @@ class TcpClient {
 
 
     void _handleMessageNode(decodeNodeMessage) async {
-        if (decodeNodeMessage['length'] == 6) {
+        if (decodeNodeMessage['l'] == 6) {
             print(relayToNodeKey);
             if (relayToNodeKey != null) {
                 send(createMessageJson('TP', null, relayToNodeKey, null,
@@ -545,7 +545,7 @@ class TcpClient {
                 'SetMap', null, null, relayToNodeKey, null, 0));
             print('relay connected to $relayToNodeKey');
         }
-        else if (decodeNodeMessage['length'] == 4) {
+        else if (decodeNodeMessage['l'] == 4) {
             if (decodeNodeMessage['p4'] == 'disconnect') {
                 relayToNodeKey = null;
                 _nullRemoteKey = true;
