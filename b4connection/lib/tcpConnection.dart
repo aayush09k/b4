@@ -143,8 +143,8 @@ class TcpClient {
             length & 0xFF
         ]; // Prepare the length header
         try {
-            remoteSocket[key]!.write(lengthBytes); // Send the length header
-            remoteSocket[key]!.write(messageBytes); // Send the message bytes
+            remoteSocket[key]!.add(lengthBytes); // Send the length header
+            remoteSocket[key]!.add(messageBytes); // Send the message bytes
             remoteSocket[key]!.flush();
         } // Ensure the data is sent immediately
         catch (e) {
