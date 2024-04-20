@@ -132,7 +132,7 @@ class TcpClient {
     }
 
     //Data send back to the client according to the key.
-    Future relayBackToNode(key, message) async {
+     relayBackToNode(key, message)  {
         List<int> messageBytes = utf8.encode(
             message); // Encode the JSON message
         int length = messageBytes.length; // Calculate the message length
@@ -154,7 +154,7 @@ class TcpClient {
 
     // Send a message to the server
     Future<void> send(message) async {
-        print(message['message']);
+        print(message);
         List<int> messageBytes = utf8.encode(
             message); // Encode the JSON message
         int length = messageBytes.length; // Calculate the message length
@@ -328,13 +328,14 @@ class TcpClient {
         if (decodedMessage['l'] == 6) {
             if (decodedMessage['t'] == 'MP') {
                 try {
+                    print(decodedMessage);
                     _message = createMessageJson(
                         null, stunGet.getPublicIPv4(), socket.port, null,
                         'I am your proxy server i will let you connect to the world bro . Please press any key to continue.',
                         0);
                     remoteSocket[decodedMessage['p4']] = socket;
                     _connectionKey = decodedMessage['p4'];
-                    await relayBackToNode(decodedMessage['p4'], _message);
+                    relayBackToNode(decodedMessage['p4'], _message);
                     _nodeHandler = 0;
                 }
                 catch (e) {
@@ -351,7 +352,7 @@ class TcpClient {
                         null, null, null, null,
                         'your are now directly connected to me as we both are publicly available',
                         0);
-                    await relayBackToNode(decodedMessage['p4'], _message);
+                    relayBackToNode(decodedMessage['p4'], _message);
                     _nodeHandler = 3;
                 }
                 catch (e) {
@@ -365,7 +366,7 @@ class TcpClient {
             else if (decodedMessage['t'] == 'TP') {
                 _keySocketMap[socket.remoteAddress] = decodedMessage['p3'];
                 try {
-                    await relayBackToNode(decodedMessage['p3'],
+                     relayBackToNode(decodedMessage['p3'],
                         jsonEncode(decodedMessage));
 
 
@@ -375,12 +376,12 @@ class TcpClient {
                         0);
                     _connectionKey = decodedMessage['p4'];
 
-                    await relayBackToNode(decodedMessage['p4'], _message);
+                     relayBackToNode(decodedMessage['p4'], _message);
 
                     _nodeHandler = 1;
                 }
                 catch (e) {
-                    await relayBackToNode(decodedMessage['p4'],
+                     relayBackToNode(decodedMessage['p4'],
                         createMessageJson(null, null, null, null,
                             'having some error in your entered key=$e', 0));
                 }
@@ -393,7 +394,7 @@ class TcpClient {
                         null, null, null, null,
                         'your are now directly connected to me as we both are publicly available',
                         0);
-                    await relayBackToNode(decodedMessage['p4'], _message);
+                     relayBackToNode(decodedMessage['p4'], _message);
 
                     _nodeHandler = 3;
                 }
@@ -406,7 +407,7 @@ class TcpClient {
             if (decodedMessage['t'] == 'TP') {
                 try {
                     if (decodedMessage['p4'] == 'disconnect') {
-                        await relayBackToNode(decodedMessage['p2'],
+                         relayBackToNode(decodedMessage['p2'],
                             createMessageJson(
                                 null, null, null, null, decodedMessage['p4'],
                                 4));
@@ -421,7 +422,7 @@ class TcpClient {
                         remoteSocket.remove(keyToRemove);
                     }
                     else {
-                        await relayBackToNode(decodedMessage['p2'],
+                         relayBackToNode(decodedMessage['p2'],
                             createMessageJson(
                                 null, null, null, null, decodedMessage['p4'],
                                 0));
@@ -450,7 +451,7 @@ class TcpClient {
             else if (decodedMessage['t'] == 'MP') {
                 try {
                     if (decodedMessage['p4'] == 'disconnect') {
-                        await relayBackToNode(decodedMessage['p2'],
+                         relayBackToNode(decodedMessage['p2'],
                             createMessageJson(
                                 null, null, null, null, decodedMessage['p4'],
                                 4));
@@ -465,7 +466,7 @@ class TcpClient {
                         remoteSocket.remove(keyToRemove);
                     }
                     else {
-                        await relayBackToNode(decodedMessage['p2'],
+                         relayBackToNode(decodedMessage['p2'],
                             createMessageJson(
                                 null, null, null, null, decodedMessage['p4'],
                                 0));
@@ -500,7 +501,7 @@ class TcpClient {
                 }
                 else {
                     try {
-                        await relayBackToNode(decodedMessage['p3'],
+                         relayBackToNode(decodedMessage['p3'],
                             createMessageJson(
                                 null, null, null, null,
                                 'no relaying connection exits ',
@@ -514,7 +515,7 @@ class TcpClient {
         }
         else if (decodedMessage['l'] == 5) {
             try {
-                await relayBackToNode(decodedMessage['p3'], createMessageJson(
+                 relayBackToNode(decodedMessage['p3'], createMessageJson(
                     null, null, null, null,
                     'no relaying connection exits ',
                     0));
