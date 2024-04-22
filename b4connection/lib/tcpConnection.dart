@@ -87,7 +87,25 @@ class TcpClient {
                         },
                         onError: (error) async {
                             print('Server: Error: $error');
-
+                            print(_keySocketMap[socket.remoteAddress]);
+                            if (_keySocketMap[socket.remoteAddress] !=
+                                null) {
+                                print(
+                                    'koi client node left kiya he toh usk corresponding to realytonode key wale node ko disconnect bhejne agye me ');
+                                await relayBackToNode(_keySocketMap[socket
+                                    .remoteAddress],
+                                    createMessageJson(
+                                        null, null, null, null,
+                                        'disconnect', 4));
+                                try{
+                                    _keySocketMap.remove(socket.remoteAddress);}
+                                catch(e){print('ye keyMAP wale me error=$e');}
+                            }else{
+                                try{
+                                    _keySocketMap.remove(socket.remoteAddress);}
+                                catch(e){
+                                    print('ye keyMAP wale me error=$e');
+                                }}
 
                         },
                         onDone: () async {
@@ -104,12 +122,12 @@ class TcpClient {
                                             'disconnect', 4));
                                     try{
                                     _keySocketMap.remove(socket.remoteAddress);}
-                                        catch(e){print(e);}
+                                        catch(e){print('ye keyMAP wale me error=$e');}
                                 }else{
                                     try{
                                 _keySocketMap.remove(socket.remoteAddress);}
                                 catch(e){
-                                        print(e);
+                                        print('ye keyMAP wale me error=$e');
                                 }}
 
                             }
