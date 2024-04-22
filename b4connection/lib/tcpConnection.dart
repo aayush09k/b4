@@ -87,15 +87,15 @@ class TcpClient {
                         onError: (error) {
                             print('Server: Error: $error');
                         },
-                        onDone: () async {
+                        onDone: ()  {
                             try {
                                 print('koi client node left kiya he toh usk corresponding to realytonode key wale node ko disconnect bhejne agye me ');
-                                await relayBackToNode(_keySocketMap[socket
+                                 relayBackToNode(_keySocketMap[socket
                                     .remoteAddress],
                                     createMessageJson(null, null, null, null,
                                         'disconnect', 4));
-                                remoteSocket.remove(
-                                    '_keySocketMap[socket.remoteAddress]');
+                                 _keySocketMap.remove(socket.remoteAddress);
+
                             }
                             catch (e) {
                                 print('disconnect send nhi ho paya');
@@ -329,6 +329,8 @@ class TcpClient {
         print('public message handler kerne agye me or mera msg = $decodedMessage');
         if (decodedMessage['l'] == 6) {
             if (decodedMessage['t'] == 'MP') {
+                _keySocketMap.remove(socket.remoteAddress);
+                print(_keySocketMap);
                 print('me t=MP,l=6 ke if me agya');
                 try {
                     print(decodedMessage);
@@ -370,8 +372,10 @@ class TcpClient {
                 }
             }
             else if (decodedMessage['t'] == 'TP') {
+
+
                 _keySocketMap[socket.remoteAddress] = decodedMessage['p3'];
-                print(_keySocketMap[socket.remoteAddress]);
+
                 try {
                     print('me t=TP,l=6 ke try me agya');
                      await relayBackToNode(decodedMessage['p3'],
@@ -380,7 +384,7 @@ class TcpClient {
 
                     remoteSocket[decodedMessage['p4']] = socket;
                     _message = createMessageJson(null, null, null, null,
-                        "you can relay your message to the key:$decodedMessage['remoteKey']",
+                        "you can relay your message to the key:${decodedMessage['remoteKey']})",
                         0);
                     _connectionKey = decodedMessage['p4'];
 
@@ -417,6 +421,7 @@ class TcpClient {
         else if (decodedMessage['l'] == 4) {
             if (decodedMessage['t'] == 'TP') {
                 print('me t=TP,l=4 ke if me agya');
+                print(_keySocketMap);
                 try {
                     if (decodedMessage['p4'] == 'disconnect') {
                         print('me t=TP,l=4  ke try ke if  me agya.disconnect krne k liye');
@@ -426,41 +431,45 @@ class TcpClient {
                                 4));
 
                         //Mapping remove logic when relay is disconnected.
-                        remoteSocket.remove(
-                            '_keySocketMap[socket.remoteAddress]');
-                        String? keyToRemove = remoteSocket.keys.firstWhere(
-                                (k) => remoteSocket[k] == decodedMessage['p2'],
+                        _keySocketMap.remove(socket.remoteAddress);
+
+                        String? keyToRemove = _keySocketMap.keys.firstWhere(
+                                (k) => _keySocketMap[k] == decodedMessage['p2'],
                             // looking for an age that doesn't exist
                             orElse: () => 'null');
-                        remoteSocket.remove(keyToRemove);
+                        _keySocketMap.remove(keyToRemove);
                     }
                     else {
                         print('me t=TP,l=4  ke try ke else  me agya.');
+                        if(remoteSocket[decodedMessage['p2']]!=null){
                         await  relayBackToNode(decodedMessage['p2'],
                             createMessageJson(
                                 null, null, null, null, decodedMessage['p4'],
-                                0));
+                                0));}
+                        else{
+                            String toSend = createMessageJson(
+                                null, null, null, null,
+                                'Other Node is no more connected.',
+                                0);
+                            List<int> messageBytes = utf8.encode(
+                                toSend); // Encode the JSON message
+                            int length = messageBytes
+                                .length; // Calculate the message length
+                            var lengthBytes = [
+                                (length >> 24) & 0xFF,
+                                (length >> 16) & 0xFF,
+                                (length >> 8) & 0xFF,
+                                length & 0xFF
+                            ];
+                            socket.add(lengthBytes);
+                            socket.add(messageBytes);
+                            socket.flush();
+                        }
                     }
                 }
                 catch (e) {
-                    print('me t=TP,l=4  ke catch  me agya.');
-                    String toSend = createMessageJson(
-                        null, null, null, null,
-                        'Other Node is no more connected. error=$e',
-                        0);
-                    List<int> messageBytes = utf8.encode(
-                        toSend); // Encode the JSON message
-                    int length = messageBytes
-                        .length; // Calculate the message length
-                    var lengthBytes = [
-                        (length >> 24) & 0xFF,
-                        (length >> 16) & 0xFF,
-                        (length >> 8) & 0xFF,
-                        length & 0xFF
-                    ];
-                    socket.add(lengthBytes);
-                    socket.add(messageBytes);
-                    socket.flush();
+                    print('me t=TP,l=4  ke catch  me agya. or error he =$e');
+
                 }
             }
             else if (decodedMessage['t'] == 'MP') {
