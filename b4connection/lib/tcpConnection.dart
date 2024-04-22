@@ -70,11 +70,11 @@ class TcpClient {
             _isListening = true;
         }
         print('Server: started  on port ${_serverSocket!.port}');
-
+        try {
             _serverSocket!.listen((socket) {
                 print('RemoteNode is Connected to us from ${socket.remoteAddress
                     .address}:${socket.remotePort}');
-
+                try {
                     socket.listen(
                             (data) async {
                             _parsedPublicMessage =
@@ -122,43 +122,38 @@ class TcpClient {
                             catch (e) {
                                 print('disconnect send nhi ho paya');
                                 print('error=$e');
-                                try{
-                                    try{
-                                        socket.close();
-                                    }
-                                    catch(e){
-                                        print(e);
-                                    }
-                                }
-                                catch(e){
-                                    print(e);
-                                }
                             }
-                            try{
-                                try{try{socket.close();}
-                                catch(e){
+
+                          /*  try {
+                                try {
+                                    socket.close();
+                                }
+                                catch (e) {
                                     print(e);
-                                }}
-                                    catch(e){
-                                    print(e);
-                                    }
-                            }
-                                catch(e){
-                                print(e);
                                 }
 
+                            catch (e) {
+                                print('error=$e');
+                            }*/
                         },
                     );
-
+                }
+                catch (e) {
+                    print(e);
+                }
             });
-
-    }
-void tryCatch(socket) async{
-        try{}
-            catch(e){
+        }
+        catch (e) {
             print(e);
-            }
-}
+        }
+        try {
+
+        }
+        catch (e) {
+            print(e);
+        }
+    }
+
     //Data send back to the client according to the key.
     Future relayBackToNode(key, message) async {
         List<int> messageBytes = utf8.encode(
