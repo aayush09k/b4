@@ -60,7 +60,7 @@ class TcpClient {
         try {
             _serverSocket =
             await ServerSocket.bind(
-                InternetAddress.anyIPv6, 0, v6Only: false);
+                InternetAddress.anyIPv6, 22356, v6Only: false);
             _isListening = true;
         }
         catch (e) {
