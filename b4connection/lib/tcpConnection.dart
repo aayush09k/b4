@@ -38,7 +38,7 @@ class TcpClient {
         _nullRemoteKey = false;
 
         try {
-            _socket[_j] = await Socket.connect(ip, port);
+            _socket[_j] =  await Socket.connect(ip, port) ;
             _isConnected = true;
             print('Connected to remoteNode: ${_socket[_j]!.remoteAddress
                 .address}:${_socket[_j]!.remotePort}');
@@ -85,8 +85,22 @@ class TcpClient {
                                     socket, _parsedPublicMessage);
                             }
                         },
-                        onError: (error) {
+                        onError: (error) async {
                             print('Server: Error: $error');
+                            print(_keySocketMap[socket.remoteAddress]);
+                            if (_keySocketMap[socket.remoteAddress] !=
+                                null) {
+                                print(
+                                    'koi client node left kiya he toh usk corresponding to realytonode key wale node ko disconnect bhejne agye me ');
+                                await relayBackToNode(_keySocketMap[socket
+                                    .remoteAddress],
+                                createMessageJson(
+                                    null, null, null, null,
+                                    'disconnect', 4));
+                                _keySocketMap.remove(socket.remoteAddress);
+                            }else{
+                            _keySocketMap.remove(socket.remoteAddress);}
+
                         },
                         onDone: () async {
                             try {
@@ -103,7 +117,7 @@ class TcpClient {
                                     _keySocketMap.remove(socket.remoteAddress);
                                 }
                                 _keySocketMap.remove(socket.remoteAddress);
-                                socket.close();
+
                             }
                             catch (e) {
                                 print('disconnect send nhi ho paya');
