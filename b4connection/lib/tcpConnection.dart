@@ -88,17 +88,22 @@ class TcpClient {
                         onError: (error) {
                             print('Server: Error: $error');
                         },
-                        onDone: ()  async {
+                        onDone: () async {
                             try {
-                              print(_keySocketMap[socket.remoteAddress]);
-                                if(_keySocketMap[socket.remoteAddress]!=null){
-                                    print('koi client node left kiya he toh usk corresponding to realytonode key wale node ko disconnect bhejne agye me ');
-                                await relayBackToNode(_keySocketMap[socket
-                                    .remoteAddress],
-                                    createMessageJson(null, null, null, null,
-                                        'disconnect', 4));
-                                 _keySocketMap.remove(socket.remoteAddress);}
-
+                                print(_keySocketMap[socket.remoteAddress]);
+                                if (_keySocketMap[socket.remoteAddress] !=
+                                    null) {
+                                    print(
+                                        'koi client node left kiya he toh usk corresponding to realytonode key wale node ko disconnect bhejne agye me ');
+                                    await relayBackToNode(_keySocketMap[socket
+                                        .remoteAddress],
+                                        createMessageJson(
+                                            null, null, null, null,
+                                            'disconnect', 4));
+                                    _keySocketMap.remove(socket.remoteAddress);
+                                }
+                                _keySocketMap.remove(socket.remoteAddress);
+                                socket.close();
                             }
                             catch (e) {
                                 print('disconnect send nhi ho paya');
@@ -136,7 +141,7 @@ class TcpClient {
     }
 
     //Data send back to the client according to the key.
-     Future relayBackToNode(key, message)  async {
+    Future relayBackToNode(key, message) async {
         List<int> messageBytes = utf8.encode(
             message); // Encode the JSON message
         int length = messageBytes.length; // Calculate the message length
@@ -158,7 +163,6 @@ class TcpClient {
 
     // Send a message to the server
     Future<void> send(message) async {
-
         List<int> messageBytes = utf8.encode(
             message); // Encode the JSON message
         int length = messageBytes.length; // Calculate the message length
@@ -286,7 +290,7 @@ class TcpClient {
     // Close the connection
     Future<void> disconnect() async {
         try {
-            await _socket[_j]!.close();
+            _socket[_j]!.close();
             _isConnected = false;
             _nodeHandler = null;
             print('Disconnected from the proxy');
@@ -329,7 +333,8 @@ class TcpClient {
     }
 
     void _handleMessagePublic(Socket socket, decodedMessage) async {
-        print('public message handler kerne agye me or mera msg = $decodedMessage');
+        print(
+            'public message handler kerne agye me or mera msg = $decodedMessage');
         if (decodedMessage['l'] == 6) {
             if (decodedMessage['t'] == 'MP') {
                 _keySocketMap.remove(socket.remoteAddress);
@@ -348,7 +353,8 @@ class TcpClient {
                 }
                 catch (e) {
                     print('me t=MP,l=6 ke if ke catch me agya');
-                    await relayBackToNode(decodedMessage['p4'], createMessageJson(
+                    await relayBackToNode(
+                        decodedMessage['p4'], createMessageJson(
                         null, null, null, null,
                         'error in proxy connection=$e', 0));
                 }
@@ -375,30 +381,28 @@ class TcpClient {
                 }
             }
             else if (decodedMessage['t'] == 'TP') {
-
-
                 _keySocketMap[socket.remoteAddress] = decodedMessage['p3'];
                 print('key socket mapping =$_keySocketMap');
 
                 try {
                     print('me t=TP,l=6 ke try me agya');
-                     await relayBackToNode(decodedMessage['p3'],
+                    await relayBackToNode(decodedMessage['p3'],
                         jsonEncode(decodedMessage));
 
 
                     remoteSocket[decodedMessage['p4']] = socket;
                     _message = createMessageJson(null, null, null, null,
-                        "you can relay your message to the key:${decodedMessage['remoteKey']})",
+                        "you can relay your message to the key:${decodedMessage['p3']})",
                         0);
                     _connectionKey = decodedMessage['p4'];
 
-                     await relayBackToNode(decodedMessage['p4'], _message);
+                    await relayBackToNode(decodedMessage['p4'], _message);
 
                     _nodeHandler = 1;
                 }
                 catch (e) {
                     print('me t=MP,l=6 ke catch me agya');
-                     relayBackToNode(decodedMessage['p4'],
+                    relayBackToNode(decodedMessage['p4'],
                         createMessageJson(null, null, null, null,
                             'having some error in your entered key=$e', 0));
                 }
@@ -412,7 +416,7 @@ class TcpClient {
                         null, null, null, null,
                         'your are now directly connected to me as we both are publicly available',
                         0);
-                     await relayBackToNode(decodedMessage['p4'], _message);
+                    await relayBackToNode(decodedMessage['p4'], _message);
 
                     _nodeHandler = 3;
                 }
@@ -428,8 +432,9 @@ class TcpClient {
                 print(_keySocketMap);
                 try {
                     if (decodedMessage['p4'] == 'disconnect') {
-                        print('me t=TP,l=4  ke try ke if  me agya.disconnect krne k liye');
-                        await  relayBackToNode(decodedMessage['p2'],
+                        print(
+                            'me t=TP,l=4  ke try ke if  me agya.disconnect krne k liye');
+                        await relayBackToNode(decodedMessage['p2'],
                             createMessageJson(
                                 null, null, null, null, decodedMessage['p4'],
                                 4));
@@ -445,12 +450,14 @@ class TcpClient {
                     }
                     else {
                         print('me t=TP,l=4  ke try ke else  me agya.');
-                        if(remoteSocket[decodedMessage['p2']]!=null){
-                        await  relayBackToNode(decodedMessage['p2'],
-                            createMessageJson(
-                                null, null, null, null, decodedMessage['p4'],
-                                0));}
-                        else{
+                        if (remoteSocket[decodedMessage['p2']] != null) {
+                            await relayBackToNode(decodedMessage['p2'],
+                                createMessageJson(
+                                    null, null, null, null,
+                                    decodedMessage['p4'],
+                                    0));
+                        }
+                        else {
                             String toSend = createMessageJson(
                                 null, null, null, null,
                                 'Other Node is no more connected.',
@@ -473,14 +480,14 @@ class TcpClient {
                 }
                 catch (e) {
                     print('me t=TP,l=4  ke catch  me agya. or error he =$e');
-
                 }
             }
             else if (decodedMessage['t'] == 'MP') {
                 print('me t=MP,l=4 me agya');
                 try {
                     if (decodedMessage['p4'] == 'disconnect') {
-                        print('me t=MP,l=4 ke try ke if  me agya.disconnect krne k liye');
+                        print(
+                            'me t=MP,l=4 ke try ke if  me agya.disconnect krne k liye');
                         await relayBackToNode(decodedMessage['p2'],
                             createMessageJson(
                                 null, null, null, null, decodedMessage['p4'],
@@ -497,7 +504,7 @@ class TcpClient {
                     }
                     else {
                         print('me t=MP,l=4 ke try ke else  me agya');
-                         await relayBackToNode(decodedMessage['p2'],
+                        await relayBackToNode(decodedMessage['p2'],
                             createMessageJson(
                                 null, null, null, null, decodedMessage['p4'],
                                 0));
@@ -518,7 +525,8 @@ class TcpClient {
             Map<dynamic, dynamic> part = jsonDecode(
                 decodedMessage['p4']);
             if (part['l'] == 3) {
-                print('l=34 me akr phr message ko khola or part kiya usme l=3 ke if me  agya');
+                print(
+                    'l=34 me akr phr message ko khola or part kiya usme l=3 ke if me  agya');
                 if (part['t'] == 'GP') {
                     print('l=3 t=GP me agya');
                     connect(part['p3'], part['p4']);
@@ -527,18 +535,20 @@ class TcpClient {
                         decodedMessage['p4'],
                         decodedMessage['p3'],
                         6);
-                   await send(toSend);
+                    await send(toSend);
                 }
             }
             else {
-                print('l=34 me akr phr message ko khola or part kiya usme l=3 ke else me  agya');
+                print(
+                    'l=34 me akr phr message ko khola or part kiya usme l=3 ke else me  agya');
                 if (_isConnected) {
                     send(decodedMessage['p4']);
                 }
                 else {
                     try {
-                        print('l=34 me akr phr message ko khola or part kiya usme l=3 ke else ke else ke try me client ko "no relayin connection bhejne " me agya  ');
-                        await  relayBackToNode(decodedMessage['p3'],
+                        print(
+                            'l=34 me akr phr message ko khola or part kiya usme l=3 ke else ke else ke try me client ko "no relayin connection bhejne " me agya  ');
+                        await relayBackToNode(decodedMessage['p3'],
                             createMessageJson(
                                 null, null, null, null,
                                 'no relaying connection exits ',
@@ -553,7 +563,7 @@ class TcpClient {
         else if (decodedMessage['l'] == 5) {
             try {
                 print('l=5 me try me "no reyling connection bhejne agya me "');
-                 await relayBackToNode(decodedMessage['p3'], createMessageJson(
+                await relayBackToNode(decodedMessage['p3'], createMessageJson(
                     null, null, null, null,
                     'no relaying connection exits ',
                     0));
@@ -579,7 +589,7 @@ class TcpClient {
         if (decodeNodeMessage['l'] == 6) {
             print(relayToNodeKey);
             if (relayToNodeKey != null) {
-               await send(createMessageJson('TP', null, relayToNodeKey, null,
+                await send(createMessageJson('TP', null, relayToNodeKey, null,
                     'disconnect', 4));
             }
             relayToNodeKey = decodeNodeMessage['p4'];
