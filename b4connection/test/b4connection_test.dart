@@ -72,7 +72,7 @@ Future<void> main() async {
         else if(b4connection.K==4){
         b4connection.setRemoteNodeKey(line);
         b4connection.K=5;
-        print("press 'enter ' to connect ");
+        print("write 'enter' and then press enter to connect ");
         }
         else if (b4connection.K == 5) {
           if(line=='enter') {

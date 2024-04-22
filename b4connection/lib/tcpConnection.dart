@@ -70,11 +70,11 @@ class TcpClient {
             _isListening = true;
         }
         print('Server: started  on port ${_serverSocket!.port}');
-        try {
+
             _serverSocket!.listen((socket) {
                 print('RemoteNode is Connected to us from ${socket.remoteAddress
                     .address}:${socket.remotePort}');
-                try {
+
                     socket.listen(
                             (data) async {
                             _parsedPublicMessage =
@@ -123,37 +123,20 @@ class TcpClient {
                                 print('disconnect send nhi ho paya');
                                 print('error=$e');
                             }
+                            tryCatch(socket);
 
-                            try {
-                                try {
-                                    socket.close();
-                                }
-                                catch (e) {
-                                    print(e);
-                                }
-                            }
-                            catch (e) {
-                                print('error=$e');
-                            }
                         },
                     );
-                }
-                catch (e) {
-                    print(e);
-                }
+
             });
-        }
-        catch (e) {
-            print(e);
-        }
-        try {
 
-        }
-        catch (e) {
-            print(e);
-        }
     }
-
+void tryCatch(socket) async{
+        try{}
+            catch(e){
+            print(e);
+            }
+}
     //Data send back to the client according to the key.
     Future relayBackToNode(key, message) async {
         List<int> messageBytes = utf8.encode(
@@ -302,7 +285,7 @@ class TcpClient {
     }
 
     // Close the connection
-    Future<void> disconnect() async {
+    void disconnect()  {
         try {
             _socket[_j]!.close();
             _isConnected = false;
