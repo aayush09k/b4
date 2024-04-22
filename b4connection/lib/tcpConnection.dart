@@ -87,19 +87,7 @@ class TcpClient {
                         },
                         onError: (error) async {
                             print('Server: Error: $error');
-                            print(_keySocketMap[socket.remoteAddress]);
-                            if (_keySocketMap[socket.remoteAddress] !=
-                                null) {
-                                print(
-                                    'koi client node left kiya he toh usk corresponding to realytonode key wale node ko disconnect bhejne agye me ');
-                                await relayBackToNode(_keySocketMap[socket
-                                    .remoteAddress],
-                                createMessageJson(
-                                    null, null, null, null,
-                                    'disconnect', 4));
-                                _keySocketMap.remove(socket.remoteAddress);
-                            }else{
-                            _keySocketMap.remove(socket.remoteAddress);}
+
 
                         },
                         onDone: () async {
@@ -114,9 +102,15 @@ class TcpClient {
                                         createMessageJson(
                                             null, null, null, null,
                                             'disconnect', 4));
-                                    _keySocketMap.remove(socket.remoteAddress);
-                                }
-                                _keySocketMap.remove(socket.remoteAddress);
+                                    try{
+                                    _keySocketMap.remove(socket.remoteAddress);}
+                                        catch(e){print(e);}
+                                }else{
+                                    try{
+                                _keySocketMap.remove(socket.remoteAddress);}
+                                catch(e){
+                                        print(e);
+                                }}
 
                             }
                             catch (e) {
@@ -129,29 +123,24 @@ class TcpClient {
                                     socket.close();
                                 }
                                 catch (e) {
-                                    print(e);
+                                    print('albela me e=$e');
                                 }
                             }
                             catch (e) {
-                                print('error=$e');
+                                print('sbse niche error=$e');
                             }
                         },
                     );
                 }
                 catch (e) {
-                    print(e);
+                    print('socket.listen me errror =$e');
                 }
             });
         }
         catch (e) {
-            print(e);
+            print('serversocket.listen me problem =$e');
         }
-        try {
 
-        }
-        catch (e) {
-            print(e);
-        }
     }
 
     //Data send back to the client according to the key.
