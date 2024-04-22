@@ -55,6 +55,7 @@ class TcpClient {
         _nodeHandler = null;
         relayToNodeKey = null;
         _nullRemoteKey = false;
+        _keySocketMap.clear();
 
         try {
             _serverSocket =
@@ -87,14 +88,16 @@ class TcpClient {
                         onError: (error) {
                             print('Server: Error: $error');
                         },
-                        onDone: ()  {
+                        onDone: ()  async {
                             try {
-                                print('koi client node left kiya he toh usk corresponding to realytonode key wale node ko disconnect bhejne agye me ');
-                                 relayBackToNode(_keySocketMap[socket
+                              print(_keySocketMap[socket.remoteAddress]);
+                                if(_keySocketMap[socket.remoteAddress]!=null){
+                                    print('koi client node left kiya he toh usk corresponding to realytonode key wale node ko disconnect bhejne agye me ');
+                                await relayBackToNode(_keySocketMap[socket
                                     .remoteAddress],
                                     createMessageJson(null, null, null, null,
                                         'disconnect', 4));
-                                 _keySocketMap.remove(socket.remoteAddress);
+                                 _keySocketMap.remove(socket.remoteAddress);}
 
                             }
                             catch (e) {
@@ -330,7 +333,7 @@ class TcpClient {
         if (decodedMessage['l'] == 6) {
             if (decodedMessage['t'] == 'MP') {
                 _keySocketMap.remove(socket.remoteAddress);
-                print(_keySocketMap);
+
                 print('me t=MP,l=6 ke if me agya');
                 try {
                     print(decodedMessage);
@@ -375,6 +378,7 @@ class TcpClient {
 
 
                 _keySocketMap[socket.remoteAddress] = decodedMessage['p3'];
+                print('key socket mapping =$_keySocketMap');
 
                 try {
                     print('me t=TP,l=6 ke try me agya');
