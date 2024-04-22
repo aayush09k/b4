@@ -75,7 +75,7 @@ class B4connection {
                 {
                     print('server is running for private nodes');
                     try {
-                        Listening = await tcpClient.startServer();
+                        await  tcpClient.startServer();
                     }
                     catch (e) {
                         print('problem in socket');
@@ -85,7 +85,7 @@ class B4connection {
             case 1:
                 {
                     try {
-                        Listening = await tcpClient.startServer();
+                       await   tcpClient.startServer();
                     }
                     catch (e) {
                         print('problem in scoket');
@@ -95,7 +95,7 @@ class B4connection {
             case 2:
                 {
                     try {
-                        Listening = await tcpClient.startServer();
+                         await tcpClient.startServer();
                     }
                     catch (e) {
                         print('problem in socket');
@@ -104,13 +104,13 @@ class B4connection {
                 }
             case 3:
                 {
-                    Listening = await tcpClient.startServer();
+                     await tcpClient.startServer();
                     break;
                 }
             case 4:
                 {
                     try {
-                        Listening = await tcpClient.startServer();
+                         await tcpClient.startServer();
                     }
                     catch (e) {
                         print('problem in socket');
@@ -153,12 +153,12 @@ class B4connection {
         }
         type = T;
         K = 5; // for dart terminal app purpose.
-        /* if (T == 'DTN') {
+        if (T == 'DTN') {
             await tcpClient.connect(targetIp, targetPort);
-            String toSend ="$type|$_localIPv4|$_localPortIPv4|null|$myKey";
+            String toSend = tcpClient.createMessageJson(type, _localIPv4, _localPortIPv4, remoteKey, _myKey,6);
             tcpClient.send(toSend);
             return;
-        }*/
+        }
         await tcpClient.connect(targetIp, targetPort);
         tcpClient.receive((message) => null);
         switch (natStatus) {
@@ -185,20 +185,25 @@ class B4connection {
 
        if(tcpClient.makeRemoteKeyNull()){
         remoteKey=null;
+        print('remotekey ko null bnane wale if me agya me ');
        }
         switch (tcpClient.nodeHandler()) {
             case 0:
                 {
                     if (tcpClient.relayToNodeKey != null) {
+                        print('send function ke case 0 me agya me usme relayToNode key null nhi wale condition me agya');
                         String toSend = tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey, null,message,4);
                         tcpClient.send(toSend);
                     }
                     else {
+                print('send function ke case 0 me agya me usme relayToNode key null wale condition me agya');
                         if(subtype!=null){
+                            print('subtype null nahi wale mw agya me');
                         String msg=tcpClient.createMessageJson(subtype,null,null,targetIp,targetPort,3);
                         String toSend = tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey,_myKey,msg,34);
                         tcpClient.send(toSend);}
                         else{
+                            print('subtype null he  wale mw agya me');
                             String toSend = tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey,_myKey,message,5);
                             tcpClient.send(toSend);
                         }
@@ -207,15 +212,18 @@ class B4connection {
             case 1:
                 {
                     if (tcpClient.relayToNodeKey != null) {
+                        print('case 1 ke relayToNodeKey null nahi wale me agya me  ');
                         String toSend = tcpClient.createMessageJson(type,null,tcpClient.relayToNodeKey, null,message,4);
                         tcpClient.send(toSend);
                     }
                     else {
                         if (remoteKey != null) {
+                            print('case 1 ke relayToNodeKey null or remoteKey null nahi wale me agya me  ');
                             String toSend = tcpClient.createMessageJson(type,null,remoteKey, null,message,4);
                             tcpClient.send(toSend);
                         }
                         else {
+                            print('case 1 ke relayToNodeKey null or remoteKey null wale me agya me  ');
                             print('no relay connection exits');
                         }
                     }
@@ -223,6 +231,7 @@ class B4connection {
             case 2:
                 {
                     if (tcpClient.isListening()) {
+                        print('case 2 ke tcpclient.listening me agye ');
                         await tcpClient.relayBackToNode('ipv6',
                             tcpClient.createMessageJson(
                                 'TP', null, tcpClient.relayToNodeKey, null,
@@ -232,9 +241,11 @@ class B4connection {
             case 3:
                 {
                     if (tcpClient.isConnected()) {
+                        print('case 3 ke tcpclient.isconnected me agye ');
                         tcpClient.send(tcpClient.createMessageJson(null,null,null, null,message,0));
                     }
                     else if (tcpClient.isListening()) {
+                        print('case 3 ke tcpclient.isListening me agye ');
                         var key = tcpClient.Key();
                         await tcpClient.relayBackToNode(key,tcpClient.createMessageJson(null,null,null, null,message,0));
 
