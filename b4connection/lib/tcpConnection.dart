@@ -70,11 +70,11 @@ class TcpClient {
             _isListening = true;
         }
         print('Server: started  on port ${_serverSocket!.port}');
-        try {
+
             _serverSocket!.listen((socket) {
                 print('RemoteNode is Connected to us from ${socket.remoteAddress
                     .address}:${socket.remotePort}');
-                try {
+
                     socket.listen(
                             (data) async {
                             _parsedPublicMessage =
@@ -89,7 +89,7 @@ class TcpClient {
                             print('Server and network  Error: $error');
 
                             try {
-                                print(_keySocketMap[socket.remoteAddress]);
+
                                 if (_keySocketMap[socket.remoteAddress] !=
                                     null) {
                                     print(
@@ -119,7 +119,7 @@ class TcpClient {
                         },
                         onDone: () async {
                             try {
-                                print(_keySocketMap[socket.remoteAddress]);
+
                                 if (_keySocketMap[socket.remoteAddress] !=
                                     null) {
                                     print(
@@ -148,15 +148,9 @@ class TcpClient {
 
                         },
                     );
-                }
-                catch (e) {
-                    print('socket.listen me errror =$e');
-                }
+
             });
-        }
-        catch (e) {
-            print('serversocket.listen me problem =$e');
-        }
+
 
     }
 
