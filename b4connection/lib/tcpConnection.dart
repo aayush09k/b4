@@ -124,17 +124,17 @@ class TcpClient {
                                 print('error=$e');
                             }
 
-                          /*  try {
+                            try {
                                 try {
                                     socket.close();
                                 }
                                 catch (e) {
                                     print(e);
                                 }
-
+                            }
                             catch (e) {
                                 print('error=$e');
-                            }*/
+                            }
                         },
                     );
                 }
