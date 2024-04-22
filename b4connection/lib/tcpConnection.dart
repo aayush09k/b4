@@ -507,14 +507,13 @@ class TcpClient {
                                 null, null, null, null, decodedMessage['p4'],
                                 4));
                         //Mapping remove logic when relay is disconnected.
-                        remoteSocket.remove(
-                            '_keySocketMap[socket.remoteAddress]');
-                        String? keyToRemove = remoteSocket.keys.firstWhere(
-                                (k) => remoteSocket[k] == decodedMessage['p2'],
+                        _keySocketMap.remove(socket.remoteAddress);
+
+                        String? keyToRemove = _keySocketMap.keys.firstWhere(
+                                (k) => _keySocketMap[k] == decodedMessage['p2'],
                             // looking for an age that doesn't exist
-                            orElse: () => 'null'
-                        );
-                        remoteSocket.remove(keyToRemove);
+                            orElse: () => 'null');
+                        _keySocketMap.remove(keyToRemove);
                     }
                     else {
                         print('me t=MP,l=4 ke try ke else  me agya');
@@ -613,10 +612,25 @@ class TcpClient {
         }
         else if (decodeNodeMessage['l'] == 4) {
             if (decodeNodeMessage['p4'] == 'disconnect') {
-                relayToNodeKey = null;
-                _nullRemoteKey = true;
 
-                print('relayDisconnected');
+                if(stunGet.getPublicPortIPv6()!=null){
+                    disconnect();
+                    relayToNodeKey = null;
+                    _nullRemoteKey = true;
+                    print('Disconnected proxy and Relay');
+                }
+                else if(stunGet.getPublicIPv4()!=null){
+                    disconnect();
+                    relayToNodeKey = null;
+                    _nullRemoteKey = true;
+                    print('Disconnected proxy and Relay');
+                }
+                else{
+                    relayToNodeKey = null;
+                    _nullRemoteKey = true;
+                    print('relayDisconnected');
+                }
+
             }
             else {
                 print(decodeNodeMessage['p4']);
