@@ -37,7 +37,7 @@ class B4connection {
     String? remoteKey;
 
     String? subtype;
-    String? _myKey = 'google';
+    String? _myKey = 'linux';
     int M = 0; //for Handling sendMessage function for different kinds of scenarios.
     int skip = 0;
 
@@ -71,7 +71,7 @@ class B4connection {
     //function for starting server. if you are publicly available then this function will invoke automatically according to layerID assigned.
     Future<void> _startServerTcp() async {
         switch (natStatus) {
-            case 1:
+            case 0:
                 {
                     print('server is running for private nodes');
                     try {
@@ -82,7 +82,7 @@ class B4connection {
                     }
                     break;
                 }
-            case 0:
+            case 1:
                 {
                     try {
                         await tcpClient.startServer();
@@ -335,8 +335,8 @@ class B4connection {
                     {
                         print('Behind NAT in ipv4system');
                         natStatus = 0;
-                        _startServerTcp();
-                       //startConnection(proxyIpv4Pub, proxyIpv4Port, 'MP');
+                       // _startServerTcp();
+                       startConnection(proxyIpv4Pub, proxyIpv4Port, 'MP');
                         break;
                     }
             }
