@@ -86,26 +86,35 @@ class TcpClient {
                             }
                         },
                         onError: (error) async {
-                            print('Server: Error: $error');
-                            print(_keySocketMap[socket.remoteAddress]);
-                            if (_keySocketMap[socket.remoteAddress] !=
-                                null) {
-                                print(
-                                    'koi client node left kiya he toh usk corresponding to realytonode key wale node ko disconnect bhejne agye me ');
-                                await relayBackToNode(_keySocketMap[socket
-                                    .remoteAddress],
-                                    createMessageJson(
-                                        null, null, null, null,
-                                        'disconnect', 4));
-                                try{
-                                    _keySocketMap.remove(socket.remoteAddress);}
-                                catch(e){print('ye keyMAP wale me error=$e');}
-                            }else{
-                                try{
-                                    _keySocketMap.remove(socket.remoteAddress);}
-                                catch(e){
-                                    print('ye keyMAP wale me error=$e');
-                                }}
+                            print('Server and network  Error: $error');
+
+                            try {
+                                print(_keySocketMap[socket.remoteAddress]);
+                                if (_keySocketMap[socket.remoteAddress] !=
+                                    null) {
+                                    print(
+                                        'koi client node left kiya he toh usk corresponding to realytonode key wale node ko disconnect bhejne agye me ');
+                                    await relayBackToNode(_keySocketMap[socket
+                                        .remoteAddress],
+                                        createMessageJson(
+                                            null, null, null, null,
+                                            'disconnect', 4));
+                                    try{
+                                        _keySocketMap.remove(socket.remoteAddress);}
+                                    catch(e){print('ye keyMAP wale me error=$e');}
+                                }else{
+                                    try{
+                                        _keySocketMap.remove(socket.remoteAddress);}
+                                    catch(e){
+                                        print('ye keyMAP wale me error=$e');
+                                    }}
+
+                            }
+                            catch (e) {
+                                print('disconnect send nhi ho paya');
+                                print('error=$e');
+                            }
+
 
                         },
                         onDone: () async {
@@ -136,17 +145,7 @@ class TcpClient {
                                 print('error=$e');
                             }
 
-                            try {
-                                try {
-                                    socket.close();
-                                }
-                                catch (e) {
-                                    print('albela me e=$e');
-                                }
-                            }
-                            catch (e) {
-                                print('sbse niche error=$e');
-                            }
+
                         },
                     );
                 }
