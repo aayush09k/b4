@@ -122,8 +122,30 @@ class TcpClient {
                             catch (e) {
                                 print('disconnect send nhi ho paya');
                                 print('error=$e');
+                                try{
+                                    try{
+                                        socket.close();
+                                    }
+                                    catch(e){
+                                        print(e);
+                                    }
+                                }
+                                catch(e){
+                                    print(e);
+                                }
                             }
-                            tryCatch(socket);
+                            try{
+                                try{try{socket.close();}
+                                catch(e){
+                                    print(e);
+                                }}
+                                    catch(e){
+                                    print(e);
+                                    }
+                            }
+                                catch(e){
+                                print(e);
+                                }
 
                         },
                     );
