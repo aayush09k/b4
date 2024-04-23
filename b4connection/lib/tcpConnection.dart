@@ -29,7 +29,7 @@ class TcpClient {
     final int _j = 0;
     int? _nodeHandler;
     bool _nullRemoteKey = false;
-    Map<dynamic, dynamic> partInl5={};
+    Map<dynamic, dynamic> partInl5 = {};
 
 
     // Connect to the server
@@ -39,7 +39,7 @@ class TcpClient {
         _nullRemoteKey = false;
 
         try {
-            _socket[_j] =  await Socket.connect(ip, port) ;
+            _socket[_j] = await Socket.connect(ip, port);
             _isConnected = true;
             print('Connected to remoteNode: ${_socket[_j]!.remoteAddress
                 .address}:${_socket[_j]!.remotePort}');
@@ -72,72 +72,66 @@ class TcpClient {
         }
         print('Server: started  on port ${_serverSocket!.port}');
 
-            _serverSocket!.listen((socket) {
-                print('RemoteNode is Connected to us from ${socket.remoteAddress
-                    .address}:${socket.remotePort}');
+        _serverSocket!.listen((socket) {
+            print('RemoteNode is Connected to us from ${socket.remoteAddress
+                .address}:${socket.remotePort}');
 
-                    socket.listen(
-                            (data) async {
-                            _parsedPublicMessage =
-                            await _processData(socket, data);
+            socket.listen(
+                    (data) async {
+                    _parsedPublicMessage =
+                    await _processData(socket, data);
 
-                            if (_parsedPublicMessage != null) {
-                                _handleMessagePublic(
-                                    socket, _parsedPublicMessage);
-                            }
-                        },
-                        onError: (error) async {
-                            print('Server and network  Error: $error');
+                    if (_parsedPublicMessage != null) {
+                        _handleMessagePublic(
+                            socket, _parsedPublicMessage);
+                    }
+                },
+                onError: (error) async {
+                    print('Server and network  Error: $error');
 
-                            try {
-                                    print(
-                                        'koi client node left kiya he toh usk corresponding to realytonode key wale node ko disconnect bhejne agye me ');
-                                    await relayBackToNode(_keySocketMap[socket
-                                        .remoteAddress],
-                                        createMessageJson(
-                                            null, null, null, null,
-                                            'disconnect', 4));
-                                    try{
-                                        _keySocketMap.remove(socket.remoteAddress);}
-                                    catch(e){print('ye keyMAP wale me error=$e');}
+                    try {
+                        print(
+                            'koi client node left kiya he toh usk corresponding to realytonode key wale node ko disconnect bhejne agye me ');
+                        await relayBackToNode(_keySocketMap[socket
+                            .remoteAddress],
+                            createMessageJson(
+                                null, null, null, null,
+                                'disconnect', 4));
+                        try {
+                            _keySocketMap.remove(socket.remoteAddress);
+                        }
+                        catch (e) {
+                            print('ye keyMAP wale me error=$e');
+                        }
+                    }
+                    catch (e) {
+                        print('disconnect send nhi ho paya');
+                        print('error=$e');
+                    }
+                },
+                onDone: () async {
+                    try {
+                        await relayBackToNode(_keySocketMap[socket
+                            .remoteAddress],
+                            createMessageJson(
+                                null, null, null, null,
+                                'disconnect', 4));
+                        try {
+                            _keySocketMap.remove(socket.remoteAddress);
+                        }
+                        catch (e) {
+                            print('ye keyMAP wale me error=$e');
+                        }
+                    }
+                    catch (e) {
+                        print('disconnect send nhi ho paya');
+                        print('error=$e');
+                    }
+                },
+            );
+        });
 
-
-                            }
-                            catch (e) {
-                                print('disconnect send nhi ho paya');
-                                print('error=$e');
-                            }
-
-
-                        },
-                        onDone: () async {
-                            try {
-
-
-
-                                    await relayBackToNode(_keySocketMap[socket
-                                        .remoteAddress],
-                                        createMessageJson(
-                                            null, null, null, null,
-                                            'disconnect', 4));
-                                    try{
-                                    _keySocketMap.remove(socket.remoteAddress);}
-                                        catch(e){print('ye keyMAP wale me error=$e');}
-
-
-                            }
-                            catch (e) {
-                                print('disconnect send nhi ho paya');
-                                print('error=$e');
-                            }
-
-
-                        },
-                    );
-
-            });
-
-return _serverSocket;
+        return _serverSocket;
     }
 
     //Data send back to the client according to the key.
@@ -288,7 +282,7 @@ return _serverSocket;
     }
 
     // Close the connection
-    void disconnect()  {
+    void disconnect() {
         try {
             _socket[_j]!.destroy();
             _isConnected = false;
@@ -316,7 +310,7 @@ return _serverSocket;
 
     bool makeRemoteKeyNull() => _nullRemoteKey;
 
-    Map keySocketMap()=>_keySocketMap;
+    Map keySocketMap() => _keySocketMap;
 
     String createMessageJson(type, A, B, C, D, length) {
         Map<String, dynamic> message = {
@@ -524,32 +518,49 @@ return _serverSocket;
         else if (decodedMessage['l'] == 5) {
             print('l=5 me agya');
 
-                 try{ partInl5 = jsonDecode(
-                decodedMessage['p4']);}
-                 catch(e){print(e);
-                 partInl5['l']=0;}
+            try {
+                partInl5 = jsonDecode(
+                    decodedMessage['p4']);
+            }
+            catch (e) {
+                print(e);
+                partInl5['l'] = 0;
+            }
 
             if (partInl5['l'] == 3) {
                 print(
                     'l=5 me akr phr message ko khola or part kiya usme l=3 ke if me  agya');
-                if(_isConnected){
-                    send(decodedMessage['p4']);}
-                else{
-                    if(partInl5['t'] == 'GP') {
-                    print('l=3 t=GP me agya');
-                    connect(partInl5['p3'], partInl5['p4']);
-                    String toSend = createMessageJson(
-                        'D', partInl5['p3'], partInl5['p4'],
-                        decodedMessage['p4'],
-                        decodedMessage['p3'],
-                        6);
-                    await send(toSend);}
+                if (_isConnected) {
+                    send(decodedMessage['p4']);
+                }
+                else {
+                    if (partInl5['t'] == 'GP') {
+                        print('l=3 t=GP me agya');
+                        await connect(partInl5['p3'], partInl5['p4']);
+                        if (!_isConnected) {
+                            await relayBackToNode(
+                                decodedMessage['p3'], createMessageJson(
+                                null, null, null, null,
+                                'not able to proxy you to the ipv6 node sorry ',
+                                0));
+                        }
+                        else {
+                            String toSend = createMessageJson(
+                                'D', partInl5['p3'], partInl5['p4'],
+                                decodedMessage['p4'],
+                                decodedMessage['p3'],
+                                6);
+                            await send(toSend);
+                        }
+                    }
                 }
             }
             else {
                 try {
-                    print('l=5 ke else me try me "no reyling connection bhejne agya me "');
-                    await relayBackToNode(decodedMessage['p3'], createMessageJson(
+                    print(
+                        'l=5 ke else me try me "no reyling connection bhejne agya me "');
+                    await relayBackToNode(
+                        decodedMessage['p3'], createMessageJson(
                         null, null, null, null,
                         'no relaying connection exits ',
                         0));
@@ -587,25 +598,23 @@ return _serverSocket;
         }
         else if (decodeNodeMessage['l'] == 4) {
             if (decodeNodeMessage['p4'] == 'disconnect') {
-
-                if(stunGet.getPublicPortIPv6()!=null){
+                if (stunGet.getPublicPortIPv6() != null) {
                     disconnect();
                     relayToNodeKey = null;
                     _nullRemoteKey = true;
                     print('Disconnected proxy and Relay');
                 }
-                else if(stunGet.getPublicIPv4()!=null){
+                else if (stunGet.getPublicIPv4() != null) {
                     disconnect();
                     relayToNodeKey = null;
                     _nullRemoteKey = true;
                     print('Disconnected proxy and Relay');
                 }
-                else{
+                else {
                     relayToNodeKey = null;
                     _nullRemoteKey = true;
                     print('relayDisconnected');
                 }
-
             }
             else {
                 print(decodeNodeMessage['p4']);
