@@ -44,20 +44,21 @@ Future<void> main() async {
         } else if (b4connection.K == 2) { // Second step, expecting port
           b4connection.targetPort = int.tryParse(line);
           if (b4connection.targetPort!= null) {
-            print('Invalid port. Please enter a valid port number:');
-          } else {
             print('Port entered: $targetPort');
             if(b4connection.subtype!=null){b4connection.K=3;print('Write any key to connect');}
             else{
-            print('Please enter the ConnectionType');b4connection.K = 3;}
+              print('Please enter the ConnectionType');b4connection.K = 3;}
 
+          } else {
+
+            print('Invalid port. Please enter a valid port number:');
           }
         }
         else if(b4connection.K==3){
           type=line;
           if(line=='TP'){
           b4connection.K=4;
-          print("Press enter the remote key");
+          print(" write  the remote key");
           }
           else{
             if(b4connection.subtype!=null){
@@ -71,7 +72,7 @@ Future<void> main() async {
         else if(b4connection.K==4){
         b4connection.setRemoteNodeKey(line);
         b4connection.K=5;
-        print("press 'enter ' to connect ");
+        print("write 'enter' and then press enter to connect ");
         }
         else if (b4connection.K == 5) {
           if(line=='enter') {
@@ -103,6 +104,7 @@ Future<void> main() async {
           }
         }
         else if (b4connection.K == 7) {
+          print(b4connection.tcpClient.isConnected());
           if(line=='connect'){
             b4connection.K=1;
             print('if you want to connect to Behind NAT node then enter Proxy Target IP. If you want to connect to public node then enter target IP');
@@ -111,7 +113,6 @@ Future<void> main() async {
             if (line == 'exitRelay') {
               b4connection.K = 1;
               b4connection.disconnectRelay();
-              print('exitRelay');
 
             }
             else if(line=='goToIpv6'){
