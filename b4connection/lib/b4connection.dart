@@ -37,7 +37,7 @@ class B4connection {
     String? remoteKey;
 
     String? subtype;
-    String? _myKey = 'google';
+    String? _myKey = 'linux';
     int M = 0; //for Handling sendMessage function for different kinds of scenarios.
     int skip = 0;
 
