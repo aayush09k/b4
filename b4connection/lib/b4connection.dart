@@ -44,7 +44,7 @@ class B4connection  {
 
 
     String? subtype;
-    String? _myKey = 'google';
+    String? _myKey = 'linux';
     int M = 0; //for Handling sendMessage function for different kinds of scenarios.
     int skip = 0;
 
@@ -292,8 +292,8 @@ class B4connection  {
                     {
                         print('Behind NAT in ipv4system');
                         natStatus = 0;
-                      Listening= await tcpClient.startServer();
-                      // startConnection(proxyIpv4Pub, proxyIpv4Port, 'MP');
+                      // Listening= await tcpClient.startServer();
+                       startConnection(proxyIpv4Pub, proxyIpv4Port, 'MP');
                         break;
                     }
             }
