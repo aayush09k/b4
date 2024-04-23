@@ -335,15 +335,18 @@ class B4connection {
                     {
                         print('Behind NAT in ipv4system');
                         natStatus = 0;
-                        _startServerTcp();
-                       //startConnection(proxyIpv4Pub, proxyIpv4Port, 'MP');
+                     //   _startServerTcp();
+                       startConnection(proxyIpv4Pub, proxyIpv4Port, 'MP');
                         break;
                     }
             }
         }
     }
 
+   void printRelayMap(){
+        print( tcpClient.keySocketMap());
 
+   }
     //Below function is for checking your network environment. According to your network you will be provided a layerID.
     //Hence after getting a layerID either you will be working as a server or  a leaf node.
     //You behaving as server can connect with other public node also you can help others to connect(Those are behind NAT) .
@@ -353,8 +356,7 @@ class B4connection {
         try {
             await stunClient.initializeIpv4();
             await stunClient.fetchPublicIPIpv4(stunServer, stunPort);
-            await stunClient
-                .closeIpv4(); //After getting information closed immediately.
+            await stunClient.closeIpv4(); //After getting information closed immediately.
             stunClient.N = 2;
             stunClient.resetIP();
             try {

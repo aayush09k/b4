@@ -304,7 +304,7 @@ class TcpClient {
     // Close the connection
     void disconnect()  {
         try {
-            _socket[_j]!.close();
+            _socket[_j]!.destroy();
             _isConnected = false;
             _nodeHandler = null;
             print('Disconnected from the proxy');
@@ -329,6 +329,8 @@ class TcpClient {
     int? nodeHandler() => _nodeHandler;
 
     bool makeRemoteKeyNull() => _nullRemoteKey;
+
+    Map keySocketMap()=>_keySocketMap;
 
     String createMessageJson(type, A, B, C, D, length) {
         Map<String, dynamic> message = {
@@ -660,4 +662,5 @@ class TcpClient {
             relayToNodeKey = null;
         }
     }
+
 }
