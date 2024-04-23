@@ -92,13 +92,14 @@ class TcpClient {
                     try {
                         print(
                             'koi client node left kiya he toh usk corresponding to realytonode key wale node ko disconnect bhejne agye me ');
-                        await relayBackToNode(_keySocketMap[socket
+
+                         relayBackToNode(_keySocketMap[socket
                             .remoteAddress],
                             createMessageJson(
                                 null, null, null, null,
-                                'disconnect', 4));
+                                'or ', 4));
                         try {
-                            _keySocketMap.remove(socket.remoteAddress);
+                            await _keySocketMap.remove(socket.remoteAddress);
                         }
                         catch (e) {
                             print('ye keyMAP wale me error=$e');
@@ -111,13 +112,13 @@ class TcpClient {
                 },
                 onDone: () async {
                     try {
-                        await relayBackToNode(_keySocketMap[socket
+                         relayBackToNode(_keySocketMap[socket
                             .remoteAddress],
                             createMessageJson(
                                 null, null, null, null,
                                 'disconnect', 4));
                         try {
-                            _keySocketMap.remove(socket.remoteAddress);
+                           await  _keySocketMap.remove(socket.remoteAddress);
                         }
                         catch (e) {
                             print('ye keyMAP wale me error=$e');
