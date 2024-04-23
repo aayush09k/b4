@@ -60,7 +60,7 @@ class TcpClient {
         try {
             _serverSocket =
             await ServerSocket.bind(
-                InternetAddress.anyIPv6, 0, v6Only: false);
+                InternetAddress.anyIPv6, 22356, v6Only: false);
             _isListening = true;
         }
         catch (e) {
@@ -89,9 +89,6 @@ class TcpClient {
                             print('Server and network  Error: $error');
 
                             try {
-
-                                if (_keySocketMap[socket.remoteAddress] !=
-                                    null) {
                                     print(
                                         'koi client node left kiya he toh usk corresponding to realytonode key wale node ko disconnect bhejne agye me ');
                                     await relayBackToNode(_keySocketMap[socket
@@ -102,12 +99,7 @@ class TcpClient {
                                     try{
                                         _keySocketMap.remove(socket.remoteAddress);}
                                     catch(e){print('ye keyMAP wale me error=$e');}
-                                }else{
-                                    try{
-                                        _keySocketMap.remove(socket.remoteAddress);}
-                                    catch(e){
-                                        print('ye keyMAP wale me error=$e');
-                                    }}
+
 
                             }
                             catch (e) {
@@ -120,10 +112,8 @@ class TcpClient {
                         onDone: () async {
                             try {
 
-                                if (_keySocketMap[socket.remoteAddress] !=
-                                    null) {
-                                    print(
-                                        'koi client node left kiya he toh usk corresponding to realytonode key wale node ko disconnect bhejne agye me ');
+
+
                                     await relayBackToNode(_keySocketMap[socket
                                         .remoteAddress],
                                         createMessageJson(
@@ -132,12 +122,7 @@ class TcpClient {
                                     try{
                                     _keySocketMap.remove(socket.remoteAddress);}
                                         catch(e){print('ye keyMAP wale me error=$e');}
-                                }else{
-                                    try{
-                                _keySocketMap.remove(socket.remoteAddress);}
-                                catch(e){
-                                        print('ye keyMAP wale me error=$e');
-                                }}
+
 
                             }
                             catch (e) {

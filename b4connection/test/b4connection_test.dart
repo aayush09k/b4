@@ -142,6 +142,9 @@ Future<void> main() async {
               b4connection.remoteSocketClose();
               b4connection.K = 1;
             }
+            else if (line == 'printRelayMap') {
+              b4connection.printRelayMap(); // this is for Snode side.
+            }
             else {
               b4connection.sendMessage(line);
             }
