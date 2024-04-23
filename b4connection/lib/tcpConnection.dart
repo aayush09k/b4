@@ -595,7 +595,7 @@ class TcpClient {
                     'disconnect', 4));
             }
             else if(remoteKey!=null){
-                await send(createMessageJson('TP', null, relayToNodeKey, null,
+                await send(createMessageJson('TP', null, remoteKey, null,
                     'disconnect', 4));
             }
             relayToNodeKey = decodeNodeMessage['p4'];
