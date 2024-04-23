@@ -20,7 +20,7 @@ class TcpClient {
     final Map<String, Socket> remoteSocket = {}; // To save all remote Sockets.
     bool _isListening = false;
     dynamic relayToNodeKey; //The receiving node sets a unique node key to facilitate the  brokering of messages from the proxy server.
-
+    dynamic remoteKey;
 
     String? _message;
     String? _connectionKey;
@@ -37,6 +37,7 @@ class TcpClient {
         _nodeHandler = null;
         relayToNodeKey = null;
         _nullRemoteKey = false;
+        remoteKey=null;
 
         try {
             _socket[_j] = await Socket.connect(ip, port);
@@ -56,12 +57,13 @@ class TcpClient {
         _nodeHandler = null;
         relayToNodeKey = null;
         _nullRemoteKey = false;
+        remoteKey=null;
         _keySocketMap.clear();
 
         try {
             _serverSocket =
             await ServerSocket.bind(
-                InternetAddress.anyIPv6, 0, v6Only: false);
+                InternetAddress.anyIPv6, 22350, v6Only: false);
             _isListening = true;
         }
         catch (e) {
@@ -592,6 +594,10 @@ class TcpClient {
                 await send(createMessageJson('TP', null, relayToNodeKey, null,
                     'disconnect', 4));
             }
+            else if(remoteKey!=null){
+                await send(createMessageJson('TP', null, relayToNodeKey, null,
+                    'disconnect', 4));
+            }
             relayToNodeKey = decodeNodeMessage['p4'];
             await send(createMessageJson(
                 'SetMap', null, null, relayToNodeKey, null, 0));
@@ -603,15 +609,18 @@ class TcpClient {
                     disconnect();
                     relayToNodeKey = null;
                     _nullRemoteKey = true;
+                    remoteKey=null;
                     print('Disconnected proxy and Relay');
                 }
                 else if (stunGet.getPublicIPv4() != null) {
                     disconnect();
                     relayToNodeKey = null;
                     _nullRemoteKey = true;
+                    remoteKey=null;
                     print('Disconnected proxy and Relay');
                 }
                 else {
+                    remoteKey=null;
                     relayToNodeKey = null;
                     _nullRemoteKey = true;
                     print('relayDisconnected');

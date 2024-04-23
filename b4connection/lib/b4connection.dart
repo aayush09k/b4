@@ -41,10 +41,10 @@ class B4connection  {
     ServerSocket? Listening;
     bool? chatMode;
     String? type; //It stores the input from the user.It helps in connection and messaging.
-    String? remoteKey;
+
 
     String? subtype;
-    String? _myKey = 'linux';
+    String? _myKey = 'google';
     int M = 0; //for Handling sendMessage function for different kinds of scenarios.
     int skip = 0;
 
@@ -76,7 +76,7 @@ class B4connection  {
 
 
     void setRemoteNodeKey(key) {
-        remoteKey = key;
+        tcpClient.remoteKey = key;
     }
 
     void remoteSocketClose() {
@@ -92,10 +92,10 @@ class B4connection  {
         }
         else {
             tcpClient.send(tcpClient.createMessageJson(
-                type, null, remoteKey, null, 'disconnect', 4));
+                type, null, tcpClient.remoteKey, null, 'disconnect', 4));
         }
 
-        remoteKey = null;
+        tcpClient.remoteKey = null;
         print('relayDisconnected');
     }
 
@@ -125,7 +125,7 @@ class B4connection  {
         if (T == 'DTN') {
             await tcpClient.connect(targetIp, targetPort);
             String toSend = tcpClient.createMessageJson(
-                type, _localIPv4, _localPortIPv4, remoteKey, _myKey, 6);
+                type, _localIPv4, _localPortIPv4, tcpClient.remoteKey, _myKey, 6);
             tcpClient.send(toSend);
             return;
         }
@@ -135,21 +135,21 @@ class B4connection  {
                 await tcpClient.connect(targetIp, targetPort);
                 tcpClient.receive((message) => null);
                 String toSend = tcpClient.createMessageJson(
-                    type, _localIPv4, _localPortIPv4, remoteKey, _myKey, 6);
+                    type, _localIPv4, _localPortIPv4, tcpClient.remoteKey, _myKey, 6);
                 tcpClient.send(toSend);
                 break;
             case 1:
                 await tcpClient.connect(targetIp, targetPort);
                 tcpClient.receive((message) => null);
                 String toSend = tcpClient.createMessageJson(
-                    type, _publicIPv4, Listening!.port, remoteKey, _myKey, 6);
+                    type, _publicIPv4, Listening!.port, tcpClient.remoteKey, _myKey, 6);
                 tcpClient.send(toSend);
                 break;
             case 2:
                 await tcpClient.connect(targetIp, targetPort);
                 tcpClient.receive((message) => null);
                 String toSend = tcpClient.createMessageJson(
-                    type, _publicIPv6, Listening!.port, remoteKey, _myKey, 6);
+                    type, _publicIPv6, Listening!.port, tcpClient.remoteKey, _myKey, 6);
                 tcpClient.send(toSend);
                 break;
         }
@@ -159,7 +159,7 @@ class B4connection  {
     //For different scenarios message function is developed in such a way that you can send your message to any node.
     Future<void> sendMessage(message) async {
         if (tcpClient.makeRemoteKeyNull()) {
-            remoteKey = null;
+            tcpClient.remoteKey = null;
             print('remotekey ko null bnane wale if me agya me ');
         }
         switch (tcpClient.nodeHandler()) {
@@ -205,11 +205,11 @@ class B4connection  {
                         tcpClient.send(toSend);
                     }
                     else {
-                        if (remoteKey != null) {
+                        if (tcpClient.remoteKey != null) {
                             print(
                                 'case 1 ke relayToNodeKey null or remoteKey null nahi wale me agya me  ');
                             String toSend = tcpClient.createMessageJson(
-                                type, null, remoteKey, null, message, 4);
+                                type, null, tcpClient.remoteKey, null, message, 4);
                             tcpClient.send(toSend);
                         }
                         else {
@@ -292,8 +292,8 @@ class B4connection  {
                     {
                         print('Behind NAT in ipv4system');
                         natStatus = 0;
-                     //  Listening= await tcpClient.startServer();
-                       startConnection(proxyIpv4Pub, proxyIpv4Port, 'MP');
+                      Listening= await tcpClient.startServer();
+                      // startConnection(proxyIpv4Pub, proxyIpv4Port, 'MP');
                         break;
                     }
             }
