@@ -111,7 +111,13 @@ class B4connection  {
     }
 
     void setSubtype() {
-        subtype = 'GP';
+        if (tcpClient.makeRemoteKeyNull()) {
+            subtype = null;
+            print('remotekey ko null bnane wale if me agya me ');
+        }
+        else{
+        subtype = 'GP';}
+
     }
 
     Future _creatingConnection(targetIp, targetPort, T) async {
@@ -176,7 +182,7 @@ class B4connection  {
                                 subtype, null, null, targetIp, targetPort, 3);
                             String toSend = tcpClient.createMessageJson(
                                 type, null, tcpClient.relayToNodeKey, _myKey,
-                                msg, 34);
+                                msg, 5);
                             tcpClient.send(toSend);
                         }
                         else {

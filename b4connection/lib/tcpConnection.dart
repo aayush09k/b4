@@ -29,6 +29,7 @@ class TcpClient {
     final int _j = 0;
     int? _nodeHandler;
     bool _nullRemoteKey = false;
+    Map<dynamic, dynamic> partInl5={};
 
 
     // Connect to the server
@@ -520,59 +521,46 @@ return _serverSocket;
                 print(decodedMessage['p4']);
             }
         }
-        else if (decodedMessage['l'] == 34) {
-            print('l=34 me agya');
-            Map<dynamic, dynamic> part = jsonDecode(
-                decodedMessage['p4']);
-            if (part['l'] == 3) {
+        else if (decodedMessage['l'] == 5) {
+            print('l=5 me agya');
+
+                 try{ partInl5 = jsonDecode(
+                decodedMessage['p4']);}
+                 catch(e){print(e);
+                 partInl5['l']=0;}
+
+            if (partInl5['l'] == 3) {
                 print(
-                    'l=34 me akr phr message ko khola or part kiya usme l=3 ke if me  agya');
-                if (part['t'] == 'GP') {
+                    'l=5 me akr phr message ko khola or part kiya usme l=3 ke if me  agya');
+                if(_isConnected){
+                    send(decodedMessage['p4']);}
+                else{
+                    if(partInl5['t'] == 'GP') {
                     print('l=3 t=GP me agya');
-                    connect(part['p3'], part['p4']);
+                    connect(partInl5['p3'], partInl5['p4']);
                     String toSend = createMessageJson(
-                        'D', part['p3'], part['p4'],
+                        'D', partInl5['p3'], partInl5['p4'],
                         decodedMessage['p4'],
                         decodedMessage['p3'],
                         6);
-                    await send(toSend);
+                    await send(toSend);}
                 }
             }
             else {
-                print(
-                    'l=34 me akr phr message ko khola or part kiya usme l=3 ke else me  agya');
-                if (_isConnected) {
-                    send(decodedMessage['p4']);
+                try {
+                    print('l=5 ke else me try me "no reyling connection bhejne agya me "');
+                    await relayBackToNode(decodedMessage['p3'], createMessageJson(
+                        null, null, null, null,
+                        'no relaying connection exits ',
+                        0));
                 }
-                else {
-                    try {
-                        print(
-                            'l=34 me akr phr message ko khola or part kiya usme l=3 ke else ke else ke try me client ko "no relayin connection bhejne " me agya  ');
-                        await relayBackToNode(decodedMessage['p3'],
-                            createMessageJson(
-                                null, null, null, null,
-                                'no relaying connection exits ',
-                                0));
-                    }
-                    catch (e) {
-                        print(e);
-                    }
+                catch (e) {
+                    print('l=5 me catch me agya');
+                    print(e);
                 }
             }
         }
-        else if (decodedMessage['l'] == 5) {
-            try {
-                print('l=5 me try me "no reyling connection bhejne agya me "');
-                await relayBackToNode(decodedMessage['p3'], createMessageJson(
-                    null, null, null, null,
-                    'no relaying connection exits ',
-                    0));
-            }
-            catch (e) {
-                print('l=5 me catch me agya');
-                print(e);
-            }
-        }
+
         else if (decodedMessage['t'] == 'SetMap') {
             print('default l ke t=setMap me agya ');
             _keySocketMap[socket.remoteAddress] = decodedMessage['p3'];
