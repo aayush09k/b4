@@ -37,7 +37,7 @@ class TcpClient {
         _nodeHandler = null;
         relayToNodeKey = null;
         _nullRemoteKey = false;
-        remoteKey=null;
+
 
         try {
             _socket[_j] = await Socket.connect(ip, port);

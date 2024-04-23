@@ -77,6 +77,8 @@ class B4connection  {
 
     void setRemoteNodeKey(key) {
         tcpClient.remoteKey = key;
+        print(tcpClient.remoteKey);
+
     }
 
     void remoteSocketClose() {
