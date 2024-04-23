@@ -335,8 +335,8 @@ class B4connection {
                     {
                         print('Behind NAT in ipv4system');
                         natStatus = 0;
-                     //   _startServerTcp();
-                       startConnection(proxyIpv4Pub, proxyIpv4Port, 'MP');
+                       _startServerTcp();
+                      // startConnection(proxyIpv4Pub, proxyIpv4Port, 'MP');
                         break;
                     }
             }
