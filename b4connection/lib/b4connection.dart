@@ -4,7 +4,14 @@ import 'connectivity_monitor.dart';
 import 'stungetip.dart';
 import 'tcpConnection.dart';
 
-class B4connection {
+class B4connection  {
+// This class is used to 
+// 1. setup connection to other nodes directly or via their relays. For each other node, 
+//     a separate connection instance is to be created, as connection is bound to nodeID of other node.
+// 2. setup a server, either directly or via current nodes relay (root in non-nated DHT) for IPv4
+// 3. setup a server, either directly or via current nodes relay (root in non-nated DHT) for IPv4
+// 4. Sending message to other node as configured in the connection.
+// 5. 
 
     //Declaration of all required variables.
     int? reset;
@@ -37,7 +44,7 @@ class B4connection {
     String? remoteKey;
 
     String? subtype;
-    String? _myKey = 'linux';
+    String? _myKey = 'google';
     int M = 0; //for Handling sendMessage function for different kinds of scenarios.
     int skip = 0;
 
@@ -67,62 +74,6 @@ class B4connection {
         });
     }
 
-    //When you are not requesting for connection to someone . then you will be listening in background automatically.
-    //function for starting server. if you are publicly available then this function will invoke automatically according to layerID assigned.
-    Future<void> _startServerTcp() async {
-        switch (natStatus) {
-            case 0:
-                {
-                    print('server is running for private nodes');
-                    try {
-                        await tcpClient.startServer();
-                    }
-                    catch (e) {
-                        print('problem in socket');
-                    }
-                    break;
-                }
-            case 1:
-                {
-                    try {
-                        await tcpClient.startServer();
-                    }
-                    catch (e) {
-                        print('problem in scoket');
-                    }
-                    break;
-                }
-            case 2:
-                {
-                    try {
-                        await tcpClient.startServer();
-                    }
-                    catch (e) {
-                        print('problem in socket');
-                    }
-                    break;
-                }
-            case 3:
-                {
-                    await tcpClient.startServer();
-                    break;
-                }
-            case 4:
-                {
-                    try {
-                        await tcpClient.startServer();
-                    }
-                    catch (e) {
-                        print('problem in socket');
-                    }
-                    break;
-                }
-            case null:
-                {
-                    print('natStatus not defined');
-                }
-        }
-    }
 
     void setRemoteNodeKey(key) {
         remoteKey = key;
@@ -320,7 +271,7 @@ class B4connection {
         if (_publicIPv6 != null) {
             print('System is on ipv6 ');
             natStatus = 2;
-            _startServerTcp();
+            Listening= await tcpClient.startServer();
         }
         else {
             switch (stunClient.NATcheckIpv4()) {
@@ -328,15 +279,15 @@ class B4connection {
                     {
                         print('Not behind NAT in ipv4 system');
                         natStatus = 1;
-                        _startServerTcp();
+                        Listening= await tcpClient.startServer();
                         break;
                     }
                 case false:
                     {
                         print('Behind NAT in ipv4system');
                         natStatus = 0;
-                       _startServerTcp();
-                       startConnection(proxyIpv4Pub, proxyIpv4Port, 'MP');
+                        Listening= await tcpClient.startServer();
+                       //startConnection(proxyIpv4Pub, proxyIpv4Port, 'MP');
                         break;
                     }
             }
