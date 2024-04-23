@@ -61,13 +61,13 @@ class TcpClient {
         try {
             _serverSocket =
             await ServerSocket.bind(
-                InternetAddress.anyIPv6, 22356, v6Only: false);
+                InternetAddress.anyIPv6, 22350, v6Only: false);
             _isListening = true;
         }
         catch (e) {
             print(
                 'not able to create server on ipv6 so now creating on ipv4...');
-            _serverSocket = await ServerSocket.bind(InternetAddress.anyIPv4, 0);
+            _serverSocket = await ServerSocket.bind(InternetAddress.anyIPv4, 22357);
             _isListening = true;
         }
         print('Server: started  on port ${_serverSocket!.port}');

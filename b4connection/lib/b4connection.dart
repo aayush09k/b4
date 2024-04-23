@@ -35,7 +35,7 @@ class B4connection  {
     InternetAddress? targetIp;
     int? targetPort;
     String? proxyIpv4Pub = '35.185.142.164';
-    int? proxyIpv4Port = 22356;
+    int? proxyIpv4Port = 22350;
     int K = 0;
 
     ServerSocket? Listening;
@@ -292,8 +292,8 @@ class B4connection  {
                     {
                         print('Behind NAT in ipv4system');
                         natStatus = 0;
-                        Listening= await tcpClient.startServer();
-                      // startConnection(proxyIpv4Pub, proxyIpv4Port, 'MP');
+                       Listening= await tcpClient.startServer();
+                       //startConnection(proxyIpv4Pub, proxyIpv4Port, 'MP');
                         break;
                     }
             }
