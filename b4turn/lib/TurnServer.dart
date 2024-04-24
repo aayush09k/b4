@@ -114,9 +114,6 @@ class TurnServer {
       // Destination peer is not found in the allocation table
       print('Destination peer $destinationPeer not found. Unable to forward data from $clientId.');
 
-      // it should allcoate based on whetehr destination is behind NAT or not
-      // how
-
     }
   }
 
