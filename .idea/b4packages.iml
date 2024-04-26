@@ -12,9 +12,6 @@
       <excludeFolder url="file://$MODULE_DIR$/nodeid/.dart_tool" />
       <excludeFolder url="file://$MODULE_DIR$/nodeid/.pub" />
       <excludeFolder url="file://$MODULE_DIR$/nodeid/build" />
-      <excludeFolder url="file://$MODULE_DIR$/b4turn/.pub" />
-      <excludeFolder url="file://$MODULE_DIR$/b4turn/build" />
-      <excludeFolder url="file://$MODULE_DIR$/b4turn/.dart_tool" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
