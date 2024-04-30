@@ -8,7 +8,8 @@ import 'package:psjapp/b4connection.dart';
 Future<void> main() async {
   // Initialize your STUN connection or other setup here
 
-  B4connection b4connection = B4connection('stun.l.google.com', 19302);
+  B4connection b4connection = B4connection();
+  b4connection.getNetworkInformation('stun.l.google.com', 19302);
   int? targetPort;
   String? type;
 
@@ -131,7 +132,7 @@ Future<void> main() async {
             }
             else if (line == 'exit') {
               b4connection.K = 1;
-              b4connection.tcpClient.disconnect();
+              b4connection.finishTheConnection();
             }
             else {
               b4connection.sendMessage(line);

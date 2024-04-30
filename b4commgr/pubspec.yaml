@@ -9,7 +9,17 @@ environment:
 # Add regular dependencies here.
 dependencies:
   # path: ^1.8.0
+  async: ^2.8.1
+  udp: ^5.0.3
+  web_socket_channel: ^2.4.4
 
 dev_dependencies:
   lints: ^3.0.0
   test: ^1.24.0
+
+ # local libraries
+  b4connection:
+    path: ../b4connection
+  b4rttable:
+    path: ../b4rttable
+
