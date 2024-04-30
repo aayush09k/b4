@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:psjapp/stungetip.dart';
+import 'package:b4connection/stungetip.dart';
 
 
 class TcpClient {

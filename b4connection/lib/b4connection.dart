@@ -36,7 +36,7 @@ class B4connection  {
 
 
     String? subtype; //subtype used in special case when a NATed peer (ipv4) wants to talk to a ipv6 node.
-    final String _myKey = 'google';
+    final String _myKey = 'macbook';
     ServerSocket? listening;
     Socket? loCalcNodeSocket;
 
@@ -89,7 +89,7 @@ class B4connection  {
     }
 
 //Below function can be use to connect with other peer.Here you have to give the type of connection 'TP(To proxy)','MP(be my proxy)','D'(direct connection),'DTP'(Direct through NAT).
-    Future<void> startConnection(targetIp, targetPort, T) async {
+    Future<Socket?> startConnection(targetIp, targetPort, T) async {
 
         type = T;
         if (tcpClient.isConnected()) {
@@ -121,6 +121,7 @@ class B4connection  {
                 break;
         }
         K = 5;
+        return loCalcNodeSocket;
     }
 
     void setSubtype() {
@@ -137,7 +138,7 @@ class B4connection  {
 
     // A callback function that will be used by the communication manager for receiving data.
     Future receiveTexFroMsNode(Function(dynamic message) onDataReceived) async {
-        await  tcpClient.receiveAsaServer((text)  {
+        await  tcpClient.receiveAsaClient((text)  {
                 onDataReceived(text);
         });
     }
@@ -270,33 +271,18 @@ class B4connection  {
     // else it will be connected to provided  proxy sNode.
 
     Future<void> activateNode(proxyIp,proxyPort,listeningPort) async {
-        if (_publicIPv6 != null) {
-            print('System is on ipv6 ');
-            natStatus = 2;
-            listening= await tcpClient.startASsNode(listeningPort);
-            receiveTexFroMcNode((message) => print(message));
-        }
-        else {
-            switch (stunClient.NATcheckIpv4()) {
-                case true:
-                    {
-                        print('Not behind NAT in ipv4 system');
-                        natStatus = 1;
-                        listening= await tcpClient.startASsNode(listeningPort);
-                        receiveTexFroMcNode((message) => print(message));
-                        break;
-                    }
-                case false:
-                    {
-                        print('Behind NAT in ipv4system');
-                        natStatus = 0;
-                       listening= await tcpClient.startASsNode(listeningPort);
-                       receiveTexFroMcNode((message) => print(message));
-                       //startConnection(proxyIp, proxyPort, 'MP');
-                        break;
-                    }
-            }
-        }
+     switch(natStatus){
+         case 0:print('Behind NAT in ipv4system');
+     // listening= await tcpClient.startASsNode(listeningPort);
+     //receiveTexFroMcNode((message) => print(message));
+      startConnection(proxyIp, proxyPort, 'MP');
+         case 1:print('Not behind NAT in ipv4 system');startNodeLiseNing(listeningPort); receiveTexFroMcNode((message) => print(message));
+         case 2:print('System is on ipv6 ');  startNodeLiseNing(listeningPort);receiveTexFroMcNode((message) => print(message));
+     }
+    }
+
+    Future<void> startNodeLiseNing(listeningPort) async {
+        listening= await tcpClient.startASsNode(listeningPort);
     }
 
    void printRelayMap() {
@@ -304,7 +290,7 @@ class B4connection  {
    }
 
     //Below function is for checking your network environment.
-    Future<void> getNetworkInformation(stunIp,stunPort) async {
+    Future<int?> getNetworkInformation(stunIp,stunPort) async {
         //Start connection with STUN server for all the network information.
         // Try to connect to stun server by ipv4 and ipv6 both one by one.
         monitor.onConnectivityChanged.listen((interfaces) async {
@@ -361,10 +347,28 @@ class B4connection  {
             }
             await _getAllIpPort();
             skip = 2;
+            if (_publicIPv6 != null) {
+                natStatus = 2;
+            }
+            else {
+                switch (stunClient.NATcheckIpv4()) {
+                    case true:
+                        {
+                            natStatus = 1;
+                            break;
+                        }
+                    case false:
+                        {
+                            natStatus = 0;
+                            break;
+                        }
+                }
+            }
+
             activateNode(proxyIpPub, proxyPortPub, 22350);
 
         });
-
+      return natStatus;
     }
 
     void dispose() {
