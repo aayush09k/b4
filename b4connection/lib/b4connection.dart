@@ -182,11 +182,11 @@ class B4connection  {
 
     Future<void> activateNode(proxyIp,proxyPort,listeningPort) async {
      switch(natStatus){
-         case 0:print('Behind NAT in ipv4system');
+         case 1:print('Behind NAT in ipv4system');
      // listening= await tcpClient.startASsNode(listeningPort);
      //receiveTexFroMcNode((message) => print(message));
       startConnection(proxyIp, proxyPort, 'MP',null);
-         case 1:print('Not behind NAT in ipv4 system');startNodeLiseNing(listeningPort); receiveTexFroMcNode((message) => print(message));
+         case 0:print('Not behind NAT in ipv4 system');startNodeLiseNing(listeningPort); receiveTexFroMcNode((message) => print(message));
          case 2:print('System is on ipv6 ');  await startNodeLiseNing(listeningPort);receiveTexFroMcNode((message) => print(message));
      }
     }

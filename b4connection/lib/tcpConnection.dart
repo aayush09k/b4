@@ -67,7 +67,7 @@ class TcpClient {
         try {
             _loCalsNodeSocket =
             await ServerSocket.bind(
-                InternetAddress.anyIPv6, listeningPort, v6Only: false);
+                InternetAddress.anyIPv6, 22355, v6Only: false);
             _isListening = true;
         }
         catch (e) {
