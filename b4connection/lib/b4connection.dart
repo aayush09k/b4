@@ -44,7 +44,7 @@ class B4connection  {
     InternetAddress? targetIp;
     int? targetPort;
     String? proxyIpPub = '35.185.142.164';
-    int? proxyPortPub = 22350;
+    int? proxyPortPub = 22355;
     dynamic rxData;
     String? remoteNodeID;
 
@@ -90,6 +90,7 @@ class B4connection  {
             String toSend = tcpClient.createMessageJson(
                 type, _localIPv4, _localPortIPv4, remoteNodeID, _myNodeId, 6);
             await sendMessage(toSend);
+            type='D';
         }
 
         K =5;
@@ -135,7 +136,7 @@ class B4connection  {
             if (tcpClient.isConnected()) {
                 print('case 3 ke tcpclient.isconnected me agye ');
                 tcpClient.send(tcpClient.createMessageJson(
-                    type, null, null, null, message, 6));
+                    null, null, null, null, message, 0));
             }
             else if (tcpClient.isListening()) {
                 print('case 3 ke tcpclient.isListening me agye ');
@@ -147,7 +148,7 @@ class B4connection  {
         }
         else if(type=='MP'){
          tcpClient.send(message);
-         receiveTexFroMsNode((message) => print(message));
+
         }
 
     }
