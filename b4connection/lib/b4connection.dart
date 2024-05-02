@@ -186,7 +186,7 @@ class B4connection  {
      // listening= await tcpClient.startASsNode(listeningPort);
      //receiveTexFroMcNode((message) => print(message));
       startConnection(proxyIp, proxyPort, 'MP',null);
-         case 0:print('Not behind NAT in ipv4 system');startNodeLiseNing(listeningPort); receiveTexFroMcNode((message) => print(message));
+         case 0:print('Not behind NAT in ipv4 system');await startNodeLiseNing(listeningPort); receiveTexFroMcNode((message) => print(message));
          case 2:print('System is on ipv6 ');  await startNodeLiseNing(listeningPort);receiveTexFroMcNode((message) => print(message));
      }
     }
