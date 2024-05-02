@@ -1,18 +1,17 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:b4connection/stungetip.dart';
+
 
 
 class TcpClient {
     //There are two types of nodes that I have defined: 'cNode' for client-type nodes and 'sNode' for server-type nodes.
-    final _stunGet = StunClient();
+
     final Map<int, Socket> _loCalcNodeSocket = {
     }; // Sockets as Map. so that we can differentiate cNode connections. It is for future purpose.
     bool _isConnected = false; // If you are connected to some node then _isConnected = true;
     ServerSocket? _loCalsNodeSocket; // sNode-socket stored here.
 
-    final Map<dynamic, dynamic> _socketToKeyMap = {
-    }; // The mapping of the cNode socket address to the node key, which they want to relay to, is stored here.
+
     dynamic _parsecNodeMessage; // Used for parsing message coming from the cNode.
     dynamic _decodesNodeMessage; // Used for message received from sNode.
     final Map <dynamic, List<int>> _buffer = {
@@ -63,7 +62,7 @@ class TcpClient {
         relayBackToNodeKey = null;
         _nullMaker = false;
         relayToreMoteNodeKey = null;
-        _socketToKeyMap.clear(); // Previous Mapping should be clear.
+
 
         try {
             _loCalsNodeSocket =
@@ -105,50 +104,15 @@ class TcpClient {
                 onError: (error) async {
                     print('Server and network  Error: $error');
 
-                    try {
-                        print(
-                            'koi client node left kiya he toh usk corresponding to realytonode key wale node ko disconnect bhejne agye me ');
-
-                        relayBackToNode(_socketToKeyMap[socket
-                            .remoteAddress],
-                            createMessageJson(
-                                null, null, null, null,
-                                'or ', 4));
-                        try {
-                            await _socketToKeyMap.remove(socket.remoteAddress);
-                        }
-                        catch (e) {
-                            print('ye keyMAP wale me error=$e');
-                        }
-                    }
-                    catch (e) {
-                        print('disconnect send nhi ho paya');
-                        print('error=$e');
-                    }
                 },
                 onDone: () async {
-                    try {
-                        relayBackToNode(_socketToKeyMap[socket
-                            .remoteAddress],
-                            createMessageJson(
-                                null, null, null, null,
-                                'disconnect', 4));
-                        try {
-                            await _socketToKeyMap.remove(socket.remoteAddress);
-                        }
-                        catch (e) {
-                            print('ye keyMAP wale me error=$e');
-                        }
-                    }
-                    catch (e) {
-                        print('disconnect send nhi ho paya');
-                        print('error=$e');
-                    }
+
                 },
             );
         });
 
     }
+
     //Data send back to the client according to the key.
     Future relayBackToNode(key, message) async {
         List<int> messageBytes = utf8.encode(
@@ -293,12 +257,12 @@ class TcpClient {
                     relayBackToNodeKey = null;
                     _isConnected = false;
                     _nullMaker = false;
-                    try {
+                    /*try {
                         _loCalcNodeSocket[_j]!.close();
                     }
                     catch (e) {
                         print(e);
-                    }
+                    }*/
                 }
                 catch (e) {
                     print('remoteNode  left.');
@@ -353,13 +317,13 @@ class TcpClient {
         //For l=6 means message came for setup smooth flow between nodes.
         if (decodedMessage['l'] == 6) {
             if (decodedMessage['t'] == 'MP') {
-                _socketToKeyMap.remove(socket.remoteAddress);
+
 
                 print('me t=MP,l=6 ke if me agya');
                 try {
                     print(decodedMessage);
                     _message = createMessageJson(
-                        null, _stunGet.getPublicIPv4(), socket.port, null,
+                        null, null, socket.port, null,
                         'I am your proxy server i will let you connect to the world bro . Please press any key to continue.',
                         0);
                     _remoTecNodeSocket[decodedMessage['p4']] = socket;
@@ -376,8 +340,8 @@ class TcpClient {
                 }
             }
             else if (decodedMessage['t'] == 'TP') {
-                _socketToKeyMap[socket.remoteAddress] = decodedMessage['p3'];
-                print('key socket mapping =$_socketToKeyMap');
+
+
 
                 try {
                     print('me t=TP,l=6 ke try me agya');
@@ -425,7 +389,7 @@ class TcpClient {
         else if (decodedMessage['l'] == 4) {
             if (decodedMessage['t'] == 'TP') {
                 print('me t=TP,l=4 ke if me agya');
-                print(_socketToKeyMap);
+
                 try {
                     if (decodedMessage['p4'] == 'disconnect') {
                         print(
@@ -436,14 +400,9 @@ class TcpClient {
                                 4));
 
                         //Mapping remove logic when relay is disconnected.
-                        _socketToKeyMap.remove(socket.remoteAddress);
 
-                        String? keyToRemove = _socketToKeyMap.keys.firstWhere(
-                                (k) =>
-                            _socketToKeyMap[k] == decodedMessage['p2'],
-                            // looking for an age that doesn't exist
-                            orElse: () => 'null');
-                        _socketToKeyMap.remove(keyToRemove);
+
+
                     }
                     else {
                         print('me t=TP,l=4  ke try ke else  me agya.');
@@ -491,15 +450,7 @@ class TcpClient {
                             createMessageJson(
                                 null, null, null, null, decodedMessage['p4'],
                                 4));
-                        //Mapping remove logic when relay is disconnected.
-                        _socketToKeyMap.remove(socket.remoteAddress);
 
-                        String? keyToRemove = _socketToKeyMap.keys.firstWhere(
-                                (k) =>
-                            _socketToKeyMap[k] == decodedMessage['p2'],
-                            // looking for an age that doesn't exist
-                            orElse: () => 'null');
-                        _socketToKeyMap.remove(keyToRemove);
                     }
                     else {
                         print('me t=MP,l=4  ke try ke else  me agya.');
@@ -603,8 +554,7 @@ class TcpClient {
         // when node A start relay to node B then node B send a msg to this proxy cNode to setMap 'node B.socketAddress-->node A key'.
         else if (decodedMessage['t'] == 'SetMap') {
             print('default l ke t=setMap me agya ');
-            _socketToKeyMap[socket.remoteAddress] = decodedMessage['p3'];
-            print('Set has Mapped');
+
         }
         else {
             print(decodedMessage['p4']);
@@ -638,34 +588,7 @@ class TcpClient {
         // 1. If you are a public node in a relaying connection with another peer, you will be disconnected from that node's proxy.
         // 2. If you are a NATed node, you will not be disconnected from the proxy, but your keys to relay messages will become null,
         // and you won't be able to send any further messages
-        else if (decodeNodeMessage['l'] == 4) {
-            if (decodeNodeMessage['p4'] == 'disconnect') {
-                if (_stunGet.getPublicPortIPv6() != null) {
-                    disconnectFroMsNode();
-                    relayBackToNodeKey = null;
-                    _nullMaker = true;
-                    relayToreMoteNodeKey = null;
-                    print('Disconnected proxy and Relay');
-                }
-                else if (_stunGet.getPublicIPv4() != null) {
-                    disconnectFroMsNode();
-                    relayBackToNodeKey = null;
-                    _nullMaker = true;
-                    relayToreMoteNodeKey = null;
-                    print('Disconnected proxy and Relay');
-                }
-                else {
-                    relayToreMoteNodeKey = null;
-                    relayBackToNodeKey = null;
-                    _nullMaker = true;
-                    print('relayDisconnected');
-                }
-            }
-            else {
-               // print(decodeNodeMessage['p4']);
-                _nullMaker = false;
-            }
-        }
+
         else {
            // print(decodeNodeMessage['p4']);
             _nullMaker = false;
@@ -701,6 +624,6 @@ class TcpClient {
 
     bool makeRemoteKeyNull() => _nullMaker;
 
-    Map keySocketMap() => _socketToKeyMap;
+
 
 }

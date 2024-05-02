@@ -50,8 +50,8 @@ class StunClient {
         _localPortIPv4 = _socketIpv4!.rawSocket.port;
     }
 
-    Future<void> fetchPublicIPIpv4(stunServer, Port) async {
-        await _sendStunRequest(stunServer, Port);
+    Future<void> fetchPublicIPIpv4(stunServer, port) async {
+        await _sendStunRequest(stunServer, port);
     }
 
     Future<void> _sendStunRequest(stunServer, stunPort) async {
@@ -184,18 +184,18 @@ class StunClient {
         _localPortIPv6 = _socketIpv6!.rawSocket.port;
     }
 
-    Future<void> fetchPublicIPIpv6(stunServer, Port) async {
-        await _sendStunRequestIpv6(stunServer, Port);
+    Future<void> fetchPublicIPIpv6(stunServer, port) async {
+        await _sendStunRequestIpv6(stunServer, port);
     }
 
-    Future<void> _sendStunRequestIpv6(stunServer, Port) async {
+    Future<void> _sendStunRequestIpv6(stunServer, port) async {
         var stunRequest = Uint8List.fromList([
          0x00, 0x01, 0x00, 0x00, // STUN Binding Request Header
          0x21, 0x12, 0xA4, 0x42, // Magic Cookie
                                              ]) + transactionIDIpv6; // Append the transaction ID
 
         if (_socketIpv6 != null) {
-            await _socketIpv6!.send(stunRequest, stunServer, Port);
+            await _socketIpv6!.send(stunRequest, stunServer, port);
             await _processResponseIpv6();
         }
     }

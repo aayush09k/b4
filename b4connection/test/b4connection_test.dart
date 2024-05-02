@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:psjapp/b4connection.dart';
+import 'package:b4connection/b4connection.dart';
 
 
 
@@ -9,9 +9,10 @@ Future<void> main() async {
   // Initialize your STUN connection or other setup here
 
   B4connection b4connection = B4connection();
-  b4connection.getNetworkInformation('stun.l.google.com', 19302);
+  b4connection.getNetworkInformation('stun.l.google.com',19302);
   int? targetPort;
   String? type;
+  String? key;
 
 
   // Create a stream subscription to handle each line of input
@@ -69,19 +70,19 @@ Future<void> main() async {
               b4connection.sendMessage(null);
             }
             await b4connection.startConnection(
-                b4connection.targetIp!.address, b4connection.targetPort, type);
+                b4connection.targetIp!.address, b4connection.targetPort, type,null);
             b4connection.K = 6;
           }
         }
         else if (b4connection.K == 4) {
-          b4connection.setRemoteNodeKey(line);
+          key=line;
           b4connection.K = 5;
           print("write 'enter' and then press enter to connect ");
         }
         else if (b4connection.K == 5) {
           if (line == 'enter') {
             await b4connection.startConnection(
-                b4connection.targetIp!.address, b4connection.targetPort, type);
+                b4connection.targetIp!.address, b4connection.targetPort, type,key);
             b4connection.K = 6;
             print(
                 'Do you want to connect to some node , then press c.if you are already connected to some node then press n.Press "exit relay" to exit from relay.');
@@ -118,19 +119,9 @@ Future<void> main() async {
                 'if you want to connect to Behind NAT node then enter Proxy Target IP. If you want to connect to public node then enter target IP');
           }
           else if (b4connection.tcpClient.isConnected()) {
-            if (line == 'exitRelay') {
-              b4connection.K = 1;
-              b4connection.disconnectRelay();
-            }
-            else if (line == 'goToIpv6') {
-              print('Enter target ipv6');
-              b4connection.K = 1;
-              b4connection.setSubtype();
-            }
-            else if (line == 'printRelayMap') {
-              b4connection.printRelayMap(); // this is for Snode side.
-            }
-            else if (line == 'exit') {
+
+
+            if (line == 'exit') {
               b4connection.K = 1;
               b4connection.finishTheConnection();
             }
@@ -143,9 +134,7 @@ Future<void> main() async {
               b4connection.remoteSocketClose();
               b4connection.K = 1;
             }
-            else if (line == 'printRelayMap') {
-              b4connection.printRelayMap(); // this is for Snode side.
-            }
+
             else {
               b4connection.sendMessage(line);
             }

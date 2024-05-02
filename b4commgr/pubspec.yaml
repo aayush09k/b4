@@ -22,4 +22,8 @@ dev_dependencies:
     path: ../b4connection
   b4rttable:
     path: ../b4rttable
+  b4auth:
+    path: ../b4auth
+  nodeid:
+    path: ../nodeid
 
