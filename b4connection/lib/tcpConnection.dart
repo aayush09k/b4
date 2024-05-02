@@ -338,33 +338,7 @@ class TcpClient {
                         null, null, null, null,
                         'error in proxy connection=$e', 0));
                 }
-            }
-            else if (decodedMessage['t'] == 'TP') {
 
-
-
-                try {
-                    print('me t=TP,l=6 ke try me agya');
-                    await relayBackToNode(decodedMessage['p3'],
-                        jsonEncode(decodedMessage));
-
-
-                    _remoTecNodeSocket[decodedMessage['p4']] = socket;
-                    _message = createMessageJson(null, null, null, null,
-                        "you can relay your message to the key:${decodedMessage['p3']})",
-                        0);
-
-
-                    await relayBackToNode(decodedMessage['p4'], _message);
-
-                    _nodeHandler = 1;
-                }
-                catch (e) {
-                    print('me t=MP,l=6 ke catch me agya');
-                    relayBackToNode(decodedMessage['p4'],
-                        createMessageJson(null, null, null, null,
-                            'having some error in your entered key=$e', 0));
-                }
             }
             else {
                 try {
@@ -440,55 +414,6 @@ class TcpClient {
                     print('me t=TP,l=4  ke catch  me agya. or error he =$e');
                 }
             }
-            else if (decodedMessage['t'] == 'MP') {
-                print('me t=MP,l=4 me agya');
-                try {
-                    if (decodedMessage['p4'] == 'disconnect') {
-                        print(
-                            'me t=MP,l=4 ke try ke if  me agya.disconnect krne k liye');
-                        await relayBackToNode(decodedMessage['p2'],
-                            createMessageJson(
-                                null, null, null, null, decodedMessage['p4'],
-                                4));
-
-                    }
-                    else {
-                        print('me t=MP,l=4  ke try ke else  me agya.');
-                        if (_remoTecNodeSocket[decodedMessage['p2']] != null) {
-                            await relayBackToNode(decodedMessage['p2'],
-                                createMessageJson(
-                                    null, null, null, null,
-                                    decodedMessage['p4'],
-                                    0));
-                        }
-                        else {
-                            // By mistake or due to any network issue if some node in relay connection get disconnected from proxy.
-                            // Then other peer will got this message below.
-                            String toSend = createMessageJson(
-                                null, null, null, null,
-                                'Other Node is no more connected.',
-                                0);
-                            List<int> messageBytes = utf8.encode(
-                                toSend); // Encode the JSON message
-                            int length = messageBytes
-                                .length; // Calculate the message length
-                            var lengthBytes = [
-                                (length >> 24) & 0xFF,
-                                (length >> 16) & 0xFF,
-                                (length >> 8) & 0xFF,
-                                length & 0xFF
-                            ];
-                            socket.add(lengthBytes);
-                            socket.add(messageBytes);
-                            socket.flush();
-                        }
-                    }
-                }
-                catch (e) {
-                    print('me t=MP,l=4 ke catch me agya');
-                    print(e);
-                }
-            }
             else {
                 print('l=4 ke else me agya');
                 print(decodedMessage['p4']);
@@ -498,44 +423,6 @@ class TcpClient {
         else if (decodedMessage['l'] == 5) {
             print('l=5 me agya');
 
-            try {
-                partInl5 = jsonDecode(
-                    decodedMessage['p4']);
-            }
-            catch (e) {
-                print(e);
-                partInl5['l'] = 0;
-            }
-
-            if (partInl5['l'] == 3) {
-                print(
-                    'l=5 me akr phr message ko khola or part kiya usme l=3 ke if me  agya');
-                if (_isConnected) {
-                    send(decodedMessage['p4']);
-                }
-                else {
-                    if (partInl5['t'] == 'GP') {
-                        print('l=3 t=GP me agya');
-                        await connect(partInl5['p3'], partInl5['p4']);
-                        if (!_isConnected) {
-                            await relayBackToNode(
-                                decodedMessage['p3'], createMessageJson(
-                                null, null, null, null,
-                                'not able to proxy you to the ipv6 node sorry ',
-                                0));
-                        }
-                        else {
-                            String toSend = createMessageJson(
-                                'D', partInl5['p3'], partInl5['p4'],
-                                decodedMessage['p4'],
-                                decodedMessage['p3'],
-                                6);
-                            await send(toSend);
-                        }
-                    }
-                }
-            }
-            else {
                 try {
                     print(
                         'l=5 ke else me try me "no reyling connection bhejne agya me "');
@@ -549,13 +436,9 @@ class TcpClient {
                     print('l=5 me catch me agya');
                     print(e);
                 }
-            }
-        }
-        // when node A start relay to node B then node B send a msg to this proxy cNode to setMap 'node B.socketAddress-->node A key'.
-        else if (decodedMessage['t'] == 'SetMap') {
-            print('default l ke t=setMap me agya ');
 
         }
+        // when node A start relay to node B then node B send a msg to this proxy cNode to setMap 'node B.socketAddress-->node A key'.
         else {
             print(decodedMessage['p4']);
         }

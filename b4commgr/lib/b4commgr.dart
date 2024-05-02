@@ -22,7 +22,7 @@ class CommunicationManager {
   Future<Socket?> sendMessage(ip, port, type, message,remoteNodeID) async {
 
     nodeSocket = await b4connection.startConnection(ip, port, type,remoteNodeID);
-    b4connection.receiveTexFroMsNode((message) => print(message));
+
     b4connection.sendMessage(message);
     return nodeSocket;
   }

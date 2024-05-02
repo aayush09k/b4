@@ -135,7 +135,7 @@ class B4connection  {
             if (tcpClient.isConnected()) {
                 print('case 3 ke tcpclient.isconnected me agye ');
                 tcpClient.send(tcpClient.createMessageJson(
-                    type, null, null, null, _myNodeId, 6));
+                    type, null, null, null, message, 6));
             }
             else if (tcpClient.isListening()) {
                 print('case 3 ke tcpclient.isListening me agye ');
