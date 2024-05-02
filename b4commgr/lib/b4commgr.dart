@@ -2,56 +2,30 @@ import 'dart:io';
 
 import 'package:b4commgr/stungetip.dart';
 import 'package:b4connection/b4connection.dart';
-import 'package:b4rttable/routingmanager.dart';
-import 'package:b4rttable/b4rttable.dart';
 
-class comMuniCationManager {
+
+class CommunicationManager {
   B4connection b4connection = B4connection();
   StunClient stunClient = StunClient();
-  RoutingManager routingManager=RoutingManager.instance;
+
+  //RoutingManager routingManager=RoutingManager.instance;
   String? _publicIPv4;
   String? _localIPv4;
   int? _localPortIPv4;
   String? _publicIPv6;
   int? skip = 0;
+  Socket? nodeSocket;
 
 
-  Future<Socket?> sendMessage(ip, port, type, message) async {
-    var nodeSocket = await b4connection.startConnection(ip, port, type);
-    b4connection.receiveTexFroMsNode((message){
 
-    routingManager.mergeTables(newRoutingTable, layerId, Duration(microseconds: 0));
 
-    });
+  Future<Socket?> sendMessage(ip, port, type, message,remoteNodeID) async {
+
+    nodeSocket = await b4connection.startConnection(ip, port, type,remoteNodeID);
+    b4connection.receiveTexFroMsNode((message) => print(message));
     b4connection.sendMessage(message);
     return nodeSocket;
   }
-
-
-  //Putting all the ip and port inside the global variables.
-  Future<void> _getAllIpPort() async {
-    try {
-      if (stunClient.getPublicIPv4() != null) {
-        _localIPv4 = stunClient.getLocalIPv4()!.address;
-        _localPortIPv4 = stunClient.getLocalPortIPv4();
-      }
-
-      if (stunClient.getPublicIPv4() != null) {
-        _publicIPv4 = stunClient.getPublicIPv4()!.address;
-        //_publicPortIPv4 = stunClient.getPublicPortIPv4();
-      }
-
-      if (stunClient.getPublicIPv6() != null) {
-        _publicIPv6 = stunClient.getPublicIPv6()!.address;
-        // _publicPortIPv6 = stunClient.getPublicPortIPv6();
-      }
-    }
-    catch (e) {
-      print('error in getting all ports');
-    }
-    // _printAllPort();
-  }
-
 
   Future<int?> getNetworkInformation(stunIp, stunPort) async {
     int natStatus=9;
@@ -138,10 +112,47 @@ class comMuniCationManager {
       case 0:print('Behind NAT in ipv4system');
       // listening= await tcpClient.startASsNode(listeningPort);
       //receiveTexFroMcNode((message) => print(message));
-      await b4connection.startConnection(proxyIp, proxyPort, 'MP');
-      case 1:print('Not behind NAT in ipv4 system');b4connection.startNodeLiseNing(listeningPort); b4connection.receiveTexFroMcNode((message) => print(message));
-      case 2:print('System is on ipv6 '); b4connection. startNodeLiseNing(listeningPort);b4connection.receiveTexFroMcNode((message) => print(message));
+      await b4connection.startConnection(proxyIp, proxyPort, 'MP',null);
+      case 1:print('Not behind NAT in ipv4 system');b4connection.startNodeLiseNing(listeningPort); messageReceptionFroMcNode((message) => null);
+      case 2:print('System is on ipv6 '); b4connection.startNodeLiseNing(listeningPort);messageReceptionFroMcNode((message) => null);
       default:print('natStatus is not defined');
     }
+  }
+
+  Future<void> messageReceptionFroMsNode(Function(dynamic message) onDataReceived)async {
+    await b4connection.receiveTexFroMsNode((message){
+       onDataReceived(message);
+    });
+  }
+
+  Future<void> messageReceptionFroMcNode(Function(dynamic message) onDataReceived)async {
+    await b4connection.receiveTexFroMsNode((message){
+      onDataReceived(message);
+    });
+  }
+
+
+  //Putting all the ip and port inside the global variables.
+  Future<void> _getAllIpPort() async {
+    try {
+      if (stunClient.getPublicIPv4() != null) {
+        _localIPv4 = stunClient.getLocalIPv4()!.address;
+        _localPortIPv4 = stunClient.getLocalPortIPv4();
+      }
+
+      if (stunClient.getPublicIPv4() != null) {
+        _publicIPv4 = stunClient.getPublicIPv4()!.address;
+        //_publicPortIPv4 = stunClient.getPublicPortIPv4();
+      }
+
+      if (stunClient.getPublicIPv6() != null) {
+        _publicIPv6 = stunClient.getPublicIPv6()!.address;
+        // _publicPortIPv6 = stunClient.getPublicPortIPv6();
+      }
+    }
+    catch (e) {
+      print('error in getting all ports');
+    }
+    // _printAllPort();
   }
 }

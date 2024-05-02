@@ -2,15 +2,10 @@ import 'package:b4commgr/b4commgr.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('A group of tests', () {
-    final awesome = Awesome();
+  CommunicationManager communicationManager=CommunicationManager();
+  test('1', () async {
 
-    setUp(() {
-      // Additional setup goes here.
-    });
-
-    test('First Test', () {
-      expect(awesome.isAwesome, isTrue);
-    });
+   await communicationManager.sendMessage('35.185.142.164', 22350, 'D','hello', null);
+   communicationManager.b4connection.receiveTexFroMsNode((message) => print(message));
   });
 }
