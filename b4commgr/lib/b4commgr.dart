@@ -2,39 +2,75 @@ import 'dart:io';
 
 import 'package:b4commgr/stungetip.dart';
 import 'package:b4connection/b4connection.dart';
+import 'bufferdata.dart';
+import 'connectivity_monitor.dart';
+
 
 
 class CommunicationManager {
-  B4connection b4connection = B4connection();
-  StunClient stunClient = StunClient();
 
-  //RoutingManager routingManager=RoutingManager.instance;
+  // Private static instance of the buffer
+  static final CommunicationManager _instance = CommunicationManager._internal();
+
+  // Private constructor
+  CommunicationManager._internal();
+
+  // Factory constructor to access the singleton instance
+  factory CommunicationManager() {
+    return _instance;
+  }
+
+  StunClient stunClient = StunClient();
+  DataBuffer bufferData=DataBuffer();
+  final monitor = ConnectivityMonitor();
+  late B4connection b4connection;
+
+
+
   String? _publicIPv4;
   String? _localIPv4;
   int? _localPortIPv4;
   String? _publicIPv6;
   int? skip = 0;
-  Socket? nodeSocket;
 
+  final Map<String, B4connection> _connections = {};
+  final Map<String, Socket> socket = {};
+  Socket? nodeSocket;
 
 
 
   Future<Socket?> sendMessage(ip, port, type, message,remoteNodeID) async {
 
-    nodeSocket = await b4connection.startConnection(ip, port, type,remoteNodeID);
-    if(type!='MP'){
-      b4connection.sendMessage(message);
+
+    // Check if a connection already exists
+    if (_connections.containsKey(remoteNodeID)) {
+      _connections[remoteNodeID]!.sendMessage(message,socket[remoteNodeID]!);
+      //b4connection = _connections[remoteNodeID]!;
+      //nodeSocket=socket[remoteNodeID];
+    } else {
+      // Create a new connection if it does not exist
+      b4connection = B4connection();
+      _connections[remoteNodeID] = b4connection;
+      socket[remoteNodeID] = (await _connections[remoteNodeID]!.startConnection(ip, port, type,remoteNodeID))!;
+      _connections[remoteNodeID]!.sendMessage(message,socket[remoteNodeID]!);
     }
 
-    return nodeSocket;
+    socket[remoteNodeID];
   }
+
+   dynamic getBufferData(){
+
+   return bufferData.pull();
+  }
+
+
 
   Future<int?> getNetworkInformation(stunIp, stunPort) async {
     int natStatus=9;
 
     //Start connection with STUN server for all the network information.
     // Try to connect to stun server by ipv4 and ipv6 both one by one.
-    b4connection.monitor.onConnectivityChanged.listen((interfaces) async {
+    monitor.onConnectivityChanged.listen((interfaces) async {
       if (skip! >= 1) {
         if (b4connection.tcpClient.isListening()) {
           b4connection.tcpClient.stopASsNode();
@@ -109,29 +145,20 @@ class CommunicationManager {
   }
 
 
+
   Future<void> activateNode(proxyIp,proxyPort,listeningPort,natStatus) async {
     switch(natStatus){
       case 0:print('Behind NAT in ipv4system');
       // listening= await tcpClient.startASsNode(listeningPort);
       //receiveTexFroMcNode((message) => print(message));
-      await b4connection.startConnection(proxyIp, proxyPort, 'MP',null);
-      case 1:print('Not behind NAT in ipv4 system');b4connection.startNodeLiseNing(listeningPort); messageReceptionFroMcNode((message) => null);
-      case 2:print('System is on ipv6 '); b4connection.startNodeLiseNing(listeningPort);messageReceptionFroMcNode((message) => null);
+      await sendMessage(proxyIp, proxyPort,'MP', 'null','google');
+      case 1:print('Not behind NAT in ipv4 system');b4connection.startNodeLiseNing(listeningPort);
+      case 2:print('System is on ipv6 '); b4connection.startNodeLiseNing(listeningPort);
       default:print('natStatus is not defined');
     }
   }
 
-  Future<void> messageReceptionFroMsNode(Function(dynamic message) onDataReceived)async {
-    await b4connection.receiveTexFroMsNode((message){
-       onDataReceived(message);
-    });
-  }
 
-  Future<void> messageReceptionFroMcNode(Function(dynamic message) onDataReceived)async {
-    await b4connection.receiveTexFroMsNode((message){
-      onDataReceived(message);
-    });
-  }
 
 
   //Putting all the ip and port inside the global variables.

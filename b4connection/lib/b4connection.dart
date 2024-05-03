@@ -3,6 +3,7 @@ import 'dart:io';
 import 'connectivity_monitor.dart';
 import 'stungetip.dart';
 import 'tcpConnection.dart';
+import 'package:b4commgr/bufferdata.dart';
 
 class B4connection  {
 // This class is used to 
@@ -14,7 +15,7 @@ class B4connection  {
 // 5. Receiving message from other node as configured in the connection.
 
     //Declaration of all required variables.
-
+    Timer? _inactivityTimer;
     String? stunServer;
     int? stunPort;
 
@@ -41,6 +42,7 @@ class B4connection  {
     Socket? loCalcNodeSocket;
 
 
+
     InternetAddress? targetIp;
     int? targetPort;
     String? proxyIpPub = '35.185.142.164';
@@ -56,75 +58,76 @@ class B4connection  {
     final monitor = ConnectivityMonitor();
     StunClient stunClient = StunClient();
     TcpClient tcpClient = TcpClient();
+    DataBuffer dataBuffer=DataBuffer();
 
 
 
 
-
-    void remoteSocketClose() {
-        if (tcpClient.Key() != null) {
-            tcpClient.remoteSocketCloses(tcpClient.Key());
+    void finishTheConnection(Socket nodeSocket){
+        tcpClient.disconnectFroMsNode(nodeSocket);
+        if(remoteNodeID!=null){
+        _resetTimer(remoteNodeID!,nodeSocket);
         }
-    }
-
-    void finishTheConnection(){
-        tcpClient.disconnectFroMsNode();
     }
 
     void setMyNodeId(id){
         _myNodeId=id;
     }
 
-//Below function can be use to connect with other peer.Here you have to give the type of connection 'TP(To proxy)','MP(be my proxy)','D'(direct connection),'DTP'(Direct through NAT).
-    Future<Socket?> startConnection(targetIp, targetPort,typeOfConnection,remoteNodeId) async {
-        remoteNodeID = remoteNodeId;
-        type = typeOfConnection;
-
-        if (tcpClient.isConnected()) {
-            tcpClient.disconnectFroMsNode();
-        }
-
-        loCalcNodeSocket =await tcpClient.connect(targetIp, targetPort);
-
-        if(type=='MP'){
-            String toSend = tcpClient.createMessageJson(
-                type, _localIPv4, _localPortIPv4, remoteNodeID, _myNodeId, 6);
-            await sendMessage(toSend);
-            type='D';
-        }
-
-        K =5;
-        return loCalcNodeSocket;
-    }
-
-
-
-    // A callback function that will be used by the communication manager for receiving data.
-    // receiveText FroM server Node.
-    Future receiveTexFroMsNode(Function(dynamic message) onDataReceived) async {
-        await  tcpClient.receiveAsaClient((text)  {
-                onDataReceived(text);
+    void _resetTimer(String remoteNodeID,Socket nodeSocket) {
+        _inactivityTimer?.cancel();
+        _inactivityTimer = Timer(const Duration(minutes: 5), () {
+            // This code will execute after 5 minutes of inactivity
+            print("Connection for $remoteNodeID is inactive for 5 minutes, closing...");
+           finishTheConnection(nodeSocket);
         });
     }
 
-    Future receiveTexFroMcNode(Function(dynamic message) onDataReceived) async {
+    //Below function can be use to connect with other peer.Here you have to give the type of connection 'TP(To proxy)','MP(be my proxy)','D'(direct connection),'DTP'(Direct through NAT).
+    Future<Socket?> startConnection(targetIp, targetPort,typeOfConnection,remoteNodeId) async {
+        remoteNodeID = remoteNodeId;
+
+        type = typeOfConnection;
+
+        loCalcNodeSocket =await tcpClient.connect(targetIp, targetPort);
+        await  bufferDataFroMsNode(loCalcNodeSocket!);
+
+        K =5;
+
+        return loCalcNodeSocket;
+
+    }
+    bool isConnected()=>tcpClient.isConnected();
+    bool isListening()=>tcpClient.isListening();
+
+    // A callback function that will be used by the communication manager for receiving data.
+    // receiveText FroM server Node.
+    Future bufferDataFroMsNode(Socket nodeSocket) async {
+        await  tcpClient.receiveAsaClient((text)  {
+
+            dataBuffer.push(text);
+            _resetTimer(remoteNodeID!,nodeSocket);
+        },nodeSocket);
+    }
+
+    Future bufferDataFroMcNode() async {
         await  tcpClient.receiveAsaServer((text)  {
-            onDataReceived(text);
+            dataBuffer.push(text);
         });
     }
 
 
     //sendMessage is used to sent message to any node either relayed msg or normal message.
     //For different scenarios message function is developed in such a way that you can send your message to any node.
-    Future<void> sendMessage(message) async {
-
+    Future<void> sendMessage(message,Socket nodeSocket) async {
+        _resetTimer(remoteNodeID!,nodeSocket);
         if(type=='TP'){
             if (remoteNodeID != null) {
                 print(
                     'case 1 ke relayToNodeKey null or remoteKey null nahi wale me agya me  ');
                 String toSend = tcpClient.createMessageJson(
                     type, null, remoteNodeID, null, message, 4);
-                tcpClient.send(toSend);
+                tcpClient.send(toSend,nodeSocket);
             }
             else {
                 print(
@@ -133,12 +136,12 @@ class B4connection  {
             }
         }
         else if (type=='D'){
-            if (tcpClient.isConnected()) {
+            if (isConnected()) {
                 print('case 3 ke tcpclient.isconnected me agye ');
                 tcpClient.send(tcpClient.createMessageJson(
-                    null, null, null, null, message, 0));
+                    'D', null, null, null, message, 6),nodeSocket);
             }
-            else if (tcpClient.isListening()) {
+            else if (isListening()) {
                 print('case 3 ke tcpclient.isListening me agye ');
                 var key = tcpClient.Key();
                 await tcpClient.relayBackToNode(key,
@@ -147,8 +150,11 @@ class B4connection  {
             }
         }
         else if(type=='MP'){
-         tcpClient.send(message);
+            String toSend = tcpClient.createMessageJson(
+                type, _localIPv4, _localPortIPv4, remoteNodeID, _myNodeId, 6);
 
+            tcpClient.send(toSend,nodeSocket);
+            type='D';
         }
 
     }
@@ -183,12 +189,12 @@ class B4connection  {
 
     Future<void> activateNode(proxyIp,proxyPort,listeningPort) async {
      switch(natStatus){
-         case 1:print('Behind NAT in ipv4system');
+         case 0:print('Behind NAT in ipv4system');
      // listening= await tcpClient.startASsNode(listeningPort);
      //receiveTexFroMcNode((message) => print(message));
       startConnection(proxyIp, proxyPort, 'MP',null);
-         case 0:print('Not behind NAT in ipv4 system');await startNodeLiseNing(listeningPort); receiveTexFroMcNode((message) => print(message));
-         case 2:print('System is on ipv6 ');  await startNodeLiseNing(listeningPort);receiveTexFroMcNode((message) => print(message));
+         case 1:print('Not behind NAT in ipv4 system');await startNodeLiseNing(listeningPort); bufferDataFroMcNode();
+         case 2:print('System is on ipv6 ');  await startNodeLiseNing(listeningPort);bufferDataFroMcNode();
      }
     }
 
@@ -294,6 +300,7 @@ class B4connection  {
             .getPublicIPv6()}, PUBLIC IPV6 PORT=${stunClient
             .getPublicPortIPv6()}');
     }
+
 
 }
 
