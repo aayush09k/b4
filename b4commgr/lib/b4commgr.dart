@@ -38,7 +38,6 @@ class CommunicationManager {
 
 
   Future sendMessage(ip, port, type, message, remoteNodeID) async {
-
     // Check if a connection already exists
     if (_connections.containsKey(remoteNodeID)) {
       _connections[remoteNodeID]!.sendMessage(message);
@@ -56,7 +55,6 @@ class CommunicationManager {
       print(
           "Connection for $remoteNodeID has been removed from manager due to closure.");
     };
-
   }
 
 
@@ -66,80 +64,77 @@ class CommunicationManager {
 
 
   Future<int?> getNetworkInformation(stunIp, stunPort) async {
-
-    var natStatus=5;
+    var natStatus = 5;
     //Start connection with STUN server for all the network information.
     // Try to connect to stun server by ipv4 and ipv6 both one by one.
 
+    try {
+      await stunClient.initializeIpv4();
+      await stunClient.fetchPublicIPIpv4(stunIp, stunPort);
+      await stunClient
+          .closeIpv4(); //After getting information closed immediately.
+      stunClient.N = 2;
+      stunClient.resetIP();
       try {
-        await stunClient.initializeIpv4();
-        await stunClient.fetchPublicIPIpv4(stunIp, stunPort);
+        await stunClient.initializeIpv6();
+        await stunClient.fetchPublicIPIpv6(stunIp, stunPort);
         await stunClient
-            .closeIpv4(); //After getting information closed immediately.
-        stunClient.N = 2;
-        stunClient.resetIP();
-        try {
-          await stunClient.initializeIpv6();
-          await stunClient.fetchPublicIPIpv6(stunIp, stunPort);
-          await stunClient
-              .closeIpv6(); //After getting information closed immediately.
-        }
-        catch (e) {
-          print(
-              'Node can not bind to both at a time . Node is not on dual network ');
-          stunClient.N = 2;
-          stunClient.resetIP();
-        }
+            .closeIpv6(); //After getting information closed immediately.
       }
       catch (e) {
-        print("Error with IPv4 STUN client: $e");
-        try {
-          //error connecting by ipv4 hence shift to ipv6.
-          await stunClient.initializeIpv6();
-          await stunClient.fetchPublicIPIpv6(stunIp, stunPort);
-          await stunClient
-              .closeIpv6(); //After getting information closed immediately.
-          //Below logic is implemented to making previous values of ip and port null.
-          stunClient.N = 0;
-          stunClient.resetIP();
-        }
-        catch (e) {
-          print("Error with IPv6 STUN client: $e");
-          stunClient.N = 3;
-          stunClient.resetIP();
-        }
+        print(
+            'Node can not bind to both at a time . Node is not on dual network ');
+        stunClient.N = 2;
+        stunClient.resetIP();
       }
-      await _getAllIpPort();
+    }
+    catch (e) {
+      print("Error with IPv4 STUN client: $e");
+      try {
+        //error connecting by ipv4 hence shift to ipv6.
+        await stunClient.initializeIpv6();
+        await stunClient.fetchPublicIPIpv6(stunIp, stunPort);
+        await stunClient
+            .closeIpv6(); //After getting information closed immediately.
+        //Below logic is implemented to making previous values of ip and port null.
+        stunClient.N = 0;
+        stunClient.resetIP();
+      }
+      catch (e) {
+        print("Error with IPv6 STUN client: $e");
+        stunClient.N = 3;
+        stunClient.resetIP();
+      }
+    }
+    await _getAllIpPort();
 
 
-
-      if (_publicIPv6 != null) {
-        natStatus = 2;
+    if (_publicIPv6 != null) {
+      natStatus = 2;
+    }
+    else {
+      switch (stunClient.NATcheckIpv4()) {
+        case true:
+          {
+            natStatus = 1;
+            break;
+          }
+        case false:
+          {
+            natStatus = 0;
+            break;
+          }
       }
-      else {
-        switch (stunClient.NATcheckIpv4()) {
-          case true:
-            {
-              natStatus = 1;
-              break;
-            }
-          case false:
-            {
-              natStatus = 0;
-              break;
-            }
-        }
-      }
-      return natStatus;
+    }
+    return natStatus;
   }
-
 
 
   //According to the information gathered it will start Listening for connection or
   // else it will be connected to provided  proxy sNode.
 
   Future<void> activateNode(proxyIp, proxyPort, listeningPort,
-      natStatus, myNodeId) async {
+      natStatus) async {
     switch (natStatus) {
       case 0:
         print('Behind NAT in ipv4system');
@@ -147,37 +142,19 @@ class CommunicationManager {
       case 1:
       case 2:
         print('publicly available');
-        if (_connections.containsKey(myNodeId)) {
 
-          _connections[myNodeId]!.getRemoteIdCreationOfInstance((message,socket) async {
-            if (_connections.containsKey(message['p3'])) {
-              print('good');
-            }
-            else{
-              _connections[message['p3']]=B4connection();
-              _connections[message['p3']]!.setNodeSocketAndSkip(socket);
-              await _connections[message['p3']]!.bufferReceivingData();
-
-            }
-
-          });
-
-        }
-        else {
-          _connections[myNodeId] = B4connection();
-           await _connections[myNodeId]!.startNodeLiseNing(listeningPort);
-          _connections[myNodeId]!.getRemoteIdCreationOfInstance((message,socket){
-            if (_connections.containsKey(message['p3'])) {
-              print('good');
-            }
-            else{
-              _connections[message['p3']]=B4connection();
-              _connections[message['p3']]!.setNodeSocketAndSkip(socket);
-              _connections[message['p3']]!.bufferReceivingData();
-            }
-
-          });
-        }
+        B4connection b4connection = B4connection();
+        await b4connection.startNodeLiseNing(listeningPort);
+         b4connection.getRemoteIdCreationOfInstance((message, socket) async {
+          if (_connections.containsKey(message)) {
+            print('good');
+          }
+          else {
+            _connections[message] = B4connection();
+            _connections[message]!.setNodeSocketAndSkip(socket);
+            await _connections[message]!.bufferReceivingData();
+          }
+        });
 
       default:
         print('natStatus is not defined');

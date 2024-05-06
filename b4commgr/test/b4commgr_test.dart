@@ -54,7 +54,7 @@ void main() {
       'If instance already there then it will only send message using the stored instance', () async {
     var message = 'hello brother';
     var proxyIp = '35.185.142.164';
-    var proxyPort = 22356;
+    var proxyPort = 22355;
     var type = 'MP';
     var remoteNodeId = 'linux';
     //sendMessage function of singleton class.
@@ -76,7 +76,7 @@ void main() {
 
     var message2 = 'everything is going good?';
     var proxyIp2 = '35.185.142.164';
-    var proxyPort2 = 22356;
+    var proxyPort2 = 22355;
     var type2 = 'D';
     var remoteNodeId2 = 'linux';
     await communicationManager.sendMessage(
@@ -89,7 +89,7 @@ void main() {
       'You should proceed exactly according to this use-case  for B4olm', () async {
     var message = 'RRT';
     var bootstrapIp = '35.185.142.164';
-    var bootstrapPort = 22356;
+    var bootstrapPort = 22355;
     var type = 'D';
     var remoteNodeId = 'google';
 
@@ -118,9 +118,9 @@ void main() {
     await Future.delayed(Duration(seconds: 3));
     // According to the natStatus you need to activate the node.
     // If you are public node then no need to give the  proxyIp, proxyPort.
-    var listeningPort = 22356;
+    var listeningPort = 22355;
     var proxyIp = '35.185.142.164';
-    var proxyPort = 22356;
+    var proxyPort = 22355;
     var myNodeId = 'macbook';
     await communicationManager.activateNode(
         proxyIp, proxyPort, listeningPort, natStatus, myNodeId);

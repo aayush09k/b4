@@ -107,7 +107,7 @@ class B4connection {
     Future getRemoteIdCreationOfInstance(Function(dynamic message,Socket socket) onDataReceived) async {
         await tcpClient.receiveSocketsFromCNode((socket) async {
             await tcpClient.invokeListening((message, active){
-                onDataReceived(message,socket);
+                onDataReceived(message['p3'],socket);
                 dataBuffer.push(message['p4']);
             },socket);
         });

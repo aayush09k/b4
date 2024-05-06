@@ -46,10 +46,7 @@ class TcpClient {
                 InternetAddress.anyIPv6, 22355, v6Only: false);
         }
         catch (e) {
-            print(
-                'not able to create server on ipv6 so now creating on ipv4...');
-            _loCalsNodeSocket =
-            await ServerSocket.bind(InternetAddress.anyIPv4, 0);
+          print(e);
         }
         print('Server: started  on port ${_loCalsNodeSocket!.port}');
 
