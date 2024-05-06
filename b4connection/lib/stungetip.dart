@@ -24,7 +24,7 @@ class StunClient {
 
     Future<void> initializeIpv4() async {
 
-        _socketIpv4 = await UDPSocket.bind(InternetAddress.anyIPv4, 0);
+        _socketIpv4 = await UDPSocket.bind(InternetAddress, 0);
         print('bound to ipv4');
         // Get the list of network interfaces
         final interfaces = await NetworkInterface.list();
@@ -157,7 +157,7 @@ class StunClient {
 
 
 
-        _socketIpv6 = await UDPSocket.bind(InternetAddress.anyIPv6, 0);
+        _socketIpv6 = await UDPSocket.bind(InternetAddress, 0);
         print('bound to ipv6');
 
         // Get the list of network interfaces
@@ -288,7 +288,7 @@ class StunClient {
         print('closed for ipv6');
     }
     void resetIP() {
-        print('N=$N');
+
         switch(N) {
         case 0:
             _publicIPv4=null;

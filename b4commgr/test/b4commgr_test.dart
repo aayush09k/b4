@@ -97,7 +97,7 @@ void main() {
     await communicationManager.sendMessage(
         bootstrapIp, bootstrapPort, type, message, remoteNodeId);
 
-    await Future.delayed(Duration(seconds: 3));
+
 
     //for getting data from the  common buffer.
     Future<void> getData() async {
@@ -111,9 +111,10 @@ void main() {
     // Then give the stunIp and Port to identify the network environment.
     var stunIp = 'stun.l.google.com';
     var stunPort = 19302;
-    var natStatus = await communicationManager.getNetworkInformation(
+    var natStatus=await communicationManager.getNetworkInformation(
         stunIp, stunPort);
 
+    print(natStatus);
     await Future.delayed(Duration(seconds: 3));
     // According to the natStatus you need to activate the node.
     // If you are public node then no need to give the  proxyIp, proxyPort.

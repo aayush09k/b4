@@ -30,7 +30,7 @@ class CommunicationManager {
   String? _localIPv4;
   int? _localPortIPv4;
   String? _publicIPv6;
-  int? skip = 0;
+
 
   final Map<String, B4connection> _connections = {};
   Socket? socket;
@@ -66,11 +66,10 @@ class CommunicationManager {
 
 
   Future<int?> getNetworkInformation(stunIp, stunPort) async {
-    int natStatus = 9;
 
+    var natStatus=5;
     //Start connection with STUN server for all the network information.
     // Try to connect to stun server by ipv4 and ipv6 both one by one.
-
 
       try {
         await stunClient.initializeIpv4();
@@ -111,7 +110,7 @@ class CommunicationManager {
         }
       }
       await _getAllIpPort();
-      skip = 2;
+
 
 
       if (_publicIPv6 != null) {
@@ -131,9 +130,9 @@ class CommunicationManager {
             }
         }
       }
-
-    return natStatus;
+      return natStatus;
   }
+
 
 
   //According to the information gathered it will start Listening for connection or
@@ -145,7 +144,8 @@ class CommunicationManager {
       case 0:
         print('Behind NAT in ipv4system');
         await sendMessage(proxyIp, proxyPort, 'MP', 'null', 'lulu');
-      case (1,2):
+      case 1:
+      case 2:
         print('publicly available');
         if (_connections.containsKey(myNodeId)) {
 

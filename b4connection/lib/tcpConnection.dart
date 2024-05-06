@@ -24,8 +24,9 @@ class TcpClient {
 
     // Connect to the sNode
     Future<Socket?> connect(ip, port) async {
+        InternetAddress iP=InternetAddress(ip);
         try {
-            _loCalcNodeSocket = await Socket.connect(ip, port);
+            _loCalcNodeSocket = await Socket.connect(iP, port);
 
             print(
                 'Connected to remoteNode: ${_loCalcNodeSocket.remoteAddress
