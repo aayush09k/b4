@@ -10,7 +10,8 @@ import 'connectivity_monitor.dart';
 class CommunicationManager {
 
   // Private static instance of the buffer
-  static final CommunicationManager _instance = CommunicationManager._internal();
+  static final CommunicationManager _instance = CommunicationManager
+      ._internal();
 
   // Private constructor
   CommunicationManager._internal();
@@ -21,10 +22,8 @@ class CommunicationManager {
   }
 
   StunClient stunClient = StunClient();
-  DataBuffer bufferData=DataBuffer();
+  DataBuffer bufferData = DataBuffer();
   final monitor = ConnectivityMonitor();
-  late B4connection b4connection;
-
 
 
   String? _publicIPv4;
@@ -34,54 +33,44 @@ class CommunicationManager {
   int? skip = 0;
 
   final Map<String, B4connection> _connections = {};
-  final Map<String, Socket> socket = {};
+  Socket? socket;
   Socket? nodeSocket;
 
 
-
-  Future<Socket?> sendMessage(ip, port, type, message,remoteNodeID) async {
-
+  Future sendMessage(ip, port, type, message, remoteNodeID) async {
 
     // Check if a connection already exists
     if (_connections.containsKey(remoteNodeID)) {
-      _connections[remoteNodeID]!.sendMessage(message,socket[remoteNodeID]!);
-      //b4connection = _connections[remoteNodeID]!;
-      //nodeSocket=socket[remoteNodeID];
+      _connections[remoteNodeID]!.sendMessage(message);
     } else {
       // Create a new connection if it does not exist
-      b4connection = B4connection();
-      _connections[remoteNodeID] = b4connection;
-      socket[remoteNodeID] = (await _connections[remoteNodeID]!.startConnection(ip, port, type,remoteNodeID))!;
-      _connections[remoteNodeID]!.sendMessage(message,socket[remoteNodeID]!);
+      _connections[remoteNodeID] = B4connection();
+      socket = (await _connections[remoteNodeID]!.startConnection(
+          ip, port, type, remoteNodeID))!;
+      _connections[remoteNodeID]!.sendMessage(message);
     }
 
-    socket[remoteNodeID];
+    // Set the onClosed callback
+    _connections[remoteNodeID]!.onClosedC = () {
+      _connections.remove(remoteNodeID);
+      print(
+          "Connection for $remoteNodeID has been removed from manager due to closure.");
+    };
+
   }
 
-   dynamic getBufferData(){
 
-   return bufferData.pull();
+  dynamic getBufferData() {
+    return bufferData.pull();
   }
-
 
 
   Future<int?> getNetworkInformation(stunIp, stunPort) async {
-    int natStatus=9;
+    int natStatus = 9;
 
     //Start connection with STUN server for all the network information.
     // Try to connect to stun server by ipv4 and ipv6 both one by one.
-    monitor.onConnectivityChanged.listen((interfaces) async {
-      if (skip! >= 1) {
-        if (b4connection.tcpClient.isListening()) {
-          b4connection.tcpClient.stopASsNode();
-          b4connection.listening!.close();
-        }
-      }
 
-      print('Network interfaces changed');
-      for (var interface in interfaces) {
-        print('Interface: ${interface.name}');
-      }
 
       try {
         await stunClient.initializeIpv4();
@@ -123,6 +112,8 @@ class CommunicationManager {
       }
       await _getAllIpPort();
       skip = 2;
+
+
       if (_publicIPv6 != null) {
         natStatus = 2;
       }
@@ -140,25 +131,58 @@ class CommunicationManager {
             }
         }
       }
-    });
+
     return natStatus;
   }
 
 
+  //According to the information gathered it will start Listening for connection or
+  // else it will be connected to provided  proxy sNode.
 
-  Future<void> activateNode(proxyIp,proxyPort,listeningPort,natStatus) async {
-    switch(natStatus){
-      case 0:print('Behind NAT in ipv4system');
-      // listening= await tcpClient.startASsNode(listeningPort);
-      //receiveTexFroMcNode((message) => print(message));
-      await sendMessage(proxyIp, proxyPort,'MP', 'null','google');
-      case 1:print('Not behind NAT in ipv4 system');b4connection.startNodeLiseNing(listeningPort);
-      case 2:print('System is on ipv6 '); b4connection.startNodeLiseNing(listeningPort);
-      default:print('natStatus is not defined');
+  Future<void> activateNode(proxyIp, proxyPort, listeningPort,
+      natStatus, myNodeId) async {
+    switch (natStatus) {
+      case 0:
+        print('Behind NAT in ipv4system');
+        await sendMessage(proxyIp, proxyPort, 'MP', 'null', 'lulu');
+      case (1,2):
+        print('publicly available');
+        if (_connections.containsKey(myNodeId)) {
+
+          _connections[myNodeId]!.getRemoteIdCreationOfInstance((message,socket) async {
+            if (_connections.containsKey(message['p3'])) {
+              print('good');
+            }
+            else{
+              _connections[message['p3']]=B4connection();
+              _connections[message['p3']]!.setNodeSocketAndSkip(socket);
+              await _connections[message['p3']]!.bufferReceivingData();
+
+            }
+
+          });
+
+        }
+        else {
+          _connections[myNodeId] = B4connection();
+           await _connections[myNodeId]!.startNodeLiseNing(listeningPort);
+          _connections[myNodeId]!.getRemoteIdCreationOfInstance((message,socket){
+            if (_connections.containsKey(message['p3'])) {
+              print('good');
+            }
+            else{
+              _connections[message['p3']]=B4connection();
+              _connections[message['p3']]!.setNodeSocketAndSkip(socket);
+              _connections[message['p3']]!.bufferReceivingData();
+            }
+
+          });
+        }
+
+      default:
+        print('natStatus is not defined');
     }
   }
-
-
 
 
   //Putting all the ip and port inside the global variables.
@@ -184,4 +208,5 @@ class CommunicationManager {
     }
     // _printAllPort();
   }
+
 }
