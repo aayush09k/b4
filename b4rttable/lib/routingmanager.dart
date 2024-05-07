@@ -1,10 +1,17 @@
+import 'dart:convert';
+
 import 'package:b4rttable/b4rttable.dart';
 import 'dart:io';
 import 'package:nodeid/nodeid.dart';
 import 'package:b4rttable/config.dart';
+import 'package:b4commgr/b4commgr.dart';
+import 'package:b4commgr/bufferdata.dart';
+import 'package:basic_utils/basic_utils.dart';
+
 
 
 class RoutingManager{
+
 
     String filePath=AppConfig.filepath;// Get file path from AppConfig.
     String? RTfilepath; //
@@ -21,8 +28,10 @@ class RoutingManager{
     */
     Map<String,B4RoutingTable> neighbourTables={};
     Map<String,B4RoutingTable> latlongTables={};
+    CommunicationManager manager= CommunicationManager();
 
     RoutingManager._() {
+
 
         RTfilepath = "${filePath}rttable.json"; // the path where routing table file will be stored as json.
         _localNodeID = LocalNodeID();
@@ -39,7 +48,77 @@ class RoutingManager{
     static RoutingManager? _instance;
 
 
+String createMessageRM(){
 
+
+    List<List<Map<String, dynamic>?>> jsonRT= routingTables[0]!.RoutingTable.map((innerList) {
+        return innerList.map((nodeID) {
+            if (nodeID != null) {
+                return {
+                    'hashID': nodeID.hashID,
+                    'publicKey': nodeID.pubKey.toString(),
+                    'sign':{'r':nodeID.sign.r.toString(),
+                        's':nodeID.sign.s.toString()},
+                    'publicKeyPem':nodeID.publicKeyPem.toString(),
+                    // Add other properties if needed
+                };
+            } else {
+                return null;
+            }
+        }).toList();
+    }).toList();
+
+    // Convert to JSON String
+    String jsonString = jsonEncode(jsonRT);
+    Map<String,dynamic> messageRM={
+
+        'RM':'RM',
+        'Relay':'R',
+        'myNodeID': localNodeID.nodeid.hashID,
+        'hashID':"hashID",
+        's':'s',
+        'current':'current',
+        'R': 'R',
+        'NodeID':'NodeID',
+        'Endpoint': 'IP',
+        'reqRT': 'Y',
+        'layerID':'0',
+        'RT':jsonString,
+
+    };
+
+    String jsonMessageRM=jsonEncode(messageRM);
+    return jsonMessageRM;
+
+
+}
+
+
+    List<List<NodeID?>> decodeNode( String RT){
+
+    List<dynamic> jsonList1 = jsonDecode(RT);
+    List<List<NodeID?>> nodeList = jsonList1.map((innerList) {
+        return (innerList as List<dynamic>).map((jsonNode) {
+            if (jsonNode != null) {
+                ECSignature?  signature = ECSignature(BigInt.parse( jsonNode['sign']['r']),BigInt.parse(jsonNode['sign']['s']));
+                return NodeID.createFromTable(
+                    jsonNode['pubKey'], // Assuming this is how you reconstruct pubKey
+                    jsonNode['hashID'],
+                    signature, // Assuming this is how you reconstruct sign
+                    jsonNode['publicKeyPem'],
+                );
+            } else {
+                return null;
+            }
+        }).toList();
+    }).toList();
+
+    return nodeList;
+
+
+
+
+}
     void init() {
 
         // Check if the file exists
@@ -53,6 +132,8 @@ class RoutingManager{
                routingTables[i.toString()] = B4RoutingTable(localNodeID);
            }
 
+        //   sendmessageRM();
+
 
 
             // now connect to bootstrap for updated routing table
@@ -61,6 +142,52 @@ class RoutingManager{
 
 
     }
+
+    Future<void> sendmessageRM()async {
+    String message=createMessageRM();
+    manager.sendMessage("35.", 22356, "D", message, "google");
+
+    }
+
+
+
+    void rMessageRM(String rcvdMessage ){
+
+      Map<String, dynamic> decodedMessageRM = jsonDecode(rcvdMessage);
+      String RM= decodedMessageRM['RM'];
+      String Relay= decodedMessageRM['Relay'];
+      String myNodeID= decodedMessageRM['myNodeID'];
+      String hashID= decodedMessageRM['hashID'];
+      String s= decodedMessageRM['s'];
+      String current= decodedMessageRM['current'];
+      String R= decodedMessageRM['R'];
+      String nodeID= decodedMessageRM['nodeID'];
+      String Endpoint= decodedMessageRM['Endpoint'];
+      String reqRT= decodedMessageRM['Y'];
+      String layerID= decodedMessageRM['layerID'];
+      String RT= decodedMessageRM['RT'];
+
+      List<dynamic> decodedRT=jsonDecode(RT);
+
+      List<List<NodeID?>> nodeList = decodedRT.map((innerList) {
+        return (innerList as List<dynamic>).map((jsonNode) {
+          if (jsonNode != null) {
+            ECSignature?  signature = ECSignature(BigInt.parse( jsonNode['sign']['r']),BigInt.parse(jsonNode['sign']['s']));
+            return NodeID.createFromTable(
+              jsonNode['pubKey'], // Assuming this is how you reconstruct pubKey
+              jsonNode['hashID'],
+              signature, // Assuming this is how you reconstruct sign
+              jsonNode['publicKeyPem'],
+            );
+          } else {
+            return null;
+          }
+        }).toList();
+      }).toList();
+
+    }
+
+
 
     Map<String,B4RoutingTable> getFullRT(){
 
