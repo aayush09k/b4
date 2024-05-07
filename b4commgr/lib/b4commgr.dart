@@ -44,13 +44,16 @@ class CommunicationManager {
     } else {
       // Create a new connection if it does not exist
       _connections[remoteNodeID] = B4connection();
-      socket = (await _connections[remoteNodeID]!.startConnection(
-          ip, port, type, remoteNodeID))!;
+
+      await _connections[remoteNodeID]!.startConnection(
+          ip, port, type, remoteNodeID);
+
       _connections[remoteNodeID]!.sendMessage(message);
+
     }
 
     // Set the onClosed callback
-    _connections[remoteNodeID]!.onClosedC = () {
+    _connections[remoteNodeID]!.onClosed = () {
       _connections.remove(remoteNodeID);
       print(
           "Connection for $remoteNodeID has been removed from manager due to closure.");

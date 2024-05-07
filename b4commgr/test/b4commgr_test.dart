@@ -123,7 +123,7 @@ void main() {
     var proxyPort = 22355;
     var myNodeId = 'macbook';
     await communicationManager.activateNode(
-        proxyIp, proxyPort, listeningPort, natStatus, myNodeId);
+        proxyIp, proxyPort, listeningPort, natStatus);
 
     //Now further you can send messages to any nodeID.
     //So here we have simulated the main purpose of communication manager.
