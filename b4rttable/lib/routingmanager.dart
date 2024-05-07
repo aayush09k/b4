@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:b4rttable/b4rttable.dart';
@@ -30,6 +31,7 @@ class RoutingManager{
     Map<String,B4RoutingTable> neighbourTables={};
     Map<String,B4RoutingTable> latlongTables={};
     CommunicationManager manager= CommunicationManager();
+    DataBuffer dataBuffer=DataBuffer();
 
     RoutingManager._() {
 
@@ -141,7 +143,7 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
 
     message=createMessageRM(RM , Relay, myNodeID, hashID, s, current, R, nodeID, myEndpoint,  layerID,reqRT  );
 
-    manager.sendMessage("35.185.142.", 22356, "D", message, "google");
+    await manager.sendMessage("35.185.142.", 22356, "D", message, "google");
 
     }
 
@@ -169,11 +171,12 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
       List<List<NodeID?>> nodeList = decodedRT.map((innerList) {
         return (innerList as List<dynamic>).map((jsonNode) {
           if (jsonNode != null) {
-            ECSignature?  signature = ECSignature(BigInt.parse( jsonNode['sign']['r']),BigInt.parse(jsonNode['sign']['s']));
+            ECSignature?  sign = ECSignature(BigInt.parse( jsonNode['sign']['r']),BigInt.parse(jsonNode['sign']['s']));
             return NodeID.createFromTable(
               jsonNode['pubKey'], // Assuming this is how you reconstruct pubKey
+              sign,
               jsonNode['hashID'],
-              signature.toString(), // Assuming this is how you reconstruct sign
+               // Assuming this is how you reconstruct sign
               jsonNode['publicKeyPem'],
             );
           } else {
@@ -189,7 +192,36 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
 
     }
 
+    void checkForMessagesCMExecution() {
+      const duration = Duration(seconds: 1); // Adjust duration as needed
+      Timer.periodic(duration, (timer) {
+        // This function will be executed periodically
 
+        handleForMessages();
+      });
+    }
+
+    void handleForMessages(){
+      String messageFromCMBuffer=manager.getBufferData();
+
+      if(messageFromCMBuffer!=null){
+        Map<String, dynamic> decodedMessageRM = jsonDecode(messageFromCMBuffer);
+        String RM= decodedMessageRM['RM'];
+
+        if( RM!='RM'){
+         dataBuffer.push(messageFromCMBuffer);
+
+        }
+        else{
+          rMessageRM(messageFromCMBuffer);
+        }
+
+
+
+      }
+
+
+    }
 
     Map<String,B4RoutingTable> getFullRT(){
 

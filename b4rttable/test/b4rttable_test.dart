@@ -62,7 +62,7 @@ void main() {
 
 
     test('Testing updation of node id when RT is non-empty', () {
-
+      B4RoutingTable b4RoutingTable = B4RoutingTable(localId);
       // Arrange
       //B4RoutingTable b4RoutingTable = B4RoutingTable(localId);
       // nodeID.hashID="3C3DFF86B4573BAC05C8BD40FAAE7FE4938D3E13";
@@ -71,63 +71,63 @@ void main() {
 
    //   routingManager.createMessageRM();
 
-      // Act
-//      b4RoutingTable.updateNodeID(nodeID, rtt);// updating the first nodeID.It is similar to above test ie. RT contains only null.
-//       b4RoutingTable.updateNodeID(nodeID2, rtt);
-//       b4RoutingTable.updateNodeID(nodeID3, rtt);
-//
-//
-//
-//
-//       List<List<Map<String, dynamic>?>> jsonList = b4RoutingTable.RoutingTable.map((innerList) {
-//         return innerList.map((nodeID) {
-//           if (nodeID != null) {
-//             return {
-//               'hashID': nodeID.hashID,
-//               'publicKey': nodeID.pubKey.toString(),
-//               'sign':{'r':nodeID.sign.r.toString(),
-//                        's':nodeID.sign.s.toString()},
-//               'publicKeyPem':nodeID.publicKeyPem.toString(),
-//               // Add other properties if needed
-//             };
-//           } else {
-//             return null;
-//           }
-//         }).toList();
-//       }).toList();
-//
-//       // Convert to JSON String
-//       String jsonString = jsonEncode(jsonList);
-//
-//       // Write to file
-//       final file = File('C:\\Users\\Aman Sharma\\OneDrive\\Desktop\\New folder\\data.json');
-//       file.writeAsStringSync(jsonString);
-//       // Write the JSON data to a file
-//
-//
-//       final file_read = File('C:\\Users\\Aman Sharma\\OneDrive\\Desktop\\New folder\\data.json');
-//       final jsonString_read = file_read.readAsStringSync();
-//
-//       // Parse JSON
-//       List<dynamic> jsonList1 = jsonDecode(jsonString_read);
-//
-//       // Convert back to List<List<NodeID?>>
-//       List<List<NodeID?>> nodeList = jsonList1.map((innerList) {
-//         return (innerList as List<dynamic>).map((jsonNode) {
-//           if (jsonNode != null) {
-//             ECSignature?  signature = ECSignature(BigInt.parse( jsonNode['sign']['r']),BigInt.parse(jsonNode['sign']['s']));
-//             return NodeID.createFromTable(
-//               jsonNode['pubKey'], // Assuming this is how you reconstruct pubKey
-//               jsonNode['hashID'],
-//               signature, // Assuming this is how you reconstruct sign
-//               jsonNode['publicKeyPem'],
-//             );
-//           } else {
-//             return null;
-//           }
-//         }).toList();
-//       }).toList();
-// print(nodeList);
+//Act
+     b4RoutingTable.updateNodeID(nodeID, rtt);// updating the first nodeID.It is similar to above test ie. RT contains only null.
+      b4RoutingTable.updateNodeID(nodeID2, rtt);
+      b4RoutingTable.updateNodeID(nodeID3, rtt);
+
+
+
+
+      List<List<Map<String, dynamic>?>> jsonList = b4RoutingTable.RoutingTable.map((innerList) {
+        return innerList.map((nodeID) {
+          if (nodeID != null) {
+            return {
+              'hashID': nodeID.hashID,
+              'publicKey': nodeID.pubKey.toString(),
+              'sign':{'r':nodeID.sign.r.toString(),
+                       's':nodeID.sign.s.toString()},
+              'publicKeyPem':nodeID.publicKeyPem.toString(),
+              // Add other properties if needed
+            };
+          } else {
+            return null;
+          }
+        }).toList();
+      }).toList();
+
+      // Convert to JSON String
+      String jsonString = jsonEncode(jsonList);
+
+      // Write to file
+      final file = File('C:\\Users\\Aman Sharma\\OneDrive\\Desktop\\New folder\\data.json');
+      file.writeAsStringSync(jsonString);
+      // Write the JSON data to a file
+
+
+      final file_read = File('C:\\Users\\Aman Sharma\\OneDrive\\Desktop\\New folder\\data.json');
+      final jsonString_read = file_read.readAsStringSync();
+
+      // Parse JSON
+      List<dynamic> jsonList1 = jsonDecode(jsonString_read);
+
+      // Convert back to List<List<NodeID?>>
+      List<List<NodeID?>> nodeList = jsonList1.map((innerList) {
+        return (innerList as List<dynamic>).map((jsonNode) {
+          if (jsonNode != null) {
+            ECSignature?  signature = ECSignature(BigInt.parse( jsonNode['sign']['r']),BigInt.parse(jsonNode['sign']['s']));
+            return NodeID.createFromTable(
+              jsonNode['pubKey'], // Assuming this is how you reconstruct pubKey
+              jsonNode['hashID'],
+              signature, // Assuming this is how you reconstruct sign
+              jsonNode['publicKeyPem'],
+            );
+          } else {
+            return null;
+          }
+        }).toList();
+      }).toList();
+print(nodeList);
 
 
       // print("same node id is present on all 3 rows(first update function call)");
