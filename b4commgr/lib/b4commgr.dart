@@ -40,7 +40,7 @@ class CommunicationManager {
   Future sendMessage(ip, port, type, message, remoteNodeID) async {
     // Check if a connection already exists
     if (_connections.containsKey(remoteNodeID)) {
-      _connections[remoteNodeID]!.sendMessage(message);
+      _connections[remoteNodeID]!.sendMessage(message,type);
     } else {
       // Create a new connection if it does not exist
       _connections[remoteNodeID] = B4connection();
@@ -48,7 +48,7 @@ class CommunicationManager {
       await _connections[remoteNodeID]!.startConnection(
           ip, port, type, remoteNodeID);
 
-      _connections[remoteNodeID]!.sendMessage(message);
+      _connections[remoteNodeID]!.sendMessage(message,type);
 
     }
 

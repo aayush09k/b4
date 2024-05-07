@@ -30,7 +30,7 @@ class B4connection {
     // 'MP=when you are NATed node and you need to connect to your proxy(relay registration)',
     // 'D and else anything= for public nodes . for direct connection to each other(relay=no)'.
 
-    String _myNodeId = 'macbook';
+    String _myNodeId = 'psj';
     ServerSocket? listening;
     Socket? _nodeIdSocket;
 
@@ -101,7 +101,7 @@ class B4connection {
 
 
     void setNodeSocketAndSkip(Socket socket) {
-        skip = true;
+
         _nodeIdSocket = socket;
     }
 
@@ -118,7 +118,8 @@ class B4connection {
 
     //sendMessage is used to sent message to any node either relayed msg or normal message.
     //For different scenarios message function is developed in such a way that you can send your message to any node.
-    Future<void> sendMessage(message) async {
+    Future<void> sendMessage(message,typeOfConnection) async {
+        _type=typeOfConnection;
         if (_nodeIdSocket != null) {
             _resetTimer();
             if (_type == 'TP') {
@@ -138,7 +139,7 @@ class B4connection {
             }
             else if (_type == 'MP') {
                 String toSend = tcpClient.createMessageJson(
-                    _type, '_localIPv4', '_localPortIPv4', _myNodeId,
+                    _type, '_localIPv4', '_localPortIPv4',_myNodeId,
                     _remoteNodeID,
                     6);
 
