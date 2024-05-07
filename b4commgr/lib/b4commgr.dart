@@ -137,11 +137,11 @@ class CommunicationManager {
   // else it will be connected to provided  proxy sNode.
 
   Future<void> activateNode(proxyIp, proxyPort, listeningPort,
-      natStatus) async {
+      natStatus, remoteNodeID) async {
     switch (natStatus) {
       case 0:
         print('Behind NAT in ipv4system');
-        await sendMessage(proxyIp, proxyPort, 'MP', 'null', 'lulu');
+        await sendMessage(proxyIp, proxyPort, 'MP', 'null', remoteNodeID);
       case 1:
       case 2:
         print('publicly available');

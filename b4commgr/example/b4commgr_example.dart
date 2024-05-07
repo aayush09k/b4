@@ -40,22 +40,23 @@ void main () async {
   var listeningPort = 22355;
   var proxyIp = '35.185.142.164';
   var proxyPort = 22355;
+  var remoteNodeId3 = 'google';
   await communicationManager.activateNode(
-      proxyIp, proxyPort, listeningPort, natStatus);
+      proxyIp, proxyPort, listeningPort, natStatus,remoteNodeId3);
 
 //Now further you can send messages to any nodeID.
 //So here we have simulated the main purpose of communication manager.
 
   await Future.delayed(Duration(seconds: 5));
-  var message1 = 'RRT';
-  var bootstrapIp1 = '35.185.142.164';
-  var bootstrapPort1 = 22355;
-  var type1 = 'D';
-  var remoteNodeId1 = 'google';
+  var message1 = 'RRT for you';
+  var proxyIP = '35.185.142.164';
+  var proxyPORT = 22355;
+  var type1 = 'TP';
+  var remoteNodeId1 = 'aman';
 
 
-// In the starting of the B4olm you need to Send RT request to the bootstrapNode.
+// Now we are relaying  data to "remoteNodeId1 " because it is behind NAT.
   await communicationManager.sendMessage(
-      bootstrapIp1, bootstrapPort1, type1, message1, remoteNodeId1);
+      proxyIP, proxyPORT, type1, message1, remoteNodeId1);
   await getData();
 }
