@@ -14,6 +14,7 @@ class RoutingManager{
 
 
     String filePath=AppConfig.filepath;// Get file path from AppConfig.
+    String? rcvdMessage;
     String? RTfilepath; //
     int layers=AppConfig.numberOfLayers;
     late LocalNodeID _localNodeID;
@@ -48,10 +49,12 @@ class RoutingManager{
     static RoutingManager? _instance;
 
 
-String createMessageRM(){
+String createMessageRM(String RM,String Relay,String myNodeID,String hashID,String s,String current,String R,String nodeID,String myEndpoint, String layerID,String reqRT  ){
+   String requestRT='N';
 
 
-    List<List<Map<String, dynamic>?>> jsonRT= routingTables[0]!.RoutingTable.map((innerList) {
+
+    List<List<Map<String, dynamic>?>> jsonRT= routingTables[layerID]!.RoutingTable.map((innerList) {
         return innerList.map((nodeID) {
             if (nodeID != null) {
                 return {
@@ -69,21 +72,21 @@ String createMessageRM(){
     }).toList();
 
     // Convert to JSON String
-    String jsonString = jsonEncode(jsonRT);
+    String jsonNodesString = jsonEncode(jsonRT);
     Map<String,dynamic> messageRM={
 
-        'RM':'RM',
-        'Relay':'R',
+        'RM':RM,
+        'Relay':R,
         'myNodeID': localNodeID.nodeid.hashID,
-        'hashID':"hashID",
-        's':'s',
-        'current':'current',
-        'R': 'R',
-        'NodeID':'NodeID',
-        'Endpoint': 'IP',
-        'reqRT': 'Y',
-        'layerID':'0',
-        'RT':jsonString,
+        'hashID':hashID,
+        's':s,
+        'current':current,
+        'R': R,
+        'nodeID':nodeID,
+        'myEndpoint': myEndpoint,
+        'reqRT': requestRT,
+        'layerID':layerID,
+        'RT':jsonNodesString,
 
     };
 
@@ -94,31 +97,7 @@ String createMessageRM(){
 }
 
 
-    List<List<NodeID?>> decodeNode( String RT){
 
-    List<dynamic> jsonList1 = jsonDecode(RT);
-    List<List<NodeID?>> nodeList = jsonList1.map((innerList) {
-        return (innerList as List<dynamic>).map((jsonNode) {
-            if (jsonNode != null) {
-                ECSignature?  signature = ECSignature(BigInt.parse( jsonNode['sign']['r']),BigInt.parse(jsonNode['sign']['s']));
-                return NodeID.createFromTable(
-                    jsonNode['pubKey'], // Assuming this is how you reconstruct pubKey
-                    jsonNode['hashID'],
-                    signature, // Assuming this is how you reconstruct sign
-                    jsonNode['publicKeyPem'],
-                );
-            } else {
-                return null;
-            }
-        }).toList();
-    }).toList();
-
-    return nodeList;
-
-
-
-
-}
     void init() {
 
         // Check if the file exists
@@ -130,9 +109,22 @@ String createMessageRM(){
             print('File does not exist.');
            for(int i=0; i<=layers;i++){
                routingTables[i.toString()] = B4RoutingTable(localNodeID);
-           }
 
-        //   sendmessageRM();
+           }
+             if(localNodeID.nodeid.hashID!="Bootstrap") {
+               sendmessageRM(
+                   'RM',
+                   "Relay",
+                   "myNodeID",
+                   "hashID",
+                   "s",
+                   "current",
+                   "R",
+                   "nodeID",
+                   "myEndpoint",
+                   "layerID",
+                   'Y'); //it will alsways be bootstrap.
+             }
 
 
 
@@ -143,15 +135,20 @@ String createMessageRM(){
 
     }
 
-    Future<void> sendmessageRM()async {
-    String message=createMessageRM();
-    manager.sendMessage("35.", 22356, "D", message, "google");
+    Future<void> sendmessageRM(String RM,String Relay,String myNodeID,String hashID,String s,String current,String R,String nodeID,String myEndpoint, String layerID,String reqRT )async {
+      String message;
+
+
+    message=createMessageRM(RM , Relay, myNodeID, hashID, s, current, R, nodeID, myEndpoint,  layerID,reqRT  );
+
+    manager.sendMessage("35.185.142.", 22356, "D", message, "google");
 
     }
 
 
 
     void rMessageRM(String rcvdMessage ){
+
 
       Map<String, dynamic> decodedMessageRM = jsonDecode(rcvdMessage);
       String RM= decodedMessageRM['RM'];
@@ -184,6 +181,11 @@ String createMessageRM(){
           }
         }).toList();
       }).toList();
+
+      if(nodeList!=null && RT=='Y'){
+       //mergeTables(newRoutingTable, layerId, rtt);
+        sendmessageRM('RM' , "Relay", "myNodeID", "hashID", "s", "current", "R",  "nodeID", "myEndpoint",  "layerID" ,'N');
+      }
 
     }
 
