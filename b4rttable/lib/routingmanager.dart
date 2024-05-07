@@ -173,7 +173,7 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
             return NodeID.createFromTable(
               jsonNode['pubKey'], // Assuming this is how you reconstruct pubKey
               jsonNode['hashID'],
-              signature, // Assuming this is how you reconstruct sign
+              signature.toString(), // Assuming this is how you reconstruct sign
               jsonNode['publicKeyPem'],
             );
           } else {
