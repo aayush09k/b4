@@ -9,7 +9,7 @@ void main () async {
   var bootstrapIp = '35.185.142.164';
   var bootstrapPort = 22355;
   var type = 'D';
-  var remoteNodeId = 'google';
+  var remoteNodeId = '';
 
 
 // In the starting of the B4olm you need to Send RT request to the bootstrapNode.
