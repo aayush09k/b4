@@ -69,7 +69,7 @@ void main() {
       // nodeID2.hashID="3AE815704A566EB541D91F5D58DEE4E627D2BB1E";
       // nodeID3.hashID="37E815704A566EB541D91F5D58DEE4E627D2BB1E";
 
-      routingManager.createMessageRM();
+   //   routingManager.createMessageRM();
 
       // Act
 //      b4RoutingTable.updateNodeID(nodeID, rtt);// updating the first nodeID.It is similar to above test ie. RT contains only null.
