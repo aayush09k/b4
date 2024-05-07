@@ -31,11 +31,13 @@ class TcpClient {
             print(
                 'Connected to remoteNode: ${_loCalcNodeSocket.remoteAddress
                     .address}:${_loCalcNodeSocket.remotePort}');
+            return _loCalcNodeSocket;
         }
         on SocketException catch (e) {
             print('Failed to connect: $e');
+            return null;
         }
-        return _loCalcNodeSocket;
+
     }
 
     // Start as a sNode
@@ -174,7 +176,7 @@ class TcpClient {
 
             },
             onDone: () {
-
+                onDataReceived('null', false);
             },
         );
     }

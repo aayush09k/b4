@@ -24,6 +24,7 @@ class B4connection {
 
 
     String? _type;
+
     //It stores the input from the user.It helps in connection and messaging.
     // type can be 'TP=when someone wants to relay to NATed node via proxy(relay=yes)',
     // 'MP=when you are NATed node and you need to connect to your proxy(relay registration)',
@@ -33,12 +34,11 @@ class B4connection {
     ServerSocket? listening;
     Socket? _nodeIdSocket;
 
-    Function? onClosedS; // Callback to execute when the connection is closed.
-    Function? onClosedC;
+    Function? onClosed; // Callback to execute when the connection is closed.
 
 
     String? _remoteNodeID;
-    bool skip=false;
+    bool skip = false;
 
     //Instance of class used.
     TcpClient tcpClient = TcpClient();
@@ -51,7 +51,7 @@ class B4connection {
 
     void _resetTimer() {
         _inactivityTimer?.cancel();
-        _inactivityTimer = Timer(const Duration(minutes:4), () {
+        _inactivityTimer = Timer(const Duration(minutes: 4), () {
             // This code will execute after 5 minutes of inactivity
             close();
         });
@@ -61,55 +61,57 @@ class B4connection {
     //Below function can be use to connect with other peer.Here you have to give the type of connection 'TP(To proxy)','MP(be my proxy)','D'(direct connection),'DTP'(Direct through NAT).
     Future<Socket?> startConnection(targetIp, targetPort, typeOfConnection,
         remoteNodeId) async {
-
         _remoteNodeID = remoteNodeId;
         _type = typeOfConnection;
 
         _nodeIdSocket = await tcpClient.connect(targetIp, targetPort);
+
         await bufferReceivingData();
+
         return _nodeIdSocket;
     }
 
     void close() {
-        if (onClosedC != null) {
-            onClosedC!(); // Trigger the callback when closing.
+        if (onClosed != null) {
+            onClosed!(); // Trigger the callback when closing.
         }
-        try{
-        tcpClient.closeConnection(_nodeIdSocket!);
+        if (_nodeIdSocket != null) {
+            tcpClient.closeConnection(_nodeIdSocket!);
         }
-        catch(e){
-            print(e);
-        }
+
         _inactivityTimer?.cancel();
     }
-
 
 
     // A callback function that will be used by the communication manager for receiving data.
     // receiveText FroM server Node.
     Future bufferReceivingData() async {
-        await tcpClient.invokeListening((dynamic text, active) {
-            if(!skip){
-
-            dataBuffer.push(text);
-            }
-            _resetTimer();
-        },_nodeIdSocket!);
+        if (_nodeIdSocket != null) {
+            await tcpClient.invokeListening((dynamic text, active) {
+                if (!active) {
+                    if (onClosed != null) {
+                        onClosed!();
+                    }
+                }
+                dataBuffer.push(text);
+                _resetTimer();
+            }, _nodeIdSocket!);
+        }
     }
 
 
-
-    void setNodeSocketAndSkip(Socket socket){
-         skip=true;
-        _nodeIdSocket=socket;
+    void setNodeSocketAndSkip(Socket socket) {
+        skip = true;
+        _nodeIdSocket = socket;
     }
 
-    Future getRemoteIdCreationOfInstance(Function(dynamic message,Socket socket) onDataReceived) async {
+    Future getRemoteIdCreationOfInstance(
+        Function(dynamic message, Socket socket) onDataReceived) async {
         await tcpClient.receiveSocketsFromCNode((socket) async {
-            await tcpClient.invokeListening((message, active){
-                onDataReceived(message['p3'],socket);
+            await tcpClient.invokeListening((message, active) {
+                onDataReceived(message['p3'], socket);
                 dataBuffer.push(message['p4']);
-            },socket);
+            }, socket);
         });
     }
 
@@ -117,33 +119,37 @@ class B4connection {
     //sendMessage is used to sent message to any node either relayed msg or normal message.
     //For different scenarios message function is developed in such a way that you can send your message to any node.
     Future<void> sendMessage(message) async {
-        _resetTimer();
-        if (_type == 'TP') {
-            if (_remoteNodeID != null) {
+        if (_nodeIdSocket != null) {
+            _resetTimer();
+            if (_type == 'TP') {
+                if (_remoteNodeID != null) {
+                    String toSend = tcpClient.createMessageJson(
+                        _type, null, _remoteNodeID, _myNodeId, message, 4);
+                    tcpClient.send(toSend, _nodeIdSocket!);
+                }
+                else {
+                    print('no relay connection exits');
+                }
+            }
+            else if (_type == 'D') {
                 String toSend = tcpClient.createMessageJson(
-                    _type, null, _remoteNodeID, _myNodeId, message, 4);
-                tcpClient.send(toSend,_nodeIdSocket!);
+                    'D', null, null, _myNodeId, message, 6);
+                tcpClient.send(toSend, _nodeIdSocket!);
             }
-            else {
-                print('no relay connection exits');
+            else if (_type == 'MP') {
+                String toSend = tcpClient.createMessageJson(
+                    _type, '_localIPv4', '_localPortIPv4', _myNodeId,
+                    _remoteNodeID,
+                    6);
+
+                await tcpClient.send(toSend, _nodeIdSocket!);
+                _type = 'D';
             }
         }
-        else if (_type == 'D') {
-            String toSend = tcpClient.createMessageJson(
-                'D', null, null, _myNodeId, message, 6);
-            tcpClient.send(toSend,_nodeIdSocket!);
+        else {
+            print('_nodeSocket is null');
         }
-        else if (_type == 'MP') {
-            String toSend = tcpClient.createMessageJson(
-                _type, '_localIPv4', '_localPortIPv4', _myNodeId, _remoteNodeID,
-                6);
-
-            await tcpClient.send(toSend, _nodeIdSocket!);
-            _type = 'D';
-        }
-
     }
-
 
 
     Future<void> startNodeLiseNing(listeningPort) async {

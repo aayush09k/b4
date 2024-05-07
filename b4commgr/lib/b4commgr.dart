@@ -44,13 +44,16 @@ class CommunicationManager {
     } else {
       // Create a new connection if it does not exist
       _connections[remoteNodeID] = B4connection();
-      socket = (await _connections[remoteNodeID]!.startConnection(
-          ip, port, type, remoteNodeID))!;
+
+      await _connections[remoteNodeID]!.startConnection(
+          ip, port, type, remoteNodeID);
+
       _connections[remoteNodeID]!.sendMessage(message);
+
     }
 
     // Set the onClosed callback
-    _connections[remoteNodeID]!.onClosedC = () {
+    _connections[remoteNodeID]!.onClosed = () {
       _connections.remove(remoteNodeID);
       print(
           "Connection for $remoteNodeID has been removed from manager due to closure.");
@@ -134,11 +137,11 @@ class CommunicationManager {
   // else it will be connected to provided  proxy sNode.
 
   Future<void> activateNode(proxyIp, proxyPort, listeningPort,
-      natStatus) async {
+      natStatus, remoteNodeID) async {
     switch (natStatus) {
       case 0:
         print('Behind NAT in ipv4system');
-        await sendMessage(proxyIp, proxyPort, 'MP', 'null', 'lulu');
+        await sendMessage(proxyIp, proxyPort, 'MP', 'null', remoteNodeID);
       case 1:
       case 2:
         print('publicly available');
