@@ -5,9 +5,9 @@ void main () async {
 
   CommunicationManager communicationManager = CommunicationManager();
 
-  /*var message = 'RRT';
+  var message = 'RRT';
   var bootstrapIp = '35.185.142.164';
-  var bootstrapPort = 22355;
+  var bootstrapPort = 22356;
   var type = 'D';
   var remoteNodeId = 'google';
 
@@ -16,7 +16,7 @@ void main () async {
   await communicationManager.sendMessage(
       bootstrapIp, bootstrapPort, type, message, remoteNodeId);
 
-*/
+
 //for getting data from the  common buffer.
   Future<void> getData() async {
     while (true) {
@@ -42,24 +42,24 @@ void main () async {
   var proxyPort = 22356;
   var remoteNodeId3 = 'google';
   await communicationManager.activateNode(
-      proxyIp, proxyPort, listeningPort, 1,remoteNodeId3);
+      proxyIp, proxyPort, listeningPort,natStatus,remoteNodeId3);
 
 //Now further you can send messages to any nodeID.
 //So here we have simulated the main purpose of communication manager.
 
- /* await Future.delayed(Duration(seconds: 8));
+  await Future.delayed(Duration(seconds: 8));
   var message1 = 'RRT for you';
   var proxyIP = '35.185.142.164';
-  var proxyPORT = 22355;
+  var proxyPORT = 22356;
   var type1 = 'TP';
-  var remoteNodeId1 = 'aman';
+  var remoteNodeId1 = 'psj';
 
 
 // Now we are relaying  data to "remoteNodeId1 " because it is behind NAT.
   await communicationManager.sendMessage(
       proxyIP, proxyPORT, type1, message1, remoteNodeId1);
 
-  await Future.delayed(Duration(seconds: 5));
+ /* await Future.delayed(Duration(seconds: 5));
   var message2 = 'THIS IS MESSAGE FROM PUSHPENDRA ';
   var proxyIP2 = '35.185.142.164';
   var proxyPORT2 = 22355;

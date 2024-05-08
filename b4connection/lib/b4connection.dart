@@ -87,9 +87,10 @@ class B4connection {
             await tcpClient.invokeListening((dynamic text, active) {
                 if (!active) {
                   _close();
-                }
+                } else{
                 dataBuffer.push(text['message']);
                 _resetTimer();
+                }
             }, _nodeIdSocket!);
         }
     }
