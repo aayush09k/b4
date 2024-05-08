@@ -21,7 +21,7 @@ void main () async {
   Future<void> getData() async {
     while (true) {
       await Future.delayed(Duration(seconds: 3));
-      print(communicationManager.getBufferData());
+      print(await communicationManager.getBufferData());
     }
   }
 
@@ -34,7 +34,7 @@ void main () async {
 
   print(natStatus);
   await Future.delayed(Duration(seconds: 5));
-  print(communicationManager.stunClient.getPublicIPv6());
+
 // According to the natStatus you need to activate the node.
 // If you are public node then no need to give the  proxyIp, proxyPort.
   var listeningPort = 22355;
@@ -47,7 +47,7 @@ void main () async {
 //Now further you can send messages to any nodeID.
 //So here we have simulated the main purpose of communication manager.
 
-  await Future.delayed(Duration(seconds: 5));
+  await Future.delayed(Duration(seconds: 8));
   var message1 = 'RRT for you';
   var proxyIP = '35.185.142.164';
   var proxyPORT = 22355;
@@ -58,5 +58,18 @@ void main () async {
 // Now we are relaying  data to "remoteNodeId1 " because it is behind NAT.
   await communicationManager.sendMessage(
       proxyIP, proxyPORT, type1, message1, remoteNodeId1);
+
+  await Future.delayed(Duration(seconds: 5));
+  var message2 = 'THIS IS MESSAGE FROM PUSHPENDRA ';
+  var proxyIP2 = '35.185.142.164';
+  var proxyPORT2 = 22355;
+  var type12 = 'TP';
+  var remoteNodeId12 = 'aman';
+
+
+// Now we are relaying  data to "remoteNodeId1 " because it is behind NAT.
+  await communicationManager.sendMessage(
+      proxyIP2, proxyPORT2, type12, message2, remoteNodeId12);
+
   await getData();
 }

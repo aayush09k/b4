@@ -6,7 +6,7 @@ import 'dart:io';
 class TcpClient {
     //There are two types of nodes that I have defined: 'cNode' for client-type nodes and 'sNode' for server-type nodes.
 
-    late Socket _loCalcNodeSocket; // Sockets as Map. so that we can differentiate cNode connections. It is for future purpose.
+    late Socket _loCalcNodeSocket; // cNode-socket stored here.
     ServerSocket? _loCalsNodeSocket; // sNode-socket stored here.
 
     dynamic _decodesNodeMessage; // Used for message received from sNode.
@@ -19,12 +19,11 @@ class TcpClient {
 
 
     String? _message;
-    Socket? receivedSocket;
 
 
-    // Connect to the sNode
+    // Connect to the server type node(sNode).
     Future<Socket?> connect(ip, port) async {
-        InternetAddress iP=InternetAddress(ip);
+        InternetAddress iP = InternetAddress(ip);
         try {
             _loCalcNodeSocket = await Socket.connect(iP, port);
 
@@ -37,10 +36,9 @@ class TcpClient {
             print('Failed to connect: $e');
             return null;
         }
-
     }
 
-    // Start as a sNode
+    // Start as a sNode.
     Future<ServerSocket?> startASsNode(listeningPort) async {
         try {
             _loCalsNodeSocket =
@@ -48,13 +46,14 @@ class TcpClient {
                 InternetAddress.anyIPv6, 22355, v6Only: false);
         }
         catch (e) {
-          print(e);
+            print(e);
         }
         print('Server: started  on port ${_loCalsNodeSocket!.port}');
 
         return _loCalsNodeSocket;
     }
 
+   //Receive sockets from the clients.
     Future receiveSocketsFromCNode(Function(Socket socket) onDataReceived) async
     {
         // Listen for incoming  connection from any cNode.
@@ -67,7 +66,7 @@ class TcpClient {
         );
     }
 
-    //Data send back to the client according to the key.
+    //It is used to rely the data of the requested remoteNode.
     Future relayBackToNode(key, message) async {
         print('relay back to node krne agya');
         List<int> messageBytes = utf8.encode(
@@ -79,18 +78,16 @@ class TcpClient {
             (length >> 8) & 0xFF,
             length & 0xFF
         ]; // Prepare the length header
-        try {
-            _remoTecNodeSocket[key]!.add(lengthBytes); // Send the length header
-            _remoTecNodeSocket[key]!.add(
-                messageBytes); // Send the message bytes
-            _remoTecNodeSocket[key]!.flush();
-        } // Ensure the data is sent immediately
-        catch (e) {
-            print(e);
-        }
+
+        _remoTecNodeSocket[key]!.add(lengthBytes); // Send the length header
+        _remoTecNodeSocket[key]!.add(
+            messageBytes); // Send the message bytes
+        _remoTecNodeSocket[key]!.flush();
+        // Ensure the data is sent immediately
+
     }
 
-    // Send a message to the sNode or any relayed node.
+    // Send a message to the sNode or any NATed node.
     Future<void> send(message, Socket socket) async {
         //Some processing occurs before sending. This ensures that even if you send a stream of data, the connection will not get lost.
         List<int> messageBytes = utf8.encode(
@@ -105,16 +102,13 @@ class TcpClient {
         ]; // Prepare the length header
 
 
-        try {
-            socket.add(
-                lengthBytes); // Send the length header
-            socket.add(
-                messageBytes); // Send the message bytes
-            socket.flush();
-        } // Ensure the data is sent immediately
-        catch (e) {
-            print(e);
-        }
+        socket.add(
+            lengthBytes); // Send the length header
+        socket.add(
+            messageBytes); // Send the message bytes
+        socket.flush();
+        // Ensure the data is sent immediately
+
     }
 
 
@@ -167,21 +161,21 @@ class TcpClient {
                 await _processData(socket, data);
 
                 if (_decodesNodeMessage != null) {
-                    onDataReceived(_decodesNodeMessage['p4'], true);
-                    _handleMessageFroMNode(_decodesNodeMessage,socket);
+                    onDataReceived(_decodesNodeMessage, true);
+                    _handleMessageFroMNode(_decodesNodeMessage, socket);
                 }
             },
             onError: (error) {
                 print('Error: $error');
-
             },
             onDone: () {
+                    // If connection is done from the side of other node then send active=false to the b4connection class to delete the instance of the b4connection.
                 onDataReceived('null', false);
             },
         );
     }
 
-    // Close the connection from sNode.
+    // Close the connection if any given socket.
     void closeConnection(Socket socket) {
         try {
             socket.destroy();
@@ -193,117 +187,77 @@ class TcpClient {
 
 
     // creates json string for sending messages.
-    String createMessageJson(type, A, B, C, D, length) {
+    String createMessageJson(type, remoteNodeId, myNodeId, mesSage) {
         Map<String, dynamic> message = {
-            't': type,
-            'p1': A,
-            // p1=none for l=3. otherwise p1=IP.
-            'p2': B,
-            // p2=relayToNodeKey for l=4,5,default. p2=nil for l=3. p2=Port for l=6.
-            'p3': C,
-            // p3=myKey for l=default,5,4. p3=remoteKey for l=6.p3=ipv6 for l=3.
-            'p4': D,
-            // p4=message for l=default,5,4. p4=myKey for l=6. p4=ipv6port for l=3.
-            'l': length
+            'type': type,
+            'remoteNodeID': remoteNodeId,
+            'myNodeID': myNodeId,
+            'message': mesSage,
         };
         return json.encode(message);
     }
 
-
-    void _handleMessageFroMNode(decodedMessage,Socket socket) async {
-
-        //For l=6 means message came for setup smooth flow between nodes.
-        if (decodedMessage['l'] == 6) {
-            if (decodedMessage['t'] == 'MP') {
-
-                try {
-
-                    _message = createMessageJson(
-                        null, null, socket.port, null,
-                        'I am your proxy server i will let you connect to the world bro . Please press any key to continue.',
-                        0);
-                    _remoTecNodeSocket[decodedMessage['p3']] = socket;
-
-                    await relayBackToNode(decodedMessage['p3'], _message);
-                }
-                catch (e) {
-                    print(e);
-                }
-            }
-            else {
-                try {
-
-                    _remoTecNodeSocket[decodedMessage['p3']] = socket;
-                    _message = createMessageJson(
-                        null, null, null, null,
-                        'your are now directly connected to me as we both are publicly available',
-                        0);
-                    await relayBackToNode(decodedMessage['p3'], _message);
-                }
-                catch (e) {
-
-                    print(e);
-                }
+    // Message handling should be done when node is publicly available.
+    void _handleMessageFroMNode(decodedMessage, Socket socket) async {
+        if (decodedMessage['type'] == 'MP') {
+            if (decodedMessage['myNodeID'] != null) {
+                _remoTecNodeSocket[decodedMessage['myNodeID']] = socket;
+                _message = createMessageJson(null, null, null,
+                    'I am your proxy server i will let you connect to the world bro . Please press any key to continue.');
+                await relayBackToNode(decodedMessage['myNodeID'], _message);
             }
         }
-        // This l=4 is used for relaying messages to nodes. All relaying messages are sent to other nodes from here only
-        else if (decodedMessage['l'] == 4) {
-            if (decodedMessage['t'] == 'TP') {
-
-                try {
-
-                    if (_remoTecNodeSocket[decodedMessage['p2']] != null) {
-                        await relayBackToNode(decodedMessage['p2'],
-                            createMessageJson(
-                                null, null, null, null,
-                                decodedMessage['p4'],
-                                0));
-                    }
-                    else {
-                        // By mistake or due to any network issue if some node in relay connection get disconnected from proxy.
-                        // Then other peer will got this message below.
-                        String toSend = createMessageJson(
-                            null, null, null, null,
-                            'Other Node is no more connected.',
-                            0);
-                        List<int> messageBytes = utf8.encode(
-                            toSend); // Encode the JSON message
-                        int length = messageBytes
-                            .length; // Calculate the message length
-                        var lengthBytes = [
-                            (length >> 24) & 0xFF,
-                            (length >> 16) & 0xFF,
-                            (length >> 8) & 0xFF,
-                            length & 0xFF
-                        ];
-                        socket.add(lengthBytes);
-                        socket.add(messageBytes);
-                        socket.flush();
-                    }
-                }
-                catch (e) {
-                 print(e);
-                }
-            }
-            else {
-
-              //  print(decodedMessage['p4']);
+        else if (decodedMessage['type'] == 'D') {
+            if (decodedMessage['myNodeID'] != null) {
+                _remoTecNodeSocket[decodedMessage['myNodeID']] = socket;
+                _message = createMessageJson(
+                    null, null, null,
+                    'your are now directly connected to me as we both are publicly available',
+                );
+                await relayBackToNode(decodedMessage['myNodeID'], _message);
             }
         }
-        else {
-            //print(decodedMessage['p4']);
+        else if (decodedMessage['type'] == 'TP') {
+
+
+            if (_remoTecNodeSocket[decodedMessage['remoteNodeID']] !=
+                null) {
+                print('type=TP me relay krne agya me ');
+                String toSend = createMessageJson(
+                    null, null, null, decodedMessage['message']);
+
+                await relayBackToNode(
+                    decodedMessage['remoteNodeID'], toSend);
+            }
+            else {
+                print('type=TP me relay krne me problem he kuch else condition me agya me  ');
+                // By mistake or due to any network issue if some node in relay connection get disconnected from proxy.
+                // Then other peer will got this message below.
+                String toSend = createMessageJson(
+                    null, null, null,
+                    'Other Node is no more connected.',
+                );
+                List<int> messageBytes = utf8.encode(
+                    toSend); // Encode the JSON message
+                int length = messageBytes
+                    .length; // Calculate the message length
+                var lengthBytes = [
+                    (length >> 24) & 0xFF,
+                    (length >> 16) & 0xFF,
+                    (length >> 8) & 0xFF,
+                    length & 0xFF
+                ];
+                socket.add(lengthBytes);
+                socket.add(messageBytes);
+                socket.flush();
+            }
         }
     }
 
     // Stop the server
     Future<void> stopASsNode() async {
-        try {
+        if (_loCalsNodeSocket != null) {
             _loCalsNodeSocket!.close();
-
-            print('Server stopped.');
-        }
-        catch (e) {
-            print('Server Stop error=$e');
         }
     }
 

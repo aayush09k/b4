@@ -40,7 +40,7 @@ class CommunicationManager {
   Future sendMessage(ip, port, type, message, remoteNodeID) async {
     // Check if a connection already exists
     if (_connections.containsKey(remoteNodeID)) {
-      _connections[remoteNodeID]!.sendMessage(message,type);
+      _connections[remoteNodeID]!.sendMessage(message, type, remoteNodeID);
     } else {
       // Create a new connection if it does not exist
       _connections[remoteNodeID] = B4connection();
@@ -48,8 +48,7 @@ class CommunicationManager {
       await _connections[remoteNodeID]!.startConnection(
           ip, port, type, remoteNodeID);
 
-      _connections[remoteNodeID]!.sendMessage(message,type);
-
+      _connections[remoteNodeID]!.sendMessage(message, type, remoteNodeID);
     }
 
     // Set the onClosed callback
@@ -61,7 +60,7 @@ class CommunicationManager {
   }
 
 
-  dynamic getBufferData() {
+  Future<dynamic> getBufferData() async {
     return bufferData.pull();
   }
 
@@ -148,14 +147,14 @@ class CommunicationManager {
 
         B4connection b4connection = B4connection();
         await b4connection.startNodeLiseNing(listeningPort);
-         b4connection.getRemoteIdCreationOfInstance((message, socket) async {
-          if (_connections.containsKey(message)) {
+        b4connection.getRemoteIdCreationOfInstance((message, socket) async {
+          if (_connections.containsKey(message['myNodeID'])) {
             print('good');
           }
           else {
-            _connections[message] = B4connection();
-            _connections[message]!.setNodeSocketAndSkip(socket);
-            await _connections[message]!.bufferReceivingData();
+            _connections[message['myNodeID']] = B4connection();
+            _connections[message['myNodeID']]!.setNodeSocket(socket);
+            await _connections[message['myNodeID']]!.bufferReceivingData();
           }
         });
 
@@ -163,7 +162,6 @@ class CommunicationManager {
         print('natStatus is not defined');
     }
   }
-
 
   //Putting all the ip and port inside the global variables.
   Future<void> _getAllIpPort() async {
@@ -188,5 +186,4 @@ class CommunicationManager {
     }
     // _printAllPort();
   }
-
 }
