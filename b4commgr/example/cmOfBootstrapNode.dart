@@ -32,14 +32,15 @@ void main () async {
 //So here we have simulated the main purpose of communication manager.
 
   await Future.delayed(Duration(seconds: 22));
-  var message1 = 'RRT for you';
+  var message1 = 'i am your bootstrap node bro i have sent you a message by making your instance of b4connection.'
+      'i have made a instance of b4connection corresponding tp your node id, when you had sent me relay registration request';
   var proxyIP = '35.185.142.164';
   var proxyPORT = 22356;
   var type1 = 'D';
   var remoteNodeId1 = 'psj';
 
 
-// Now we are relaying  data to "remoteNodeId1 " because it is behind NAT.
+//  Now we are relaying  data to "remoteNodeId1 " because it is behind NAT.
   await communicationManager.sendMessage(
       proxyIP, proxyPORT, type1, message1, remoteNodeId1);
 

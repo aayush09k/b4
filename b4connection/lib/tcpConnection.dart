@@ -68,7 +68,7 @@ class TcpClient {
 
     //It is used to rely the data of the requested remoteNode.
     Future relayBackToNode(key, message) async {
-        print('relay back to node krne agya');
+
         List<int> messageBytes = utf8.encode(
             message); // Encode the JSON message
         int length = messageBytes.length; // Calculate the message length
@@ -170,7 +170,7 @@ class TcpClient {
             },
             onDone: () {
                     // If connection is done from the side of other node then send active=false to the b4connection class to delete the instance of the b4connection.
-                onDataReceived('null', false);
+                onDataReceived(socket, false);
             },
         );
     }
@@ -222,7 +222,7 @@ class TcpClient {
 
             if (_remoTecNodeSocket[decodedMessage['remoteNodeID']] !=
                 null) {
-                print('type=TP me relay krne agya me ');
+
                 String toSend = createMessageJson(
                     null, null, null, decodedMessage['message']);
 
@@ -230,7 +230,7 @@ class TcpClient {
                     decodedMessage['remoteNodeID'], toSend);
             }
             else {
-                print('type=TP me relay krne me problem he kuch else condition me agya me  ');
+
                 // By mistake or due to any network issue if some node in relay connection get disconnected from proxy.
                 // Then other peer will got this message below.
                 String toSend = createMessageJson(

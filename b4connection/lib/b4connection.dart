@@ -33,7 +33,7 @@ class B4connection {
     String _myNodeId = 'google'; // For each of b4connection instance you need to set this.
 
     Function? onClosed; // Callback to execute when the connection is closed.
-    Map <Socket,String> eliminate={};
+    Map <Socket,dynamic> eliminate={};
 
     //Instance of class used.
     TcpClient tcpClient = TcpClient();
@@ -113,7 +113,7 @@ class B4connection {
                 dataBuffer.push(message['message']);
                 onDataReceived(message, socket,active);}
                 else{
-                    onDataReceived(eliminate[socket], socket,active);
+                    onDataReceived(eliminate[message], socket,active);
                 }
 
             }, socket);
