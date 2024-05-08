@@ -147,15 +147,21 @@ class CommunicationManager {
 
         B4connection b4connection = B4connection();
         await b4connection.startNodeLiseNing(listeningPort);
-        b4connection.getRemoteIdCreationOfInstance((message, socket) async {
-          if (_connections.containsKey(message['myNodeID'])) {
-            print('good');
+        b4connection.getRemoteIdCreationOfInstance((message, socket,
+            active) async {
+          if (active) {
+            if (_connections.containsKey(message['myNodeID'])) {
+              print('good');
+            }
+            else {
+              print('received socket k liy instance bnane agya me');
+              _connections[message['myNodeID']] = B4connection();
+              _connections[message['myNodeID']]!.setNodeSocket(socket);
+              //await _connections[message['myNodeID']]!.bufferReceivingData();
+            }
           }
           else {
-            print('received socket k liy instance bnane agya me');
-            _connections[message['myNodeID']] = B4connection();
-            _connections[message['myNodeID']]!.setNodeSocket(socket);
-            //await _connections[message['myNodeID']]!.bufferReceivingData();
+            _connections[message]!.close();
           }
         });
 

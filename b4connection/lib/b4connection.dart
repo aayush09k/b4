@@ -30,10 +30,10 @@ class B4connection {
     // Below two very important variable for each instance of b4connection.
     String? _remoteNodeID; // Two which you want to send the message or relay the message.
     Socket? _nodeIdSocket; // it will be fixed and unique after creating the b4connection instance.
-    String _myNodeId = 'psj'; // For each of b4connection instance you need to set this.
+    String _myNodeId = 'google'; // For each of b4connection instance you need to set this.
 
     Function? onClosed; // Callback to execute when the connection is closed.
-
+    Map <Socket,String> eliminate={};
 
     //Instance of class used.
     TcpClient tcpClient = TcpClient();
@@ -47,9 +47,9 @@ class B4connection {
     // When you receive or else you send you need to reset the timer for existence of the b4connection instance.
     void _resetTimer() {
         _inactivityTimer?.cancel();
-        _inactivityTimer = Timer(const Duration(minutes: 4), () {
+        _inactivityTimer = Timer(const Duration(minutes: 5), () {
             // This code will execute after 5 minutes of inactivity
-            _close();
+            close();
         });
     }
 
@@ -67,7 +67,7 @@ class B4connection {
         return _nodeIdSocket;
     }
 
-    void _close() {
+    void close() {
 
         if (_nodeIdSocket != null) {
             tcpClient.closeConnection(_nodeIdSocket!);
@@ -86,7 +86,7 @@ class B4connection {
         if (_nodeIdSocket != null) {
             await tcpClient.invokeListening((dynamic text, active) {
                 if (!active) {
-                  _close();
+                  close();
                 } else{
                 dataBuffer.push(text['message']);
                 _resetTimer();
@@ -103,11 +103,19 @@ class B4connection {
 
     // It listen for the receiving socket and help CM to create new instance correspond to the received socket and nodeId.
     Future getRemoteIdCreationOfInstance(
-        Function(dynamic message, Socket socket) onDataReceived) async {
+        Function(dynamic message, Socket socket,bool active) onDataReceived) async {
         await tcpClient.receiveSocketsFromCNode((socket) async {
+
             await tcpClient.invokeListening((message, active) {
-                onDataReceived(message, socket);
-               // dataBuffer.push(message);
+
+                if(active){
+                    eliminate[socket]=message['myNodeID'];
+                dataBuffer.push(message['message']);
+                onDataReceived(message, socket,active);}
+                else{
+                    onDataReceived(eliminate[socket], socket,active);
+                }
+
             }, socket);
         });
     }
