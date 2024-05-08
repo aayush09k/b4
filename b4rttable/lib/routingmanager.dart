@@ -73,13 +73,22 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
         }).toList();
     }).toList();
 
+   Map<String, dynamic> jsonMyNode = {
+     'pubKey': localNodeID.nodeid.pubKey,
+     'hashID': localNodeID.nodeid.hashID,
+     'sign': {'r':localNodeID.nodeid.sign.r,'s':localNodeID.nodeid.sign.s}     , // Replace this with actual ECSignature JSON
+     'publicKeyPem': localNodeID.nodeid.publicKeyPem,
+   };
+
+   String jsonStringMyNode=jsonEncode(jsonMyNode);
+
     // Convert to JSON String
     String jsonNodesString = jsonEncode(jsonRT);
     Map<String,dynamic> messageRM={
 
         'RM':RM,
         'Relay':R,
-        'myNodeID': localNodeID.nodeid.hashID,
+        'myNodeID': jsonStringMyNode,
         'hashID':hashID,
         's':s,
         'current':current,
@@ -124,7 +133,7 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
                    "R",
                    "nodeID",
                    "myEndpoint",
-                   "layerID",
+                   "0",
                    'Y'); //it will alsways be bootstrap.
              }
 
@@ -143,7 +152,8 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
 
     message=createMessageRM(RM , Relay, myNodeID, hashID, s, current, R, nodeID, myEndpoint,  layerID,reqRT  );
 
-    await manager.sendMessage("35.185.142.", 22356, "D", message, "google");
+    await manager.sendMessage("35.185.142.164", 22355, "D", message, "google");
+      await Future.delayed(Duration(milliseconds: 500));
 
     }
 
@@ -155,7 +165,7 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
       Map<String, dynamic> decodedMessageRM = jsonDecode(rcvdMessage);
       String RM= decodedMessageRM['RM'];
       String Relay= decodedMessageRM['Relay'];
-      String myNodeID= decodedMessageRM['myNodeID'];
+      String senderNodeID= decodedMessageRM['myNodeID'];
       String hashID= decodedMessageRM['hashID'];
       String s= decodedMessageRM['s'];
       String current= decodedMessageRM['current'];
@@ -165,6 +175,13 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
       String reqRT= decodedMessageRM['Y'];
       String layerID= decodedMessageRM['layerID'];
       String RT= decodedMessageRM['RT'];
+
+// This part of code is written to take senders node and update it because that will be not part of it's own routing table.
+
+      Map<String,dynamic> jsonNodeid=jsonDecode(senderNodeID);
+      ECSignature?  signNode = ECSignature(BigInt.parse( jsonNodeid['sign']['r']),BigInt.parse(jsonNodeid['sign']['s']));
+      NodeID sendersNodeID= NodeID.createFromTable(jsonNodeid['pubKey'], signNode, jsonNodeid['hashID'], jsonNodeid['publicKeyPem']);
+      routingTables[layerID]!.updateNodeID(sendersNodeID, Duration(milliseconds: 300), routingTables[layerID]!.RoutingTable);
 
       List<dynamic> decodedRT=jsonDecode(RT);
 
@@ -192,7 +209,7 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
 
     }
 
-    void checkForMessagesCMExecution() {
+    Future<void> checkForMessagesCMExecution() async{
       const duration = Duration(seconds: 1); // Adjust duration as needed
       Timer.periodic(duration, (timer) {
         // This function will be executed periodically
@@ -203,6 +220,7 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
 
     void handleForMessages(){
       String messageFromCMBuffer=manager.getBufferData();
+      print(messageFromCMBuffer);
 
       if(messageFromCMBuffer!=null){
         Map<String, dynamic> decodedMessageRM = jsonDecode(messageFromCMBuffer);
@@ -216,6 +234,9 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
           rMessageRM(messageFromCMBuffer);
         }
 
+      }
+
+      else{
 
 
       }
