@@ -30,7 +30,7 @@ class B4connection {
     // Below two very important variable for each instance of b4connection.
     String? _remoteNodeID; // Two which you want to send the message or relay the message.
     Socket? _nodeIdSocket; // it will be fixed and unique after creating the b4connection instance.
-    String _myNodeId = 'gooogle'; // For each of b4connection instance you need to set this.
+    String _myNodeId = 'google'; // For each of b4connection instance you need to set this.
 
     Function? onClosed; // Callback to execute when the connection is closed.
     Map <Socket,dynamic> eliminate={};
