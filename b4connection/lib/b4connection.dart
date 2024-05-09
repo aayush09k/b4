@@ -122,7 +122,7 @@ class B4connection {
                         }
                     }
 
-                onDataReceived(message, socket,active);}
+                onDataReceived(message['myNodeID'], socket,active);}
                 else{
 
                     onDataReceived(eliminate[store], socket,active);

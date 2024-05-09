@@ -148,29 +148,27 @@ class CommunicationManager {
 
         B4connection b4connection = B4connection();
         await b4connection.startNodeLiseNing(listeningPort);
-        b4connection.getRemoteIdCreationOfInstance((message, socket,
+        b4connection.getRemoteIdCreationOfInstance((nodeId, socket,
             active) async {
           if (active) {
-            print(_connections);
-            print(_connections[message['myNodeID']]);
-            if (message['myNodeID'] == null) {}
+            if (nodeId == null) {}
             else {
-              if (_connections.containsKey(message['myNodeID'])) {
-                print('Instance corresponding to ${message['myNodeID']} is present.');
+              if (_connections.containsKey(nodeId)) {
+                print('Instance corresponding to $nodeId is present.');
               }
               else {
-                _connections[message['myNodeID']] = B4connection();
-                _connections[message['myNodeID']]!.setNodeSocket(socket);
+                _connections[nodeId] = B4connection();
+                _connections[nodeId]!.setNodeSocket(socket);
 
               }
             }
           }
           else {
             while(true){
-              if(_connections[message]==null){break;}
-              _connections.remove(message);
+              if(_connections[nodeId]==null){break;}
+              _connections.remove(nodeId);
               print(
-                  "Connection for $message has been removed from manager due to closure.");
+                  "Connection for $nodeId has been removed from manager due to closure.");
             }
            print(_connections);
             }
