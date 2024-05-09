@@ -150,6 +150,7 @@ class CommunicationManager {
         b4connection.getRemoteIdCreationOfInstance((message, socket,
             active) async {
           if (active) {
+            print(_connections[message['myNodeID']]);
             if (message['myNodeID'] == null) {}
             else {
               if (_connections.containsKey(message['myNodeID'])) {
