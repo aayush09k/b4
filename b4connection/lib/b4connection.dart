@@ -112,9 +112,11 @@ class B4connection {
                 if(active){
                     eliminate[socket]=message['myNodeID'];
                     store =socket;
-                dataBuffer.push(message['message']);
+                    if(message['type']!='TP'){
+                dataBuffer.push(message['message']);}
                 onDataReceived(message, socket,active);}
                 else{
+                    print(eliminate[store]);
                     onDataReceived(eliminate[store], socket,active);
                 }
 

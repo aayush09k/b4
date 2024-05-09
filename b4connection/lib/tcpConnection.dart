@@ -224,7 +224,7 @@ class TcpClient {
                 null) {
 
                 String toSend = createMessageJson(
-                    null, null, null, decodedMessage['message']);
+                    'D','y','x', decodedMessage['message']);
 
                 await relayBackToNode(
                     decodedMessage['remoteNodeID'], toSend);
