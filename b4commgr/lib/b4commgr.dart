@@ -25,13 +25,7 @@ class CommunicationManager {
   DataBuffer bufferData = DataBuffer();
   final monitor = ConnectivityMonitor();
 
-
-  String? _publicIPv4;
-  String? _localIPv4;
-  int? _localPortIPv4;
   String? _publicIPv6;
-
-
   final Map<String, B4connection> _connections = {};
   Socket? socket;
   Socket? nodeSocket;
@@ -50,14 +44,15 @@ class CommunicationManager {
 
       _connections[remoteNodeID]!.sendMessage(message, type, remoteNodeID);
     }
-   try{
-    // Set the onClosed callback
-    _connections[remoteNodeID]!.onClosed = () {
-      _connections.remove(remoteNodeID);
-      print(
-          "Connection for $remoteNodeID has been removed from manager due to closure.");
-    };}
-    catch(e){}
+    try {
+      // Set the onClosed callback
+      _connections[remoteNodeID]!.onClosed = () {
+        _connections.remove(remoteNodeID);
+        print(
+            "Connection for $remoteNodeID has been removed from manager due to closure.");
+      };
+    }
+    catch (e) {}
   }
 
 
@@ -109,7 +104,7 @@ class CommunicationManager {
         stunClient.resetIP();
       }
     }
-    await _getAllIpPort();
+    await _getIpv6();
 
 
     if (_publicIPv6 != null) {
@@ -159,21 +154,19 @@ class CommunicationManager {
               else {
                 _connections[nodeId] = B4connection();
                 _connections[nodeId]!.setNodeSocket(socket);
-
               }
             }
           }
           else {
-            while(true){
-              if(_connections[nodeId]==null){break;}
+            while (true) {
+              if (_connections[nodeId] == null) {
+                break;
+              }
               _connections.remove(nodeId);
               print(
                   "Connection for $nodeId has been removed from manager due to closure.");
             }
-           print(_connections);
-            }
-
-
+          }
         });
 
       default:
@@ -181,27 +174,13 @@ class CommunicationManager {
     }
   }
 
-  //Putting all the ip and port inside the global variables.
-  Future<void> _getAllIpPort() async {
+
+  Future<void> _getIpv6() async {
     try {
-      if (stunClient.getPublicIPv4() != null) {
-        _localIPv4 = stunClient.getLocalIPv4()!.address;
-        _localPortIPv4 = stunClient.getLocalPortIPv4();
-      }
-
-      if (stunClient.getPublicIPv4() != null) {
-        _publicIPv4 = stunClient.getPublicIPv4()!.address;
-        //_publicPortIPv4 = stunClient.getPublicPortIPv4();
-      }
-
       if (stunClient.getPublicIPv6() != null) {
         _publicIPv6 = stunClient.getPublicIPv6()!.address;
-        // _publicPortIPv6 = stunClient.getPublicPortIPv6();
       }
     }
-    catch (e) {
-      print('error in getting all ports');
-    }
-    // _printAllPort();
+    catch (e) {}
   }
 }

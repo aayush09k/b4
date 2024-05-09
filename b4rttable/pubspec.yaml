@@ -28,6 +28,8 @@ dev_dependencies:
     path: ../nodeid
   b4commgr:
     path: ../b4commgr
+  b4connection:
+    path: ../b4connection
 
 # The following section is specific to Flutter packages.
 flutter:
