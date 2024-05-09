@@ -34,7 +34,7 @@ void main () async {
 //So here we have simulated the main purpose of communication manager.
   await Future.delayed(Duration(seconds: 15));
 
-  var type1 = null;
+  var type1 = 'D';
   var remoteNodeId1 = 'psj';
   var message='hey i have sent you from you stored instance at my node ';
   communicationManager.sendMessage(null, null, type1, message, remoteNodeId1);
@@ -42,7 +42,7 @@ void main () async {
   await Future.delayed(Duration(seconds: 52));
 
 
-  var type12 = null;
+  var type12 = 'D';
   var remoteNodeId12 = 'psj';
   var message2='this message will not be coming to you';
   communicationManager.sendMessage(null, null, type12, message2, remoteNodeId12);

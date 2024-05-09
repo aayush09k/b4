@@ -158,7 +158,6 @@ class CommunicationManager {
               else {
                 _connections[message['myNodeID']] = B4connection();
                 _connections[message['myNodeID']]!.setNodeSocket(socket);
-                _connections[message['myNodeID']]!.onClosed;
 
               }
             }
