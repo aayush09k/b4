@@ -26,7 +26,7 @@ void main () async {
     });
   }
 
-  await Future.delayed(Duration(seconds: 3));
+  await Future.delayed(Duration(seconds: 45));
 // Then give the stunIp and Port to identify the network environment.
   var stunIp = 'stun.l.google.com';
   var stunPort = 19302;

@@ -166,6 +166,9 @@ class B4connection {
         }
         else {
             print('_nodeSocket is null');
+            if (onClosed != null) {
+                onClosed!(); // Trigger the callback when closing.
+            }
         }
     }
 
