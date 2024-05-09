@@ -162,13 +162,15 @@ class CommunicationManager {
                 _connections[message['myNodeID']] = B4connection();
                 _connections[message['myNodeID']]!.setNodeSocket(socket);
                 _connections[message['myNodeID']]!.onClosed;
-                //await _connections[message['myNodeID']]!.bufferReceivingData();
+
               }
             }
           }
           else {
             print('conneciton close krna he ');
-            _connections[message]!.deleteInstance();
+            _connections.remove(remoteNodeID);
+            print(
+                "Connection for $remoteNodeID has been removed from manager due to closure.");
           }
         });
 
