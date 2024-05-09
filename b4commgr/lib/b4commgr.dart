@@ -149,16 +149,13 @@ class CommunicationManager {
         await b4connection.startNodeLiseNing(listeningPort);
         b4connection.getRemoteIdCreationOfInstance((message, socket,
             active) async {
-          print('$message,$socket,$active');
           if (active) {
-
             if (message['myNodeID'] == null) {}
             else {
               if (_connections.containsKey(message['myNodeID'])) {
-                print('good');
+                print('Instance corresponding to ${message['myNodeID']} is present.');
               }
               else {
-                print('received socket k liy instance bnane agya me');
                 _connections[message['myNodeID']] = B4connection();
                 _connections[message['myNodeID']]!.setNodeSocket(socket);
                 _connections[message['myNodeID']]!.onClosed;
