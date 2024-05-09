@@ -60,7 +60,7 @@ class CommunicationManager {
   }
 
 
-  String getBufferData()  {
+  dynamic getBufferData()  {
     return bufferData.pull();
   }
 
@@ -149,6 +149,7 @@ class CommunicationManager {
         await b4connection.startNodeLiseNing(listeningPort);
         b4connection.getRemoteIdCreationOfInstance((message, socket,
             active) async {
+          print('$message,$socket,$active');
           if (active) {
             if (_connections.containsKey(message['myNodeID'])) {
               print('good');
