@@ -203,7 +203,7 @@ class TcpClient {
             if (decodedMessage['myNodeID'] != null) {
                 _remoTecNodeSocket[decodedMessage['myNodeID']] = socket;
                 _message = createMessageJson(null, null, null,
-                    'I am your proxy server i will let you connect to the world bro . Please press any key to continue.');
+                    'I am your proxy server. Share my ip and port for connection.');
                 await relayBackToNode(decodedMessage['myNodeID'], _message);
             }
         }
@@ -212,7 +212,7 @@ class TcpClient {
                 _remoTecNodeSocket[decodedMessage['myNodeID']] = socket;
                 _message = createMessageJson(
                     null, null,null,
-                    'your are now directly connected to me as we both are publicly available',
+                    'your are connected to me directly',
                 );
                 await relayBackToNode(decodedMessage['myNodeID'], _message);
             }

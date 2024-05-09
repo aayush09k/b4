@@ -1,4 +1,6 @@
 
+import 'dart:async';
+
 import 'package:b4commgr/b4commgr.dart';
 
 void main () async {
@@ -8,11 +10,11 @@ void main () async {
 
 //for getting data from the  common buffer.
   Future<void> getData() async {
-    while (true) {
-      await Future.delayed(Duration(seconds: 3));
+    Timer.periodic(Duration(seconds: 3), (timer) async {
       print(await communicationManager.getBufferData());
-    }
+    });
   }
+
 
 
 // Then give the stunIp and Port to identify the network environment.
@@ -30,17 +32,20 @@ void main () async {
 
 //Now further you can send messages to any nodeID.
 //So here we have simulated the main purpose of communication manager.
+  await Future.delayed(Duration(seconds: 15));
 
-  await Future.delayed(Duration(seconds: 22));
-/*
-  var message1 = 'i am your bootstrap node bro i have sent you a message by making your instance of b4connection.'
-      'i have made a instance of b4connection corresponding tp your node id, when you had sent me relay registration request';
-  var proxyIP = '35.185.142.164';
-  var proxyPORT = 22356;
-  var type1 = 'D';
-  var remoteNodeId1 = 'psj';*/
+  var type1 = null;
+  var remoteNodeId1 = 'psj';
+  var message='hey i have sent you from you stored instance at my node ';
+  communicationManager.sendMessage(null, null, type1, message, remoteNodeId1);
+
+  await Future.delayed(Duration(seconds: 52));
 
 
+  var type12 = null;
+  var remoteNodeId12 = 'psj';
+  var message2='this message will not be coming to you';
+  communicationManager.sendMessage(null, null, type12, message2, remoteNodeId12);
 
   await getData();
 }
