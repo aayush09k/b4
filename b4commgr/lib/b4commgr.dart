@@ -60,7 +60,7 @@ class CommunicationManager {
   }
 
 
-  dynamic getBufferData()  {
+  dynamic getBufferData() {
     return bufferData.pull();
   }
 
@@ -151,20 +151,22 @@ class CommunicationManager {
             active) async {
           print('$message,$socket,$active');
           if (active) {
-            if(message['myNodeID']!=null){
-            if (_connections.containsKey(message['myNodeID'])) {
-              print('good');
-            }
+            print("node id is $message['myNodeID']");
+            if (message['myNodeID'] == null) {}
             else {
-              print('received socket k liy instance bnane agya me');
-              _connections[message['myNodeID']] = B4connection();
-              _connections[message['myNodeID']]!.setNodeSocket(socket);
-              //await _connections[message['myNodeID']]!.bufferReceivingData();
+              if (_connections.containsKey(message['myNodeID'])) {
+                print('good');
+              }
+              else {
+                print('received socket k liy instance bnane agya me');
+                _connections[message['myNodeID']] = B4connection();
+                _connections[message['myNodeID']]!.setNodeSocket(socket);
+                //await _connections[message['myNodeID']]!.bufferReceivingData();
+              }
             }
           }
           else {
             _connections[message]!.close();
-          }
           }
         });
 

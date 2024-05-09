@@ -48,7 +48,7 @@ void main () async {
 //Now further you can send messages to any nodeID.
 //So here we have simulated the main purpose of communication manager.
 
-  await Future.delayed(Duration(seconds: 8));
+  await Future.delayed(Duration(seconds: 12));
 
   var message1 = 'i am sending  proxy message to  myself ';
   var proxyIP = '35.185.142.164';
@@ -64,7 +64,7 @@ void main () async {
   await Future.delayed(Duration(seconds: 5));
   var message2 = 'THIS IS MESSAGE FROM PUSHPENDRA ';
   var proxyIP2 = '35.185.142.164';
-  var proxyPORT2 = 22355;
+  var proxyPORT2 = 22356;
   var type12 = 'TP';
   var remoteNodeId12 = 'aman';
 
