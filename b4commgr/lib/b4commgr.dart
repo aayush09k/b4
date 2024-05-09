@@ -161,6 +161,7 @@ class CommunicationManager {
                 print('received socket k liy instance bnane agya me');
                 _connections[message['myNodeID']] = B4connection();
                 _connections[message['myNodeID']]!.setNodeSocket(socket);
+                _connections[message['myNodeID']]!.onClosed;
                 //await _connections[message['myNodeID']]!.bufferReceivingData();
               }
             }

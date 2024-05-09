@@ -211,7 +211,7 @@ class TcpClient {
             if (decodedMessage['myNodeID'] != null) {
                 _remoTecNodeSocket[decodedMessage['myNodeID']] = socket;
                 _message = createMessageJson(
-                    'D', null,null,
+                    null, null,null,
                     'your are now directly connected to me as we both are publicly available',
                 );
                 await relayBackToNode(decodedMessage['myNodeID'], _message);
@@ -224,7 +224,7 @@ class TcpClient {
                 null) {
 
                 String toSend = createMessageJson(
-                    'D','y','x', decodedMessage['message']);
+                    null,null,null, decodedMessage['message']);
 
                 await relayBackToNode(
                     decodedMessage['remoteNodeID'], toSend);
