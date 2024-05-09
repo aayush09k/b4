@@ -151,6 +151,7 @@ class CommunicationManager {
             active) async {
           print('$message,$socket,$active');
           if (active) {
+            if(message['myNodeID']!=null){
             if (_connections.containsKey(message['myNodeID'])) {
               print('good');
             }
@@ -163,6 +164,7 @@ class CommunicationManager {
           }
           else {
             _connections[message]!.close();
+          }
           }
         });
 
