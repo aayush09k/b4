@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:b4rttable/b4rttable.dart';
@@ -30,13 +31,14 @@ class RoutingManager{
     Map<String,B4RoutingTable> neighbourTables={};
     Map<String,B4RoutingTable> latlongTables={};
     CommunicationManager manager= CommunicationManager();
+    DataBuffer dataBuffer=DataBuffer();
 
     RoutingManager._() {
 
 
         RTfilepath = "${filePath}rttable.json"; // the path where routing table file will be stored as json.
         _localNodeID = LocalNodeID();
-        _localNodeID.nodeid.hashID="367E7DFC3E4616381DACA70A90CDF3C59EA80D32";
+        _localNodeID.nodeid.hashID="367E7DFC3E4616381DACA70A90CDF3C59EA80D32";// we have to get this from auth manager
         // Call the init() function when the instance is created
        init();
     }
@@ -50,7 +52,7 @@ class RoutingManager{
 
 
 String createMessageRM(String RM,String Relay,String myNodeID,String hashID,String s,String current,String R,String nodeID,String myEndpoint, String layerID,String reqRT  ){
-   String requestRT='N';
+
 
 
 
@@ -71,20 +73,29 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
         }).toList();
     }).toList();
 
+   Map<String, dynamic> jsonMyNode = {
+     'pubKey': localNodeID.nodeid.pubKey.toString(),
+     'hashID': localNodeID.nodeid.hashID.toString(),
+     'sign': {'r':localNodeID.nodeid.sign.r.toString(),'s':localNodeID.nodeid.sign.s.toString()}     , // Replace this with actual ECSignature JSON
+     'publicKeyPem': localNodeID.nodeid.publicKeyPem.toString(),
+   };
+
+   String jsonStringMyNode=jsonEncode(jsonMyNode);
+
     // Convert to JSON String
     String jsonNodesString = jsonEncode(jsonRT);
     Map<String,dynamic> messageRM={
 
         'RM':RM,
         'Relay':R,
-        'myNodeID': localNodeID.nodeid.hashID,
+        'myNodeID': jsonStringMyNode,
         'hashID':hashID,
         's':s,
         'current':current,
         'R': R,
         'nodeID':nodeID,
         'myEndpoint': myEndpoint,
-        'reqRT': requestRT,
+        'reqRT': 'Y',
         'layerID':layerID,
         'RT':jsonNodesString,
 
@@ -111,7 +122,7 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
                routingTables[i.toString()] = B4RoutingTable(localNodeID);
 
            }
-             if(localNodeID.nodeid.hashID!="Bootstrap") {
+             if(localNodeID.nodeid.hashID!="467E7DFC3E4616381DACA70A90CDF3C59EA80D32") {// add in this line logic to check for bootstrap
                sendmessageRM(
                    'RM',
                    "Relay",
@@ -122,7 +133,7 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
                    "R",
                    "nodeID",
                    "myEndpoint",
-                   "layerID",
+                   "0",
                    'Y'); //it will alsways be bootstrap.
              }
 
@@ -141,7 +152,8 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
 
     message=createMessageRM(RM , Relay, myNodeID, hashID, s, current, R, nodeID, myEndpoint,  layerID,reqRT  );
 
-    manager.sendMessage("35.185.142.", 22356, "D", message, "google");
+    await manager.sendMessage("35.185.142.164", 22355, "D", message, "google");
+      await Future.delayed(Duration(milliseconds: 500));
 
     }
 
@@ -153,7 +165,7 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
       Map<String, dynamic> decodedMessageRM = jsonDecode(rcvdMessage);
       String RM= decodedMessageRM['RM'];
       String Relay= decodedMessageRM['Relay'];
-      String myNodeID= decodedMessageRM['myNodeID'];
+      String senderNodeID= decodedMessageRM['myNodeID'];
       String hashID= decodedMessageRM['hashID'];
       String s= decodedMessageRM['s'];
       String current= decodedMessageRM['current'];
@@ -164,16 +176,24 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
       String layerID= decodedMessageRM['layerID'];
       String RT= decodedMessageRM['RT'];
 
+// This part of code is written to take senders node and update it because that will be not part of it's own routing table.
+
+      Map<String,dynamic> jsonNodeid=jsonDecode(senderNodeID);
+      ECSignature?  signNode = ECSignature(BigInt.parse( jsonNodeid['sign']['r']),BigInt.parse(jsonNodeid['sign']['s']));
+      NodeID sendersNodeID= NodeID.createFromTable(jsonNodeid['pubKey'], signNode, jsonNodeid['hashID'], jsonNodeid['publicKeyPem']);
+      routingTables[layerID]!.updateNodeID(sendersNodeID, Duration(milliseconds: 300), routingTables[layerID]!.RoutingTable);
+
       List<dynamic> decodedRT=jsonDecode(RT);
 
       List<List<NodeID?>> nodeList = decodedRT.map((innerList) {
         return (innerList as List<dynamic>).map((jsonNode) {
           if (jsonNode != null) {
-            ECSignature?  signature = ECSignature(BigInt.parse( jsonNode['sign']['r']),BigInt.parse(jsonNode['sign']['s']));
+            ECSignature?  sign = ECSignature(BigInt.parse( jsonNode['sign']['r']),BigInt.parse(jsonNode['sign']['s']));
             return NodeID.createFromTable(
               jsonNode['pubKey'], // Assuming this is how you reconstruct pubKey
+              sign,
               jsonNode['hashID'],
-              signature.toString(), // Assuming this is how you reconstruct sign
+               // Assuming this is how you reconstruct sign
               jsonNode['publicKeyPem'],
             );
           } else {
@@ -189,7 +209,40 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
 
     }
 
+    Future<void> checkForMessagesCMExecution() async{
+      const duration = Duration(seconds: 1); // Adjust duration as needed
+      Timer.periodic(duration, (timer) {
+        // This function will be executed periodically
 
+        handleForMessages();
+      });
+    }
+
+    void handleForMessages(){
+      String messageFromCMBuffer=manager.getBufferData();
+      print(messageFromCMBuffer);
+
+      if(messageFromCMBuffer!=null){
+        Map<String, dynamic> decodedMessageRM = jsonDecode(messageFromCMBuffer);
+        String RM= decodedMessageRM['RM'];
+
+        if( RM!='RM'){
+         dataBuffer.push(messageFromCMBuffer);
+
+        }
+        else{
+          rMessageRM(messageFromCMBuffer);
+        }
+
+      }
+
+      else{
+
+
+      }
+
+
+    }
 
     Map<String,B4RoutingTable> getFullRT(){
 
