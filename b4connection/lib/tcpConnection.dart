@@ -23,7 +23,7 @@ class TcpClient {
 
     // Connect to the server type node(sNode).
     Future<Socket?> connect(ip, port) async {
-        if((ip==null)&&(port==null)){ return null;}
+        if((ip==null)||(port==null)){ return null;}
         InternetAddress iP = InternetAddress(ip);
         try {
             _loCalcNodeSocket = await Socket.connect(iP, port);
