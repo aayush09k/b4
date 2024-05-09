@@ -30,7 +30,7 @@ class B4connection {
     // Below two very important variable for each instance of b4connection.
     String? _remoteNodeID; // Two which you want to send the message or relay the message.
     Socket? _nodeIdSocket; // it will be fixed and unique after creating the b4connection instance.
-    String _myNodeId = 'google'; // For each of b4connection instance you need to set this.
+    String _myNodeId = 'gooogle'; // For each of b4connection instance you need to set this.
 
     Function? onClosed; // Callback to execute when the connection is closed.
     Map <Socket,dynamic> eliminate={};
@@ -80,7 +80,11 @@ class B4connection {
         _inactivityTimer?.cancel();
     }
 
-
+ void deleteInstance(){
+     if (onClosed != null) {
+         onClosed!(); // Trigger the callback when closing.
+     }
+ }
     // A callback function that will be used by the communication manager for receiving data.
     // receiveText FroM  any socket of the node.
     Future bufferReceivingData() async {
@@ -113,8 +117,14 @@ class B4connection {
                 if(active){
                     eliminate[socket]=message['myNodeID'];
                     store =socket;
-                    if((message['type']!=null)&&(message['type']!='TP')){
+                    if((message['type']==null)){
                 dataBuffer.push(message['message']);}
+                    else{
+                        if(message['type']=='TP'){}
+                        else{
+                            dataBuffer.push(message['message']);
+                        }
+                    }
 
                 onDataReceived(message, socket,active);}
                 else{
