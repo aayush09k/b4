@@ -38,7 +38,7 @@ class RoutingManager{
 
         RTfilepath = "${filePath}rttable.json"; // the path where routing table file will be stored as json.
         _localNodeID = LocalNodeID();
-        _localNodeID.nodeid.hashID="367E7DFC3E4616381DACA70A90CDF3C59EA80D32";
+        _localNodeID.nodeid.hashID="367E7DFC3E4616381DACA70A90CDF3C59EA80D32";// we have to get this from auth manager
         // Call the init() function when the instance is created
        init();
     }
@@ -52,7 +52,7 @@ class RoutingManager{
 
 
 String createMessageRM(String RM,String Relay,String myNodeID,String hashID,String s,String current,String R,String nodeID,String myEndpoint, String layerID,String reqRT  ){
-   String requestRT='N';
+
 
 
 
@@ -74,10 +74,10 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
     }).toList();
 
    Map<String, dynamic> jsonMyNode = {
-     'pubKey': localNodeID.nodeid.pubKey,
-     'hashID': localNodeID.nodeid.hashID,
-     'sign': {'r':localNodeID.nodeid.sign.r,'s':localNodeID.nodeid.sign.s}     , // Replace this with actual ECSignature JSON
-     'publicKeyPem': localNodeID.nodeid.publicKeyPem,
+     'pubKey': localNodeID.nodeid.pubKey.toString(),
+     'hashID': localNodeID.nodeid.hashID.toString(),
+     'sign': {'r':localNodeID.nodeid.sign.r.toString(),'s':localNodeID.nodeid.sign.s.toString()}     , // Replace this with actual ECSignature JSON
+     'publicKeyPem': localNodeID.nodeid.publicKeyPem.toString(),
    };
 
    String jsonStringMyNode=jsonEncode(jsonMyNode);
@@ -95,7 +95,7 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
         'R': R,
         'nodeID':nodeID,
         'myEndpoint': myEndpoint,
-        'reqRT': requestRT,
+        'reqRT': 'Y',
         'layerID':layerID,
         'RT':jsonNodesString,
 
@@ -122,7 +122,7 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
                routingTables[i.toString()] = B4RoutingTable(localNodeID);
 
            }
-             if(localNodeID.nodeid.hashID!="Bootstrap") {
+             if(localNodeID.nodeid.hashID!="467E7DFC3E4616381DACA70A90CDF3C59EA80D32") {// add in this line logic to check for bootstrap
                sendmessageRM(
                    'RM',
                    "Relay",
