@@ -115,6 +115,7 @@ class B4connection {
                     store =socket;
                     if((message['type']!=null)&&(message['type']!='TP')){
                 dataBuffer.push(message['message']);}
+
                 onDataReceived(message, socket,active);}
                 else{
 
