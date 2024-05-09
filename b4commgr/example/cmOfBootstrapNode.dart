@@ -24,7 +24,7 @@ void main () async {
 
 // According to the natStatus you need to activate the node.
 // If you are public node then no need to give the  proxyIp, proxyPort.
-  var listeningPort = 22356;
+  var listeningPort = 22355;
   await communicationManager.activateNode(
       null, null, listeningPort,2,null);
 

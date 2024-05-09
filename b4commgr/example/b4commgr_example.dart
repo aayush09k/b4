@@ -7,7 +7,7 @@ void main () async {
 
   var message = 'RRT';
   var bootstrapIp = '35.185.142.164';
-  var bootstrapPort = 22356;
+  var bootstrapPort = 22355;
   var type = 'D';
   var remoteNodeId = 'google';
 
@@ -38,9 +38,9 @@ void main () async {
 
 // According to the natStatus you need to activate the node.
 // If you are public node then no need to give the  proxyIp, proxyPort.
-  var listeningPort = 22356;
+  var listeningPort = 22355;
   var proxyIp = '35.185.142.164';
-  var proxyPort = 22356;
+  var proxyPort = 22355;
   var remoteNodeId3 = 'google';
   await communicationManager.activateNode(
       proxyIp, proxyPort, listeningPort,natStatus,remoteNodeId3);
@@ -52,7 +52,7 @@ void main () async {
 
   var message1 = 'i am sending  proxy message to  myself ';
   var proxyIP = '35.185.142.164';
-  var proxyPORT = 22356;
+  var proxyPORT = 22355;
   var type1 = 'TP';
   var remoteNodeId1 = 'psj';
 
@@ -64,7 +64,7 @@ void main () async {
   await Future.delayed(Duration(seconds: 5));
   var message2 = 'THIS IS MESSAGE FROM PUSHPENDRA ';
   var proxyIP2 = '35.185.142.164';
-  var proxyPORT2 = 22356;
+  var proxyPORT2 = 22355;
   var type12 = 'TP';
   var remoteNodeId12 = 'aman';
 
