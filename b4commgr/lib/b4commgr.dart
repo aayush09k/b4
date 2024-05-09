@@ -172,6 +172,7 @@ class CommunicationManager {
             print(
                 "Connection for $message has been removed from manager due to closure.");
           }
+          print(_connections[message]);
         });
 
       default:
