@@ -39,7 +39,7 @@ void main () async {
   var message='hey i have sent you from you stored instance at my node ';
   communicationManager.sendMessage(null, null, type1, message, remoteNodeId1);
 
-  await Future.delayed(Duration(seconds: 52));
+  await Future.delayed(Duration(seconds: 15));
 
 
   var type12 = 'D';

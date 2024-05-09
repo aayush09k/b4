@@ -50,13 +50,14 @@ class CommunicationManager {
 
       _connections[remoteNodeID]!.sendMessage(message, type, remoteNodeID);
     }
-
+   try{
     // Set the onClosed callback
     _connections[remoteNodeID]!.onClosed = () {
       _connections.remove(remoteNodeID);
       print(
           "Connection for $remoteNodeID has been removed from manager due to closure.");
-    };
+    };}
+    catch(e){}
   }
 
 
