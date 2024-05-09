@@ -170,7 +170,7 @@ class TcpClient {
             },
             onDone: () {
                     // If connection is done from the side of other node then send active=false to the b4connection class to delete the instance of the b4connection.
-                onDataReceived('disconnected', false);
+               // onDataReceived('disconnected', false);
             },
         );
     }
@@ -211,7 +211,7 @@ class TcpClient {
             if (decodedMessage['myNodeID'] != null) {
                 _remoTecNodeSocket[decodedMessage['myNodeID']] = socket;
                 _message = createMessageJson(
-                    null, null, null,
+                    'D', 'u','k',
                     'your are now directly connected to me as we both are publicly available',
                 );
                 await relayBackToNode(decodedMessage['myNodeID'], _message);

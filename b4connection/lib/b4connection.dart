@@ -105,10 +105,11 @@ class B4connection {
     // It listen for the receiving socket and help CM to create new instance correspond to the received socket and nodeId.
     Future getRemoteIdCreationOfInstance(
         Function(dynamic message, Socket socket,bool active) onDataReceived) async {
+        Socket? store;
         await tcpClient.receiveSocketsFromCNode((socket) async {
 
             await tcpClient.invokeListening((message, active) {
-                Socket? store;
+
                 if(active){
                     eliminate[socket]=message['myNodeID'];
                     store =socket;
@@ -116,7 +117,7 @@ class B4connection {
                 dataBuffer.push(message['message']);}
                 onDataReceived(message, socket,active);}
                 else{
-                    print(eliminate[store]);
+
                     onDataReceived(eliminate[store], socket,active);
                 }
 
