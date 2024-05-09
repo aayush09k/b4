@@ -80,11 +80,7 @@ class B4connection {
         _inactivityTimer?.cancel();
     }
 
- void deleteInstance(){
-     if (onClosed != null) {
-         onClosed!(); // Trigger the callback when closing.
-     }
- }
+
     // A callback function that will be used by the communication manager for receiving data.
     // receiveText FroM  any socket of the node.
     Future bufferReceivingData() async {

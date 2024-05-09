@@ -167,10 +167,10 @@ class CommunicationManager {
             }
           }
           else {
-            print('conneciton close krna he ');
-            _connections.remove(remoteNodeID);
+            print('connection close krna he ');
+            _connections.remove(message);
             print(
-                "Connection for $remoteNodeID has been removed from manager due to closure.");
+                "Connection for $message has been removed from manager due to closure.");
           }
         });
 
