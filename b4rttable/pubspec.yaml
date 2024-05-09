@@ -26,6 +26,9 @@ dev_dependencies:
   # local libraries
   nodeid:
     path: ../nodeid
+  b4commgr:
+    path: ../b4commgr
+
 # The following section is specific to Flutter packages.
 flutter:
 

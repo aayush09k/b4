@@ -35,6 +35,7 @@ class B4connection {
     Function? onClosed; // Callback to execute when the connection is closed.
     Map <Socket,dynamic> eliminate={};
 
+
     //Instance of class used.
     TcpClient tcpClient = TcpClient();
     DataBuffer dataBuffer = DataBuffer();
@@ -107,13 +108,14 @@ class B4connection {
         await tcpClient.receiveSocketsFromCNode((socket) async {
 
             await tcpClient.invokeListening((message, active) {
-
+                Socket? store;
                 if(active){
                     eliminate[socket]=message['myNodeID'];
+                    store =socket;
                 dataBuffer.push(message['message']);
                 onDataReceived(message, socket,active);}
                 else{
-                    onDataReceived(eliminate[message], socket,active);
+                    onDataReceived(eliminate[store], socket,active);
                 }
 
             }, socket);

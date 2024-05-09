@@ -60,7 +60,7 @@ class CommunicationManager {
   }
 
 
-  Future<dynamic> getBufferData() async {
+  String getBufferData()  {
     return bufferData.pull();
   }
 

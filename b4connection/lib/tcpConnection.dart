@@ -170,7 +170,7 @@ class TcpClient {
             },
             onDone: () {
                     // If connection is done from the side of other node then send active=false to the b4connection class to delete the instance of the b4connection.
-                onDataReceived(socket, false);
+                onDataReceived('disconnected', false);
             },
         );
     }

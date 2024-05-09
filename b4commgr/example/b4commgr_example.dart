@@ -50,7 +50,7 @@ void main () async {
 
   await Future.delayed(Duration(seconds: 8));
 
-  var message1 = 'RRT for you';
+  var message1 = 'i am sending  proxy message to  myself ';
   var proxyIP = '35.185.142.164';
   var proxyPORT = 22356;
   var type1 = 'TP';
