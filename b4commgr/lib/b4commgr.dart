@@ -166,11 +166,13 @@ class CommunicationManager {
           else {
             while(true){
               if(_connections[message]==null){break;}
-            _connections.remove(message);
+              _connections.remove(message);
+              print(
+                  "Connection for $message has been removed from manager due to closure.");
             }
-            print(
-                "Connection for $message has been removed from manager due to closure.");
-          }
+
+            }
+
 
         });
 
