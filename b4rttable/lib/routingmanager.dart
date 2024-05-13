@@ -38,7 +38,7 @@ class RoutingManager{
 
         RTfilepath = "${filePath}rttable.json"; // the path where routing table file will be stored as json.
         _localNodeID = LocalNodeID();
-        _localNodeID.nodeid.hashID="097E7DFC3E4616381DACA70A90CDF3C59EA80D32";// we have to get this from auth manager
+        _localNodeID.nodeid.hashID="007E7DFC3E4616381DACA70A90CDF3C59EA80D32";// we have to get this from auth manager
         // Call the init() function when the instance is created
        init();
     }
@@ -124,18 +124,18 @@ String createMessageRM(String RM,String Relay,NodeID myNodeID,String hashID,Stri
            }
 
            // add in this line logic to check for bootstrap
-           //     await sendmessageRM(
-           //         'RM',
-           //         "Relay",
-           //         localNodeID.nodeid,
-           //         "hashID",
-           //         "s",
-           //         "current",
-           //         "R",
-           //         "nodeID",
-           //         "myEndpoint",
-           //         "0",
-           //         'Y'); //it will alsways be bootstrap.
+               await sendmessageRM(
+                   'RM',
+                   "Relay",
+                   localNodeID.nodeid,
+                   "hashID",
+                   "s",
+                   "current",
+                   "R",
+                   "nodeID",
+                   "myEndpoint",
+                   "0",
+                   'Y'); //it will alsways be bootstrap.
 
 
 
@@ -156,7 +156,7 @@ String createMessageRM(String RM,String Relay,NodeID myNodeID,String hashID,Stri
 
      // await manager.sendMessage("35.185.142.164", 22355, "D", "hello psj", "google");
 
-    await manager.sendMessage("35.185.142.164", 22355, "TP", message, "aman");
+    await manager.sendMessage("35.185.142.164", 22355, "D", message, "google");
      // await Future.delayed(Duration(milliseconds: 500));
     //  checkForMessagesCMExecution();
 
