@@ -38,7 +38,7 @@ class RoutingManager{
 
         RTfilepath = "${filePath}rttable.json"; // the path where routing table file will be stored as json.
         _localNodeID = LocalNodeID();
-        _localNodeID.nodeid.hashID="467E7DFC3E4616381DACA70A90CDF3C59EA80D32";// we have to get this from auth manager
+        _localNodeID.nodeid.hashID="567E7DFC3E4616381DACA70A90CDF3C59EA80D32";// we have to get this from auth manager
         // Call the init() function when the instance is created
        init();
     }
@@ -51,7 +51,7 @@ class RoutingManager{
     static RoutingManager? _instance;
 
 
-String createMessageRM(String RM,String Relay,String myNodeID,String hashID,String s,String current,String R,String nodeID,String myEndpoint, String layerID,String reqRT  ){
+String createMessageRM(String RM,String Relay,NodeID myNodeID,String hashID,String s,String current,String R,String nodeID,String myEndpoint, String layerID,String reqRT  ){
 
 
 
@@ -74,10 +74,10 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
     }).toList();
 
    Map<String, dynamic> jsonMyNode = {
-     'pubKey': localNodeID.nodeid.pubKey.toString(),
-     'hashID': localNodeID.nodeid.hashID.toString(),
-     'sign': {'r':localNodeID.nodeid.sign.r.toString(),'s':localNodeID.nodeid.sign.s.toString()}     , // Replace this with actual ECSignature JSON
-     'publicKeyPem': localNodeID.nodeid.publicKeyPem.toString(),
+     'pubKey': myNodeID.pubKey.toString(),
+     'hashID': myNodeID.hashID.toString(),
+     'sign': {'r':myNodeID.sign.r.toString(),'s':myNodeID.sign.s.toString()}     , // Replace this with actual ECSignature JSON
+     'publicKeyPem': myNodeID.publicKeyPem.toString(),
    };
 
    String jsonStringMyNode=jsonEncode(jsonMyNode);
@@ -86,13 +86,13 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
     String jsonNodesString = jsonEncode(jsonRT);
     Map<String,dynamic> messageRM={
 
-        'RM':RM,
-        'Relay':R,
+        'RM':"RM",
+        'Relay':"R",
         'myNodeID': jsonStringMyNode,
         'hashID':hashID,
-        's':s,
+        's':"s",
         'current':current,
-        'R': R,
+        'R': "R",
         'nodeID':nodeID,
         'myEndpoint': myEndpoint,
         'reqRT': 'Y',
@@ -109,7 +109,7 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
 
 
 
-    void init() {
+    Future<void> init() async {
 
         // Check if the file exists
         if (File(filePath).existsSync()) {
@@ -123,19 +123,19 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
 
            }
 
-            // add in this line logic to check for bootstrap
-            //    sendmessageRM(
-            //        'RM',
-            //        "Relay",
-            //        "myNodeID",
-            //        "hashID",
-            //        "s",
-            //        "current",
-            //        "R",
-            //        "nodeID",
-            //        "myEndpoint",
-            //        "0",
-            //        'Y'); //it will alsways be bootstrap.
+           // add in this line logic to check for bootstrap
+           //     await sendmessageRM(
+           //         'RM',
+           //         "Relay",
+           //         localNodeID.nodeid,
+           //         "hashID",
+           //         "s",
+           //         "current",
+           //         "R",
+           //         "nodeID",
+           //         "myEndpoint",
+           //         "0",
+           //         'Y'); //it will alsways be bootstrap.
 
 
 
@@ -143,15 +143,18 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
             // now connect to bootstrap for updated routing table
 
         }
+     //   checkForMessagesCMExecution();
 
 
     }
 
-    Future<void> sendmessageRM(String RM,String Relay,String myNodeID,String hashID,String s,String current,String R,String nodeID,String myEndpoint, String layerID,String reqRT )async {
+    Future<void> sendmessageRM(String RM,String Relay,NodeID myNodeID,String hashID,String s,String current,String R,String nodeID,String myEndpoint, String layerID,String reqRT )async {
       String message;
 
 
-    message=createMessageRM(RM , Relay, myNodeID, hashID, s, current, R, nodeID, myEndpoint,  layerID,reqRT  );
+    message=createMessageRM(RM , Relay, myNodeID, hashID, s, current, R,  nodeID, myEndpoint,  layerID,reqRT  );
+
+     // await manager.sendMessage("35.185.142.164", 22355, "D", "hello psj", "google");
 
     await manager.sendMessage("35.185.142.164", 22355, "D", message, "google");
      // await Future.delayed(Duration(milliseconds: 500));
@@ -161,7 +164,7 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
 
 
 
-    void rMessageRM(String rcvdMessage ){
+    void rMessageRM(dynamic rcvdMessage ){
 
 
       Map<String, dynamic> decodedMessageRM = jsonDecode(rcvdMessage);
@@ -173,8 +176,8 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
       String current= decodedMessageRM['current'];
       String R= decodedMessageRM['R'];
       String nodeID= decodedMessageRM['nodeID'];
-      String Endpoint= decodedMessageRM['Endpoint'];
-      String reqRT= decodedMessageRM['Y'];
+      String Endpoint= decodedMessageRM['myEndpoint'];
+      String reqRT= decodedMessageRM['reqRT'];
       String layerID= decodedMessageRM['layerID'];
       String RT= decodedMessageRM['RT'];
 
@@ -206,13 +209,13 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
 
       if(nodeList!=null && RT=='Y'){
        //mergeTables(newRoutingTable, layerId, rtt);
-        sendmessageRM('RM' , "Relay", "myNodeID", "hashID", "s", "current", "R",  "nodeID", "myEndpoint",  "layerID" ,'N');
+        sendmessageRM('RM' , "Relay", localNodeID.nodeid, "hashID", "s", "current", "R",  "nodeID", "myEndpoint",  "0" ,'N');
       }
 
     }
 
     Future<void> checkForMessagesCMExecution() async{
-      const duration = Duration(seconds: 1); // Adjust duration as needed
+      const duration = Duration(seconds: 5); // Adjust duration as needed
       Timer.periodic(duration, (timer) {
         // This function will be executed periodically
 
@@ -221,7 +224,7 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
     }
 
     void handleForMessages(){
-      String messageFromCMBuffer=manager.getBufferData();
+      dynamic messageFromCMBuffer=manager.getBufferData();
       print(messageFromCMBuffer);
 
       if(messageFromCMBuffer!=null){
