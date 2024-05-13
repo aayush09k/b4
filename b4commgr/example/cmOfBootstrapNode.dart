@@ -8,7 +8,7 @@ import 'package:b4rttable/routingmanager.dart';
 void main () async {
 
   CommunicationManager communicationManager = CommunicationManager();
-  RoutingManager routingManager=RoutingManager.instance;
+
 
 //for getting data from the  common buffer.
   Future<void> getData() async {
@@ -34,6 +34,6 @@ void main () async {
 
 //Now further you can send messages to any nodeID.
 //So here we have simulated the main purpose of communication manager.
-
+  RoutingManager routingManager=RoutingManager.instance;
   await getData();
 }
