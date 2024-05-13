@@ -203,19 +203,20 @@ class TcpClient {
         if (decodedMessage['type'] == 'MP') {
             if (decodedMessage['myNodeID'] != null) {
                 _remoTecNodeSocket[decodedMessage['myNodeID']] = socket;
-                _message = createMessageJson(null, null, null,
+                /*_message = createMessageJson(null, null, null,
                     'I am your proxy server. Share my ip and port for connection.');
-                await relayBackToNode(decodedMessage['myNodeID'], _message);
+                await relayBackToNode(decodedMessage['myNodeID'], _message);*/
             }
         }
         else if (decodedMessage['type'] == 'D') {
+
             if (decodedMessage['myNodeID'] != null) {
                 _remoTecNodeSocket[decodedMessage['myNodeID']] = socket;
-                _message = createMessageJson(
+                /* _message = createMessageJson(
                     null, null,null,
                     'your are connected to me directly',
                 );
-                await relayBackToNode(decodedMessage['myNodeID'], _message);
+                await relayBackToNode(decodedMessage['myNodeID'], _message);*/
             }
         }
         else if (decodedMessage['type'] == 'TP') {
@@ -234,7 +235,7 @@ class TcpClient {
 
                 // By mistake or due to any network issue if some node in relay connection get disconnected from proxy.
                 // Then other peer will got this message below.
-                String toSend = createMessageJson(
+                /*String toSend = createMessageJson(
                     null, null, null,
                     'Other Node is no more connected.',
                 );
@@ -250,7 +251,7 @@ class TcpClient {
                 ];
                 socket.add(lengthBytes);
                 socket.add(messageBytes);
-                socket.flush();
+                socket.flush();*/
             }
         }
     }
