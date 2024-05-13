@@ -124,18 +124,18 @@ String createMessageRM(String RM,String Relay,NodeID myNodeID,String hashID,Stri
            }
 
            // add in this line logic to check for bootstrap
-               await sendmessageRM(
-                   'RM',
-                   "Relay",
-                   localNodeID.nodeid,
-                   "hashID",
-                   "s",
-                   "current",
-                   "R",
-                   "nodeID",
-                   "myEndpoint",
-                   "0",
-                   'Y'); //it will alsways be bootstrap.
+           //     await sendmessageRM(
+           //         'RM',
+           //         "Relay",
+           //         localNodeID.nodeid,
+           //         "hashID",
+           //         "s",
+           //         "current",
+           //         "R",
+           //         "nodeID",
+           //         "myEndpoint",
+           //         "0",
+           //         'Y'); //it will alsways be bootstrap.
 
 
 
