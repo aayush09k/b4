@@ -143,6 +143,7 @@ String createMessageRM(String RM,String Relay,NodeID myNodeID,String hashID,Stri
             // now connect to bootstrap for updated routing table
 
         }
+     //   checkForMessagesCMExecution();
 
 
     }
@@ -157,7 +158,7 @@ String createMessageRM(String RM,String Relay,NodeID myNodeID,String hashID,Stri
 
     await manager.sendMessage("35.185.142.164", 22355, "D", message, "google");
      // await Future.delayed(Duration(milliseconds: 500));
-  //    checkForMessagesCMExecution();
+      checkForMessagesCMExecution();
 
     }
 
