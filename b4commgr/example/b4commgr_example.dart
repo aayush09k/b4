@@ -8,7 +8,7 @@ import 'package:b4rttable/routingmanager.dart';
 void main () async {
 
   CommunicationManager communicationManager = CommunicationManager();
-  RoutingManager routingManager=RoutingManager.instance;
+ // RoutingManager routingManager=RoutingManager.instance;
 
 
   var message = 'RRT';
