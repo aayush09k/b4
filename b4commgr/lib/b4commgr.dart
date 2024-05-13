@@ -6,7 +6,6 @@ import 'package:b4commgr/stungetip.dart';
 import 'package:b4connection/b4connection.dart';
 import 'bufferdata.dart';
 import 'connectivity_monitor.dart';
-import 'webrtcmanager.dart';
 
 
 
@@ -30,7 +29,7 @@ class CommunicationManager {
 
   String? _publicIPv6;
   final Map<String, B4connection> _connections = {};
-  final Map<String, WebRTCManager> _connectionsWebrtc = {};
+  //final Map<String, WebRTCManager> _connectionsWebrtc = {};
   Socket? socket;
   Socket? nodeSocket;
 
@@ -45,7 +44,7 @@ class CommunicationManager {
 
 
     // Check if a connection already exists
-    if (_connectionsWebrtc.containsKey(remoteNodeID)) {
+    /*if (_connectionsWebrtc.containsKey(remoteNodeID)) {
       var iceCandiDateJsonString=_connectionsWebrtc[remoteNodeID]!.getIceCandidates();
       var offer=_connectionsWebrtc[remoteNodeID]!.createOffer();
       Map<dynamic,dynamic> proposal={
@@ -62,7 +61,7 @@ class CommunicationManager {
       var iceCandiDateJsonString=_connectionsWebrtc[remoteNodeID]!.getIceCandidates();
       var offer=_connectionsWebrtc[remoteNodeID]!.createOffer();
       print(offer);
-    }
+    }*/
 
 
 
