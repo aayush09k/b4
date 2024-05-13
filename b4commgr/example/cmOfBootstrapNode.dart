@@ -24,5 +24,7 @@ void main () async {
   await communicationManager.activateNode(
       null, null, listeningPort,2,null);
 
+  await Future.delayed(Duration(seconds: 50));
+  print(communicationManager.getBufferData());
 
 }
