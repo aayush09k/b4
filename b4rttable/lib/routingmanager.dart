@@ -38,7 +38,7 @@ class RoutingManager{
 
         RTfilepath = "${filePath}rttable.json"; // the path where routing table file will be stored as json.
         _localNodeID = LocalNodeID();
-        _localNodeID.nodeid.hashID="777E7DFC3E4616381DACA70A90CDF3C59EA80D32";// we have to get this from auth manager
+        _localNodeID.nodeid.hashID="907E7DFC3E4616381DACA70A90CDF3C59EA80D32";// we have to get this from auth manager
         // Call the init() function when the instance is created
        init();
     }
@@ -164,7 +164,7 @@ String createMessageRM(String RM,String Relay,NodeID myNodeID,String hashID,Stri
 
 
 
-    void rMessageRM(dynamic rcvdMessage ){
+    Future<void> rMessageRM(dynamic rcvdMessage ) async {
 
 
       Map<String, dynamic> decodedMessageRM = jsonDecode(rcvdMessage);
@@ -207,9 +207,13 @@ String createMessageRM(String RM,String Relay,NodeID myNodeID,String hashID,Stri
         }).toList();
       }).toList();
 
+      print("updated node id is");
+      print(routingTables[layerID]!.RoutingTable);
+
       if(  RT=='Y'){
-       //mergeTables(newRoutingTable, layerId, rtt);
-        sendmessageRM('RM' , "D", localNodeID.nodeid, "hashID", "s", "current", "R",  "nodeID", "myEndpoint",  "0" ,'N');
+       print("i am in RT= y");
+
+        await sendmessageRM('RM' , "D", localNodeID.nodeid, "hashID", "s", "current", "R",  "nodeID", "myEndpoint",  "0" ,'N');
       }
 
     }
