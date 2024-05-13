@@ -123,6 +123,25 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
 
            }
 
+            // add in this line logic to check for bootstrap
+            //    sendmessageRM(
+            //        'RM',
+            //        "Relay",
+            //        "myNodeID",
+            //        "hashID",
+            //        "s",
+            //        "current",
+            //        "R",
+            //        "nodeID",
+            //        "myEndpoint",
+            //        "0",
+            //        'Y'); //it will alsways be bootstrap.
+
+
+
+
+            // now connect to bootstrap for updated routing table
+
         }
 
 
@@ -135,7 +154,8 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
     message=createMessageRM(RM , Relay, myNodeID, hashID, s, current, R, nodeID, myEndpoint,  layerID,reqRT  );
 
     await manager.sendMessage("35.185.142.164", 22355, "D", message, "google");
-      await Future.delayed(Duration(milliseconds: 500));
+     // await Future.delayed(Duration(milliseconds: 500));
+      checkForMessagesCMExecution();
 
     }
 
