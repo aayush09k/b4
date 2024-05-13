@@ -38,7 +38,7 @@ class RoutingManager{
 
         RTfilepath = "${filePath}rttable.json"; // the path where routing table file will be stored as json.
         _localNodeID = LocalNodeID();
-        _localNodeID.nodeid.hashID="907E7DFC3E4616381DACA70A90CDF3C59EA80D32";// we have to get this from auth manager
+        _localNodeID.nodeid.hashID="097E7DFC3E4616381DACA70A90CDF3C59EA80D32";// we have to get this from auth manager
         // Call the init() function when the instance is created
        init();
     }
@@ -95,7 +95,7 @@ String createMessageRM(String RM,String Relay,NodeID myNodeID,String hashID,Stri
         'R': "R",
         'nodeID':nodeID,
         'myEndpoint': myEndpoint,
-        'reqRT': 'Y',
+        'reqRT': reqRT,
         'layerID':layerID,
         'RT':jsonNodesString,
 
@@ -195,7 +195,7 @@ String createMessageRM(String RM,String Relay,NodeID myNodeID,String hashID,Stri
           if (jsonNode != null) {
             ECSignature?  sign = ECSignature(BigInt.parse( jsonNode['sign']['r']),BigInt.parse(jsonNode['sign']['s']));
             return NodeID.createFromTable(
-              jsonNode['pubKey'], // Assuming this is how you reconstruct pubKey
+              jsonNode['publicKey'], // Assuming this is how you reconstruct pubKey
               sign,
               jsonNode['hashID'],
                // Assuming this is how you reconstruct sign
@@ -210,7 +210,7 @@ String createMessageRM(String RM,String Relay,NodeID myNodeID,String hashID,Stri
       print("updated node id is");
       print(routingTables[layerID]!.RoutingTable);
 
-      if(  RT=='Y'){
+      if(  reqRT=='Y'){
        print("i am in RT= y");
 
         await sendmessageRM('RM' , "D", localNodeID.nodeid, "hashID", "s", "current", "R",  "nodeID", "myEndpoint",  "0" ,'N');
