@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:b4commgr/stungetip.dart';
@@ -25,22 +27,51 @@ class CommunicationManager {
   DataBuffer bufferData = DataBuffer();
   final monitor = ConnectivityMonitor();
 
-
-  String? _publicIPv4;
-  String? _localIPv4;
-  int? _localPortIPv4;
   String? _publicIPv6;
-
-
   final Map<String, B4connection> _connections = {};
+  //final Map<String, WebRTCManager> _connectionsWebrtc = {};
   Socket? socket;
   Socket? nodeSocket;
+
+  Future startStreaming(remoteNodeID)async{
+
+    Map<String, dynamic> configuration = {
+      "iceServers":
+      [
+        {"url": "stun:stun.l.google.com:19302"},
+      ]
+    };
+
+
+    // Check if a connection already exists
+    /*if (_connectionsWebrtc.containsKey(remoteNodeID)) {
+      var iceCandiDateJsonString=_connectionsWebrtc[remoteNodeID]!.getIceCandidates();
+      var offer=_connectionsWebrtc[remoteNodeID]!.createOffer();
+      Map<dynamic,dynamic> proposal={
+        'iceCandiDateJson':iceCandiDateJsonString,
+         'oFFer':offer,
+      };
+      sendMessage('35.185.142.164',22355, 'TP',jsonEncode(proposal) , remoteNodeID);
+
+    } else {
+      // Create a new connection if it does not exist
+      _connectionsWebrtc[remoteNodeID] = WebRTCManager();
+      _connectionsWebrtc[remoteNodeID]!.initiatingWebrtc();
+      _connectionsWebrtc[remoteNodeID]!.PeerConnection(configuration);
+      var iceCandiDateJsonString=_connectionsWebrtc[remoteNodeID]!.getIceCandidates();
+      var offer=_connectionsWebrtc[remoteNodeID]!.createOffer();
+      print(offer);
+    }*/
+
+
+
+  }
 
 
   Future sendMessage(ip, port, type, message, remoteNodeID) async {
     // Check if a connection already exists
     if (_connections.containsKey(remoteNodeID)) {
-      _connections[remoteNodeID]!.sendMessage(message);
+      _connections[remoteNodeID]!.sendMessage(message, type, remoteNodeID);
     } else {
       // Create a new connection if it does not exist
       _connections[remoteNodeID] = B4connection();
@@ -48,16 +79,17 @@ class CommunicationManager {
       await _connections[remoteNodeID]!.startConnection(
           ip, port, type, remoteNodeID);
 
-      _connections[remoteNodeID]!.sendMessage(message);
-
+      _connections[remoteNodeID]!.sendMessage(message, type, remoteNodeID);
     }
-
-    // Set the onClosed callback
-    _connections[remoteNodeID]!.onClosed = () {
-      _connections.remove(remoteNodeID);
-      print(
-          "Connection for $remoteNodeID has been removed from manager due to closure.");
-    };
+    try {
+      // Set the onClosed callback
+      _connections[remoteNodeID]!.onClosed = () {
+        _connections.remove(remoteNodeID);
+        print(
+            "Connection for $remoteNodeID has been removed from manager due to closure.");
+      };
+    }
+    catch (e) {}
   }
 
 
@@ -109,7 +141,7 @@ class CommunicationManager {
         stunClient.resetIP();
       }
     }
-    await _getAllIpPort();
+    await _getIpv6();
 
 
     if (_publicIPv6 != null) {
@@ -148,14 +180,29 @@ class CommunicationManager {
 
         B4connection b4connection = B4connection();
         await b4connection.startNodeLiseNing(listeningPort);
-         b4connection.getRemoteIdCreationOfInstance((message, socket) async {
-          if (_connections.containsKey(message)) {
-            print('good');
+        b4connection.getRemoteIdCreationOfInstance((nodeId, socket,
+            active) async {
+          if (active) {
+            if (nodeId == null) {}
+            else {
+              if (_connections.containsKey(nodeId)) {
+                print('Instance corresponding to $nodeId is present.');
+              }
+              else {
+                _connections[nodeId] = B4connection();
+                _connections[nodeId]!.setNodeSocket(socket);
+              }
+            }
           }
           else {
-            _connections[message] = B4connection();
-            _connections[message]!.setNodeSocketAndSkip(socket);
-            await _connections[message]!.bufferReceivingData();
+            while (true) {
+              if (_connections[nodeId] == null) {
+                break;
+              }
+              _connections.remove(nodeId);
+              print(
+                  "Connection for $nodeId has been removed from manager due to closure.");
+            }
           }
         });
 
@@ -165,28 +212,12 @@ class CommunicationManager {
   }
 
 
-  //Putting all the ip and port inside the global variables.
-  Future<void> _getAllIpPort() async {
+  Future<void> _getIpv6() async {
     try {
-      if (stunClient.getPublicIPv4() != null) {
-        _localIPv4 = stunClient.getLocalIPv4()!.address;
-        _localPortIPv4 = stunClient.getLocalPortIPv4();
-      }
-
-      if (stunClient.getPublicIPv4() != null) {
-        _publicIPv4 = stunClient.getPublicIPv4()!.address;
-        //_publicPortIPv4 = stunClient.getPublicPortIPv4();
-      }
-
       if (stunClient.getPublicIPv6() != null) {
         _publicIPv6 = stunClient.getPublicIPv6()!.address;
-        // _publicPortIPv6 = stunClient.getPublicPortIPv6();
       }
     }
-    catch (e) {
-      print('error in getting all ports');
-    }
-    // _printAllPort();
+    catch (e) {}
   }
-
 }

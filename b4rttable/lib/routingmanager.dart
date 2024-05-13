@@ -38,7 +38,7 @@ class RoutingManager{
 
         RTfilepath = "${filePath}rttable.json"; // the path where routing table file will be stored as json.
         _localNodeID = LocalNodeID();
-        _localNodeID.nodeid.hashID="367E7DFC3E4616381DACA70A90CDF3C59EA80D32";// we have to get this from auth manager
+        _localNodeID.nodeid.hashID="467E7DFC3E4616381DACA70A90CDF3C59EA80D32";// we have to get this from auth manager
         // Call the init() function when the instance is created
        init();
     }
@@ -122,6 +122,7 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
                routingTables[i.toString()] = B4RoutingTable(localNodeID);
 
            }
+
             // add in this line logic to check for bootstrap
             //    sendmessageRM(
             //        'RM',
