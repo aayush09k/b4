@@ -173,7 +173,7 @@ class CommunicationManager {
     switch (natStatus) {
       case 0:
         print('Behind NAT in ipv4system');
-        await sendMessage(proxyIp, proxyPort, 'MP', 'null', remoteNodeID);
+        await sendMessage(proxyIp, proxyPort, 'MP', 'please accept me', remoteNodeID);
       case 1:
       case 2:
         print('publicly available');
