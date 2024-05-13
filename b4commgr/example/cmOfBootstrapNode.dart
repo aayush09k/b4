@@ -8,7 +8,7 @@ import 'package:b4rttable/routingmanager.dart';
 void main () async {
 
   CommunicationManager communicationManager = CommunicationManager();
-  //RoutingManager routingManager=RoutingManager.instance;
+  RoutingManager routingManager=RoutingManager.instance;
 
 
 // Then give the stunIp and Port to identify the network environment.
@@ -18,12 +18,7 @@ void main () async {
       stunIp, stunPort);
   print(natStatus);
 
-  //for getting data from the  common buffer.
-  Future<void> getData() async {
-    Timer.periodic(Duration(seconds: 3), (timer) async {
-      print(await communicationManager.getBufferData());
-    });
-  }
+
 
 // According to the natStatus you need to activate the node.
 // If you are public node then no need to give the  proxyIp, proxyPort.
@@ -31,7 +26,6 @@ void main () async {
   await communicationManager.activateNode(
       null, null, listeningPort,2,null);
 
-  await Future.delayed(Duration(seconds: 50));
-  await getData();
+
 
 }
