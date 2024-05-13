@@ -122,20 +122,20 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
                routingTables[i.toString()] = B4RoutingTable(localNodeID);
 
            }
-             if(localNodeID.nodeid.hashID!="467E7DFC3E4616381DACA70A90CDF3C59EA80D32") {// add in this line logic to check for bootstrap
-               sendmessageRM(
-                   'RM',
-                   "Relay",
-                   "myNodeID",
-                   "hashID",
-                   "s",
-                   "current",
-                   "R",
-                   "nodeID",
-                   "myEndpoint",
-                   "0",
-                   'Y'); //it will alsways be bootstrap.
-             }
+            // add in this line logic to check for bootstrap
+            //    sendmessageRM(
+            //        'RM',
+            //        "Relay",
+            //        "myNodeID",
+            //        "hashID",
+            //        "s",
+            //        "current",
+            //        "R",
+            //        "nodeID",
+            //        "myEndpoint",
+            //        "0",
+            //        'Y'); //it will alsways be bootstrap.
+
 
 
 
@@ -153,7 +153,8 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
     message=createMessageRM(RM , Relay, myNodeID, hashID, s, current, R, nodeID, myEndpoint,  layerID,reqRT  );
 
     await manager.sendMessage("35.185.142.164", 22355, "D", message, "google");
-      await Future.delayed(Duration(milliseconds: 500));
+     // await Future.delayed(Duration(milliseconds: 500));
+      checkForMessagesCMExecution();
 
     }
 
