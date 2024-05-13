@@ -2,11 +2,13 @@
 import 'dart:async';
 
 import 'package:b4commgr/b4commgr.dart';
+import 'package:b4rttable/b4rttable.dart';
+import 'package:b4rttable/routingmanager.dart';
 
 void main () async {
 
   CommunicationManager communicationManager = CommunicationManager();
-
+  RoutingManager routingManager=RoutingManager.instance;
 
 //for getting data from the  common buffer.
   Future<void> getData() async {

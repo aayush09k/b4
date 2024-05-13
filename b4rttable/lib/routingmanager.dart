@@ -122,7 +122,6 @@ String createMessageRM(String RM,String Relay,String myNodeID,String hashID,Stri
                routingTables[i.toString()] = B4RoutingTable(localNodeID);
 
            }
-            // now connect to bootstrap for updated routing table
 
         }
 
