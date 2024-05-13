@@ -16,6 +16,8 @@ dependencies:
 dev_dependencies:
   lints: ^3.0.0
   test: ^1.24.0
+  flutter_webrtc: ^0.10.4
+  sdp_transform: ^0.3.2
 
  # local libraries
   b4connection:

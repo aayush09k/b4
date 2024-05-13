@@ -1,12 +1,12 @@
 import 'dart:convert';
-import 'dart:html'as html;
-import 'dart:typed_data';
+
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:sdp_transform/sdp_transform.dart';
 import 'dart:async';
-import 'b4connection.dart';
+
 
 class WebRTCManager {
+
 //declaration of variables
   bool offer = false;
   String msg = 'hi i have sent you this message from my macbook';
@@ -16,9 +16,9 @@ class WebRTCManager {
   RTCVideoRenderer remoteRenderer = RTCVideoRenderer(); //In the context of WebRTC, it's commonly used to display video streams - both the local stream (from your device's camera) and the remote stream (from the remote peer).
   RTCDataChannelInit data = RTCDataChannelInit();
   RTCDataChannel? dataChannel;
-  List applecandidate = [];
-  RTCDataChannel? remotechannel;
-  String? sessionoffer;
+  RTCDataChannel? remoteChannel;
+  String? sessionOffer;
+  String? iceCandidateJson;
 
   void initiatingWebrtc() {
     _initRenderers();
@@ -31,13 +31,8 @@ class WebRTCManager {
   }
 
   // function for creating instance and initiate the RTCpeerconnection.
-  Future<void> PeerConnection() async {
-    Map<String, dynamic> configuration = {
-      "iceServers":
-      [
-        {"url": "stun:stun.l.google.com:19302"},
-      ]
-    };
+  Future<void> PeerConnection(configuration) async {
+
 
     final Map<String, dynamic> offerSdpConstraints = {
       "mandatory":
@@ -66,7 +61,7 @@ class WebRTCManager {
 
     //for receiving message
     pc.onDataChannel = (h) {
-      remotechannel = h;
+      remoteChannel = h;
       dataChannel.send(RTCDataChannelMessage(msg));
       print('channel is received:${h.label}');
       h.onMessage = (e) {
@@ -81,14 +76,17 @@ class WebRTCManager {
 
     //for getting ice candidates
     pc.onIceCandidate = (e) {
-      if (e.candidate != null) {
-        applecandidate.add(e.candidate);
-      }
+
       print(json.encode({
         'candidate': e.candidate.toString(),
         'sdpMid': e.sdpMid.toString(),
         'sdpMlineIndex': e.sdpMLineIndex,
       }));
+      iceCandidateJson= json.encode({
+        'candidate': e.candidate.toString(),
+        'sdpMid': e.sdpMid.toString(),
+        'sdpMlineIndex': e.sdpMLineIndex,
+      });
     };
 
     //for ice connection state
@@ -112,7 +110,7 @@ class WebRTCManager {
       remoteRenderer.srcObject = stream;
     };
 
-    peerConnection = pc;
+
   }
 
   //function for capturing user media.
@@ -130,45 +128,30 @@ class WebRTCManager {
     return stream;
   }
 
+  String? getIceCandidates()=>iceCandidateJson;
+
   //for creating sdp offer.
-  Future<void> createoffer() async {
+  Future<String> createOffer() async {
     RTCSessionDescription description = await peerConnection!.createOffer(
         {'offerToReceiveVideo': 1});
     var session = parse(description.sdp.toString());
     offer = true;
     peerConnection?.setLocalDescription(
         description); // To set the sdp as local description.
-    sessionoffer = json.encode(session);
+    sessionOffer = json.encode(session);
     print(json.encode(session));
-    //for downloading the offer file .
-    /*var filename='offer_from_mac';
-        final bytes = Uint8List.fromList(utf8.encode(json.encode(session)));
-        final blob = html.Blob([bytes]);
-        final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.AnchorElement(href: url)
-          ..setAttribute("download",filename)
-          ..click();
-        html.Url.revokeObjectUrl(url);*/
-
+    return jsonEncode(session);
   }
 
   //for creation of answer.
-  Future<void> createanswer() async {
+  Future<String> createAnswer() async {
     RTCSessionDescription description = await peerConnection!.createAnswer(
         {'offerToReceiveVideo': 1});
     var session = parse(description.sdp.toString());
+
     peerConnection?.setLocalDescription(
         description); // To set the local description.
-
-    //To download the answer.
-    var filename = 'answer_from_mac';
-    final bytes = Uint8List.fromList(utf8.encode(json.encode(session)));
-    final blob = html.Blob([bytes]);
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.AnchorElement(href: url)
-      ..setAttribute("download", filename)
-      ..click();
-    html.Url.revokeObjectUrl(url);
+return  jsonEncode(session);
   }
 
   //To set the remote peer sdp as remote description . it tells us that what remote peer is capable of .
@@ -197,7 +180,7 @@ class WebRTCManager {
   }
 
   // for close connection.
-  void closeconnection() {
+  void closeConnection() {
     peerConnection!.close();
   }
 

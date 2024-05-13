@@ -2,10 +2,14 @@
 import 'dart:async';
 
 import 'package:b4commgr/b4commgr.dart';
+import 'package:b4rttable/b4rttable.dart';
+import 'package:b4rttable/routingmanager.dart';
 
 void main () async {
 
   CommunicationManager communicationManager = CommunicationManager();
+  RoutingManager routingManager=RoutingManager.instance;
+
 
   var message = 'RRT';
   var bootstrapIp = '35.185.142.164';
@@ -13,6 +17,7 @@ void main () async {
   var type = 'D';
   var remoteNodeId = 'google';
 
+ await  communicationManager.startStreaming(remoteNodeId);
 
 // In the starting of the B4olm you need to Send RT request to the bootstrapNode.
   await communicationManager.sendMessage(
