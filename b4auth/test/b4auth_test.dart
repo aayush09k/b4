@@ -12,6 +12,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:mockito/mockito.dart';
 import 'package:nodeid/nodeid.dart';
 import 'package:pointycastle/api.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
+
 
 
 Future<void> main() async {
@@ -33,51 +35,37 @@ Future<void> main() async {
   //String email = 'billabond@gmail.com';
   String otp = "01234567";
 
-  String dn1country = " mickey ";
-  String dn2organization = " goofy ";
-  String dn3commonName = " donald ";
-  String dn4surname = " pluto ";
-  String dn5stateOrProvinceName = "daffy ";
-  String dn6givenName = " 989800764523 ";
-  String dn7userID = "singh.inderpal.86@gmail.com ";
 
-  
-  
-  test('generate the initial certificates for saving  ', () async {
+  test('generate the initial user certificate for saving  ', () async {
     myObject.generateSelfSignedUserCertificate(country, organization, commonName, surname,
         stateOrProvinceName, givenName, userID);
-    String serverCertificate = '';
-    String serverPrivateKey = '';
-    String serverPublicKey = '';
+
+    final userCert = generatedCertificate?.x509cert;
+    File('C:\\Users\\HP\\Desktop\\b4testdata\\userSelfSignedCertificate.pem').writeAsStringSync(userCert!);
+    final userPrivateKey = generatedCertificate?.privateKeyPem;
+    File('C:\\Users\\HP\\Desktop\\b4testdata\\userPrivateKey.pem').writeAsStringSync(userPrivateKey!);
+    final userCertRead =File('C:\\Users\\HP\\Desktop\\b4testdata\\userSelfSignedCertificate.pem').readAsStringSync();
+    final userPrivateKeyRead =File('C:\\Users\\HP\\Desktop\\b4testdata\\userPrivateKey.pem').readAsStringSync();
+    print('user self signed cert : $userCertRead');
+    print('user private key : $userPrivateKeyRead');
+    expect(userCert, userCertRead);
+    expect(userPrivateKey, userPrivateKeyRead);
+
+
+   // String serverCertificate = '';
+   // String serverPrivateKey = '';
+   // String serverPublicKey = '';
 
     /// Now here we write these files in local storage so that we can later on read and use them in other functions
     /// by emulating that we are reading from a secure storage. Currently the files are not encrypted. We will
     /// use these same files with different names with respect to the context of the function
-    myObject.saveToLocalStorage(serverCertificate,serverPrivateKey,serverPublicKey,
-        'C:\\Users\\HP\\Desktop\\b4testdata\\serverCertificate.pem',
-        'C:\\Users\\HP\\Desktop\\b4testdata\\serverPrivateKey.pem',
-        'C:\\Users\\HP\\Desktop\\b4testdata\\serverPublicKey.pem');
+   // myObject.saveToLocalStorage(serverCertificate,serverPrivateKey,serverPublicKey,
+       // 'C:\\Users\\HP\\Desktop\\b4testdata\\serverCertificate.pem',
+       // 'C:\\Users\\HP\\Desktop\\b4testdata\\serverPrivateKey.pem',
+       // 'C:\\Users\\HP\\Desktop\\b4testdata\\serverPublicKey.pem');
   });
 
-
-    //final privateKeyPemDecrypted = generatedCertificate?.privateKeyPem;
-    //final publicKeyPemDecrypted = generatedCertificate?.publicKeyPem;
-    final decryptedCertificate = generatedCertificate?.x509cert;
-    //final decryptedHash = generatedCertificate?.certHash;
-    final userCsr = generatedCertificate?.csr;
-
-
-
-
-
-
-  /// Server certificate verification for authenticity
-  //final privateFuture = myObject.readFromLocalStorage(LocalStorageValueType.serverPrivateKey);
-  //final serverPrivateKeyPemToSign = await privateFuture;
-  //final serverPrivateKeyToSign = crypto_utils.CryptoUtils.ecPrivateKeyFromPem(serverPrivateKeyPemToSign);
-  //final userSignedCertificate = x509.X509Utils.generateSelfSignedCertificate(serverPrivateKeyToSign, userCsr!, 365);
-
-  test('server signature validation', () async {
+   test('server signature validation', () async {
     final serverSignedCertificate =File('C:\\Users\\HP\\Desktop\\b4testdata\\serverSignedCertificateFromAuthServer.pem').readAsStringSync();
     //print('signed cert read is :$serverSignedCertificate');
     final serverCertificate =File('C:\\Users\\HP\\Desktop\\b4testdata\\b4AuthServerCertificate.pem').readAsStringSync();
@@ -87,37 +75,26 @@ Future<void> main() async {
     expect(certificateServerSignatureVerification, true);
   });
 
-
-/// validity check of certificate for expiry. for testing we are using the same certificate because we want to
-  /// emulate the effect that we are getting a decrypted certificate from flutter secure storage
-  //final data1Future = myObject.readFromLocalStorage(LocalStorageValueType.serverCertificate);
-  //final decryptedServerSignedCertificate = await data1Future;// actually this certificate is encrypted by passkey and its
-  // hash has also been generated and stored in auth storage package
-
   test('certificate expiry verification', () async {
 final decryptedServerSignedCertificate =File('C:\\Users\\HP\\Desktop\\b4testdata\\serverSignedCertificateFromAuthServer.pem').readAsStringSync();
         final isValid = await myObject.validateTime(decryptedServerSignedCertificate);
       expect(isValid, true);
           });
 
-
   ///digital signature verify
-
   test('digital signature check', () async {
     //final data2Future = myObject.readFromLocalStorage(LocalStorageValueType.serverPrivateKey);
-    final privateKeyPemDecrypted = File('C:\\Users\\HP\\Desktop\\b4testdata\\serverPrivateKey.pem').readAsStringSync();
+    final privateKeyPemDecrypted = File('C:\\Users\\HP\\Desktop\\b4testdata\\userPrivateKey.pem').readAsStringSync();
     final digitalSignature = await myObject.createDigitalSignature(content, privateKeyPemDecrypted);
+    final userCert = File('C:\\Users\\HP\\Desktop\\b4testdata\\userSelfSignedCertificate.pem').readAsStringSync();
     //final data3Future = myObject.readFromLocalStorage(LocalStorageValueType.serverPublicKey);
     //final publicKeyPemDecrypted = await data3Future;
-    final publicKeyPemDecrypted = File('C:\\Users\\HP\\Desktop\\b4testdata\\serverPublicKey.pem').readAsStringSync();
+    final publicKeyPemDecrypted = await myObject.extractPublicKeyFromCertificate(userCert);
     final publicKey = crypto_utils.CryptoUtils.ecPublicKeyFromPem(publicKeyPemDecrypted);
     Uint8List dataToVerify = Uint8List.fromList(utf8.encode(content));
     bool isSignatureValid = crypto_utils.CryptoUtils.ecVerifyBase64(publicKey ,dataToVerify,digitalSignature);
     expect(isSignatureValid, true);
   });
-
-
-
 
 
       /// Check email presence in server database
@@ -130,38 +107,27 @@ final decryptedServerSignedCertificate =File('C:\\Users\\HP\\Desktop\\b4testdata
     });
 
 
-
   /// send self signed certificate to server
  test('send self signed certificate to server', () async {
     //var respFuture = myObject.verifyEmailInServerDatabase(email);
   // final selfSignedCertFuture = myObject.readFromLocalStorage(LocalStorageValueType.serverCertificate);
    //final selfSignedCertificate = await selfSignedCertFuture;
-   final selfSignedCertificate =File('C:\\Users\\HP\\Desktop\\b4testdata\\serverCertificate.pem').readAsStringSync();
+   final selfSignedCertificate =File('C:\\Users\\HP\\Desktop\\b4testdata\\userSelfSignedCertificate.pem').readAsStringSync();
     final responseAfterSendingCertificate = myObject.sendSelfSignedCertificateToServer(selfSignedCertificate);
     print('Response from server is : $responseAfterSendingCertificate');
     //expect(resp == '14', true);
   });
 
 
-
-  test('generate node id and save in storage', () async {
-  final nodeId = await myObject.getNodeId();
-  print('node id generated and saved is :$nodeId');
-  var nodeIdFuture = myObject.readFromLocalStorage(LocalStorageValueType.nodeid);
-  var nodeIdRead = await nodeIdFuture; // Wait for the future to complete
-  print('node id read  is :$nodeIdRead');
-  expect(nodeIdRead, nodeId);
-});
-
  /// send otp, device id(MAC Address), node id, self signed certificate
   /// to auth server and in response receive the signed certificate from server
   test('send otp, device id, node id and self signed certificate to server', () async{
-
-   final decryptedSelfSignedCertificate = File('C:\\Users\\HP\\Desktop\\b4testdata\\serverCertificate.pem').readAsStringSync();
+String nodeId = '5211CFBDE65267453631FB0B29B6A785390EA3AF'; // for testing only, actual node id will be read by getNodeId function in auth storage and then passed to this function
+   final decryptedSelfSignedCertificate = File('C:\\Users\\HP\\Desktop\\b4testdata\\userSelfSignedCertificate.pem').readAsStringSync();
    final dataMap = await myObject.sendOtpNodeIdDeviceIdSelfSignedCertificateToServer
-     (otp, decryptedSelfSignedCertificate);
-   final signedCertificatePem = dataMap['signed certificate'];
-   final serverCertificatePem = dataMap['server certificate'];
+     (otp, decryptedSelfSignedCertificate, nodeId);
+   final signedCertificatePem = dataMap['signedCertificate'];
+   final serverCertificatePem = dataMap['serverCertificate'];
 
    //print('signed cert recd is :$signedCertificateReceived');
    expect(signedCertificatePem, isNotNull);
@@ -169,16 +135,14 @@ final decryptedServerSignedCertificate =File('C:\\Users\\HP\\Desktop\\b4testdata
 
  });
 
-      test('extract email and public key from certificate', () async {
+   test('extract public key from certificate', () async {
     final serverSignedCertificate = File('C:\\Users\\HP\\Desktop\\b4testdata\\serverSignedCertificateFromAuthServer.pem').readAsStringSync();
     final publicKeyPem = await myObject.extractPublicKeyFromCertificate(serverSignedCertificate);
     //print('public key read is : $publicKeyPem');
     expect(publicKeyPem, isNotNull);
   });
 
-
-
-        test('generate random key ', ()  async {
+   test('generate random key, encrypt and decrypt data with symmetric random key ', ()  async {
        String random1 = await myObject.generateRandomNumber();
        String random2 = await myObject.generateRandomNumber();
        final randomKey = await myObject.generateRandomKey(random1, random2);
@@ -189,7 +153,7 @@ final decryptedServerSignedCertificate =File('C:\\Users\\HP\\Desktop\\b4testdata
        expect(decryptedData,'This is test data to encrypt and decrypt by random key generated by two random numbers' );
      });
 
-                    test('encrypt and decrypt by ECC public and private key', () async {
+   test('encrypt and decrypt by ECC public and private key', () async {
     String data = 'ECC Test data FROM USER1 TO USER2';
     final user1PrivateKeyPem = File('C:\\Users\\HP\\Desktop\\b4testdata\\user1PrivateKey.pem').readAsStringSync();
     final user1PublicKeyPem = File('C:\\Users\\HP\\Desktop\\b4testdata\\user1PublicKey.pem').readAsStringSync();
@@ -209,8 +173,7 @@ final decryptedServerSignedCertificate =File('C:\\Users\\HP\\Desktop\\b4testdata
   });
 
 
-
-test('complete key exchange and encryption scenario', () async{
+ test('complete key exchange and encryption scenario', () async{
   final user1PrivateKeyPem = File('C:\\Users\\HP\\Desktop\\b4testdata\\user1PrivateKey.pem').readAsStringSync();
   final user1PublicKeyPem = File('C:\\Users\\HP\\Desktop\\b4testdata\\user1PublicKey.pem').readAsStringSync();
   final user2PublicKeyPem = File('C:\\Users\\HP\\Desktop\\b4testdata\\user2PublicKey.pem').readAsStringSync();
@@ -221,30 +184,30 @@ test('complete key exchange and encryption scenario', () async{
 
   /// Sender generates random number 1 , encrypts it and sends it to receiver
 String random1 = await myObject.generateRandomNumber();
-print('random num 1 : $random1');
+//print('random num 1 : $random1');
 final encryptRandom1 = await myObject.encryptWithEcc(random1,user2PublicKeyPem, user1PrivateKeyPem);
 
 /// receiver decrypts the random number 1
 final decryptRandom1 = await myObject.decryptWithEcc(encryptRandom1,user2PrivateKeyPem, user1PublicKeyPem);
-  print('random num 1 received at receiver : $decryptRandom1');
+  //print('random num 1 received at receiver : $decryptRandom1');
 
   /// receiver encrypts the random num 1 again and sends it back to sender
   final encryptRandom1Received = await myObject.encryptWithEcc(decryptRandom1,user1PublicKeyPem, user2PrivateKeyPem);
 
   /// sender receives back the same random num 1 , so verification is done.
   final decryptRandom1Received = await myObject.decryptWithEcc(encryptRandom1Received,user1PrivateKeyPem, user2PublicKeyPem);
-  print('random num 1 received back at sender : $decryptRandom1Received');
+  //print('random num 1 received back at sender : $decryptRandom1Received');
   expect(random1, decryptRandom1Received);
 
 
   /// Receiver generates random number 2, encrypts it and sends it to sender.
   String random2 = await myObject.generateRandomNumber();
-  print('random num 2 : $random2');
+  //print('random num 2 : $random2');
   final encryptRandom2 = await myObject.encryptWithEcc(random2,user1PublicKeyPem, user2PrivateKeyPem);
 
   /// sender receives random number 2 , decrypts it and gets random number 2.
   final decryptRandom2 = await myObject.decryptWithEcc(encryptRandom2,user1PrivateKeyPem, user2PublicKeyPem);
-  print('random num 2 received at sender : $decryptRandom2');
+  //print('random num 2 received at sender : $decryptRandom2');
 
 
   /// sender encrypts random number 2 and sends it back to the receiver
@@ -252,19 +215,19 @@ final decryptRandom1 = await myObject.decryptWithEcc(encryptRandom1,user2Private
 
   /// receiver receives back the same random num 2 , so verification is done.
   final decryptRandom2Received = await myObject.decryptWithEcc(encryptRandom2Received,user2PrivateKeyPem, user1PublicKeyPem);
-  print('random num 2 received back at receiver : $decryptRandom2Received');
+  //print('random num 2 received back at receiver : $decryptRandom2Received');
   expect(random2, decryptRandom2Received);
 
 
   /// sender generates symmetric key by help of random number 1 which it receives back from the receiver
   /// which should be same random number 1 and random number 2 received from the receiver.
   final randomKeyAtSender = await myObject.generateRandomKey(decryptRandom1Received, decryptRandom2);
-  print('symmetric key generated at sender : $randomKeyAtSender');
+  //print('symmetric key generated at sender : $randomKeyAtSender');
 
   /// receiver generates symmetric key by help of random number 2 which it receives back from the sender
   /// which should be same random number 2 and random number 1 received from the sender.
   final randomKeyAtReceiver = await myObject.generateRandomKey(decryptRandom2Received, decryptRandom1);
-  print('symmetric key generated at receiver : $randomKeyAtReceiver');
+    //print('symmetric key generated at receiver : $randomKeyAtReceiver');
 
   /// The symmetric random key generated at both ends independently must be same
   expect(randomKeyAtSender, randomKeyAtReceiver);
@@ -277,28 +240,72 @@ final decryptRandom1 = await myObject.decryptWithEcc(encryptRandom1,user2Private
 
   /// Use the symmetric key generated at receiver to decrypt data
   final decryptedTestData = await myObject.decryptDataWithRandomKey(encryptedTestData, randomKeyAtReceiver);
-  print('decryptedTestData : $decryptedTestData');
+ // print('decryptedTestData : $decryptedTestData');
   expect(decryptedTestData, 'test data for encryption and decryption by symmetric key');
-
 
 });
 
 
+ /// test for payment gateway
+     test('payment gateway', () async{
+double amount = 100;
+String order_Id = 'order_123456';
+String name = 'myName';
+String description = 'cert fees';
+String apiKey = 'rzp_test_Gn4mHYXdab9rfw';
+final response = await myObject.paymentInitiation(amount, order_Id, name, description, apiKey);
+print('resp is : $response');
+expect(response, isNotNull);
 
-  //test('generate two users for mutual authentication', () async{myObject.genUsersForMutAuth();});
 
 
 
 
+  });
 
-  /// hash check for certificate tampering
-  /*final verifyHash = await myObject.verifyHash(decryptedCertificate!, decryptedHash!);
+
+ // test('generate two users for mutual authentication', () async{myObject.genUsersForMutAuth();});
+
+
+}
+
+
+
+
+/// hash check for certificate tampering
+/*final verifyHash = await myObject.verifyHash(decryptedCertificate!, decryptedHash!);
     test('verification of cert for tampering', () {
       expect(verifyHash, true);
     });*/
 
 
-}
+String dn1country = " mickey ";
+String dn2organization = " goofy ";
+String dn3commonName = " donald ";
+String dn4surname = " pluto ";
+String dn5stateOrProvinceName = "daffy ";
+String dn6givenName = " 989800764523 ";
+String dn7userID = "singh.inderpal.86@gmail.com ";
+
+/// Server certificate verification for authenticity
+//final privateFuture = myObject.readFromLocalStorage(LocalStorageValueType.serverPrivateKey);
+//final serverPrivateKeyPemToSign = await privateFuture;
+//final serverPrivateKeyToSign = crypto_utils.CryptoUtils.ecPrivateKeyFromPem(serverPrivateKeyPemToSign);
+//final userSignedCertificate = x509.X509Utils.generateSelfSignedCertificate(serverPrivateKeyToSign, userCsr!, 365);
+
+
+/// validity check of certificate for expiry. for testing we are using the same certificate because we want to
+/// emulate the effect that we are getting a decrypted certificate from flutter secure storage
+//final data1Future = myObject.readFromLocalStorage(LocalStorageValueType.serverCertificate);
+//final decryptedServerSignedCertificate = await data1Future;// actually this certificate is encrypted by passkey and its
+// hash has also been generated and stored in auth storage package
+//final privateKeyPemDecrypted = generatedCertificate?.privateKeyPem;
+//final publicKeyPemDecrypted = generatedCertificate?.publicKeyPem;
+// final decryptedCertificate = generatedCertificate?.x509cert;
+//final decryptedHash = generatedCertificate?.certHash;
+//final userCsr = generatedCertificate?.csr;
+
+
 
 
 /* test('server signed certificate generated', () async{
@@ -322,3 +329,12 @@ final decryptRandom1 = await myObject.decryptWithEcc(encryptRandom1,user2Private
     print('Client email : $clientemail');
     expect(serverSignedCertificate, isNotNull);
   });*/
+
+/*test('generate node id and save in storage', () async {
+  final nodeId = await myObject.getNodeId();
+  print('node id generated and saved is :$nodeId');
+  var nodeIdFuture = myObject.readFromLocalStorage(LocalStorageValueType.nodeid);
+  var nodeIdRead = await nodeIdFuture; // Wait for the future to complete
+  print('node id read  is :$nodeIdRead');
+  expect(nodeIdRead, nodeId);
+});*/
