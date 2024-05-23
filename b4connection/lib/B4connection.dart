@@ -4,15 +4,15 @@ import 'tcpConnection.dart';
 import 'package:b4commgr/bufferdata.dart';
 
 class B4connection {
-// This class is used to 
-// 1. setup connection to other nodes directly or via their relays. For each other nodeID,
-//  a separate connection instance is to be created, as connection is bound to nodeID of other node.
-// 2. setup a server, either directly or via current nodes relay (root in non-NATed DHT) for IPv4
-// 3. setup a server, either directly or via current nodes relay (root in non-NATed DHT) for IPv4
-// 4. socket received from the client type node will create a b4connection instance and set its private variable
-// _nodeIdSocket=received socket, hence this can be further used for send and disconnect.
-// 5. Sending message to other node as configured in the connection.
-// 6. Receiving message from other node as configured in the connection.
+// This class is used to
+// 1. Establish a complete communication pathway between nodes,
+//    either with direct connections or by utilising their reRouter nodes.
+// 2. to setup a server.
+// 3. setup a listener for sockets and corresponding nodeId.
+// 3. Setup a listener to receive incoming messages, either directly or through a reRouter node.
+// 5. Send message to other node as configured in the connection.
+// 6. Receive message from other node as configured in the connection and add received messages in the common buffer rof cm module.
+
 
 
     //Declaration of all required variables.
@@ -63,7 +63,7 @@ class B4connection {
 
         _nodeIdSocket = await tcpClient.connect(targetIp, targetPort);
 
-        await bufferReceivingData();
+        await _bufferReceivingData();
 
         return _nodeIdSocket;
     }
@@ -81,9 +81,9 @@ class B4connection {
     }
 
 
-    // A callback function that will be used by the communication manager for receiving data.
-    // receiveText FroM  any socket of the node.
-    Future bufferReceivingData() async {
+
+    // Listen data on socket.Received data put in common buffer of the CM module.
+    Future _bufferReceivingData() async {
         if (_nodeIdSocket != null) {
             await tcpClient.invokeListening((dynamic text, active) {
                 if (!active) {
@@ -96,14 +96,13 @@ class B4connection {
         }
     }
 
-   // Whenever we receive socket from the any cNode we create a b4connection instance in CM corresponding to that nodeID.
-    // then we set _nodeIdSocket fo created instance =socket received.
+
     void setNodeSocket(Socket socket) {
         _nodeIdSocket = socket;
     }
 
-    // It listen for the receiving socket and help CM to create new instance correspond to the received socket and nodeId.
-    Future getRemoteIdCreationOfInstance(
+    // It listen for the receiving socket and Corresponding NodeId and help CM to create new instance correspond to the received nodeId.
+    Future receiveSocketAndCorrespondingNodeID(
         Function(dynamic message, Socket socket,bool active) onDataReceived) async {
         Socket? store;
         await tcpClient.receiveSocketsFromCNode((socket) async {
@@ -170,7 +169,7 @@ class B4connection {
         }
     }
 
-
+  //Use to start server .
     Future<void> startNodeLiseNing(listeningPort) async {
          await tcpClient.startASsNode(listeningPort);
     }
