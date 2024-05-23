@@ -8,7 +8,7 @@ class ConnectivityMonitor {
 
     Stream<List<NetworkInterface>> get onConnectivityChanged => _controller.stream;
 
-    ConnectivityMonitor({Duration checkInterval = const Duration(seconds: 1)}) {
+    ConnectivityMonitor({Duration checkInterval = const Duration(microseconds: 1)}) {
         _timer = Timer.periodic(checkInterval, (timer) async {
             _checkInterfaces();
         });
