@@ -18,6 +18,8 @@ class NodeID {
     dynamic pvtKey = keyPair.privateKey;
     sign = CryptoUtils.ecSign(pvtKey, unit8List);
   }
+
+  NodeID.createFromTable(this.publicKeyPem,this.sign,this.hashID,this.pubKey);
 }
 
 class LocalNodeID {
