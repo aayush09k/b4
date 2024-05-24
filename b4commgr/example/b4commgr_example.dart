@@ -20,7 +20,7 @@ void main () async {
  //await  communicationManager.startStreaming(remoteNodeId);
 
 // In the starting of the B4olm you need to Send RT request to the bootstrapNode.
-  await communicationManager.sendMessage(
+  await communicationManager.communicate(
       bootstrapIp, bootstrapPort, type, message, remoteNodeId);
 
 
@@ -64,7 +64,7 @@ void main () async {
 
 
 // Now we are relaying  data to "remoteNodeId1 " because it is behind NAT.
-  await communicationManager.sendMessage(
+  await communicationManager.communicate(
       proxyIP, proxyPORT, type1, message1, remoteNodeId1);
 
   await Future.delayed(Duration(seconds: 5));
@@ -77,7 +77,7 @@ void main () async {
 
 
 // Now we are relaying  data to "remoteNodeId1 " because it is behind NAT.
-  await communicationManager.sendMessage(
+  await communicationManager.communicate(
       proxyIP2, proxyPORT2, type12, message2, remoteNodeId12);
 
   await Future.delayed(Duration(seconds: 10));

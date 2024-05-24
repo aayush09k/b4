@@ -10,7 +10,7 @@ void main() {
     var proxyPort = 22355;
     var type = 'TP';
     var remoteNodeId = 'linux';
-    await communicationManager.sendMessage(
+    await communicationManager.communicate(
         proxyIp, proxyPort, type, message, remoteNodeId);
 
     // Very important thing ,you need to handle the buffer data in asynchronous way otherwise it
@@ -27,7 +27,7 @@ void main() {
     var publicPort = 22356;
     var type = 'D';
     var remoteNodeId = 'linux';
-    await communicationManager.sendMessage(
+    await communicationManager.communicate(
         publicIp, publicPort, type, message, remoteNodeId);
     while (true) {
       await Future.delayed(Duration(seconds: 3));
@@ -41,7 +41,7 @@ void main() {
     var proxyPort = 22356;
     var type = 'MP';
     var remoteNodeId = 'linux';
-    await communicationManager.sendMessage(
+    await communicationManager.communicate(
         proxyIp, proxyPort, type, message, remoteNodeId);
 
     while (true) {
@@ -58,7 +58,7 @@ void main() {
     var type = 'MP';
     var remoteNodeId = 'linux';
     //sendMessage function of singleton class.
-    await communicationManager.sendMessage(
+    await communicationManager.communicate(
         proxyIp, proxyPort, type, message, remoteNodeId);
 
     //for getting data from the  common buffer.
@@ -79,7 +79,7 @@ void main() {
     var proxyPort2 = 22355;
     var type2 = 'D';
     var remoteNodeId2 = 'linux';
-    await communicationManager.sendMessage(
+    await communicationManager.communicate(
         proxyIp2, proxyPort2, type2, message2, remoteNodeId2);
     await getData();
   }
@@ -94,7 +94,7 @@ void main() {
     var remoteNodeId = 'google';
 
     // In the starting of the B4olm you need to Send RT request to the bootstrapNode.
-    await communicationManager.sendMessage(
+    await communicationManager.communicate(
         bootstrapIp, bootstrapPort, type, message, remoteNodeId);
 
 

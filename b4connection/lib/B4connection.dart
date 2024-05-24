@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
-import 'tcpConnection.dart';
-import 'package:b4commgr/bufferdata.dart';
+import 'package:b4utils/bufferdata.dart';
+import 'TcpConnection.dart';
 
 class B4connection {
 // This class is used to
@@ -37,7 +37,7 @@ class B4connection {
 
 
     //Instance of class used.
-    TcpClient tcpClient = TcpClient();
+    TcpConnection tcpClient =TcpConnection();
     DataBuffer dataBuffer = DataBuffer();
 
 
@@ -68,6 +68,7 @@ class B4connection {
         return _nodeIdSocket;
     }
 
+    //It is used to close the socket and triggers the callback function.
     void close() {
 
         if (_nodeIdSocket != null) {

@@ -1,14 +1,15 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:b4commgr/stungetip.dart';
-import 'package:b4connection/b4connection.dart';
-import 'bufferdata.dart';
-import 'connectivity_monitor.dart';
+import 'stungetip.dart';
+import 'package:b4connection/B4connection.dart';
+import 'package:b4utils/bufferdata.dart';
+import 'package:b4utils/connectivity_monitor.dart';
 
 
-
+// A class for node to node communication.
 class CommunicationManager {
+
  // For each other nodeID,
 // a separate connection instance is to be created, as connection is bound to nodeID of other node.
   // Private static instance of the buffer
@@ -67,8 +68,8 @@ class CommunicationManager {
 
   }
 
-
-  Future sendMessage(ip, port, type, message, remoteNodeID) async {
+  // This function is used to communicate between two nodes in a end to end fashion.
+  Future communicate(ip, port, type, message, remoteNodeID) async {
     // Check if a connection already exists
     if (_connections.containsKey(remoteNodeID)) {
       _connections[remoteNodeID]!.sendMessage(message, type, remoteNodeID);
@@ -98,6 +99,7 @@ class CommunicationManager {
   }
 
 
+  // Below function can be use to identify the network environment.
   Future<int?> getNetworkInformation(stunIp, stunPort) async {
     var natStatus = 5;
     //Start connection with STUN server for all the network information.
@@ -165,15 +167,14 @@ class CommunicationManager {
   }
 
 
-  //According to the information gathered it will start Listening for connection or
-  // else it will be connected to provided  proxy sNode.
-
+  // According to the information gathered it will start Listening for connection or
+  // else it will be connected to provided  brahaspati node.
   Future<void> activateNode(proxyIp, proxyPort, listeningPort,
       natStatus, remoteNodeID) async {
     switch (natStatus) {
       case 0:
         print('Behind NAT in ipv4system');
-        await sendMessage(proxyIp, proxyPort, 'MP', 'please accept me', remoteNodeID);
+        await communicate(proxyIp, proxyPort, 'MP', 'please accept me', remoteNodeID);
       case 1:
       case 2:
         print('publicly available');
@@ -181,7 +182,7 @@ class CommunicationManager {
         B4connection b4connection = B4connection();
         await b4connection.startNodeLiseNing(listeningPort);
 
-        b4connection.getRemoteIdCreationOfInstance((nodeId, socket,
+        b4connection.receiveSocketAndCorrespondingNodeID((nodeId, socket,
             active) async {
           if (active) {
             if (nodeId == null) {}
