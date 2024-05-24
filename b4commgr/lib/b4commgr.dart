@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:b4commgr/stungetip.dart';
@@ -10,7 +9,8 @@ import 'connectivity_monitor.dart';
 
 
 class CommunicationManager {
-
+ // For each other nodeID,
+// a separate connection instance is to be created, as connection is bound to nodeID of other node.
   // Private static instance of the buffer
   static final CommunicationManager _instance = CommunicationManager
       ._internal();
@@ -173,13 +173,14 @@ class CommunicationManager {
     switch (natStatus) {
       case 0:
         print('Behind NAT in ipv4system');
-        await sendMessage(proxyIp, proxyPort, 'MP', 'null', remoteNodeID);
+        await sendMessage(proxyIp, proxyPort, 'MP', 'please accept me', remoteNodeID);
       case 1:
       case 2:
         print('publicly available');
 
         B4connection b4connection = B4connection();
         await b4connection.startNodeLiseNing(listeningPort);
+
         b4connection.getRemoteIdCreationOfInstance((nodeId, socket,
             active) async {
           if (active) {
@@ -189,6 +190,9 @@ class CommunicationManager {
                 print('Instance corresponding to $nodeId is present.');
               }
               else {
+                // Whenever we receive socket from the any cNode we create a b4connection instance corresponding to that nodeID.
+                // then we set _nodeIdSocket of created instance = socket received.
+                // It is important because we use it to send message in that b4connection instance.
                 _connections[nodeId] = B4connection();
                 _connections[nodeId]!.setNodeSocket(socket);
               }

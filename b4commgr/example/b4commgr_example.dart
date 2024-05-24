@@ -8,7 +8,7 @@ import 'package:b4rttable/routingmanager.dart';
 void main () async {
 
   CommunicationManager communicationManager = CommunicationManager();
-  RoutingManager routingManager=RoutingManager.instance;
+ // RoutingManager routingManager=RoutingManager.instance;
 
 
   var message = 'RRT';
@@ -17,7 +17,7 @@ void main () async {
   var type = 'D';
   var remoteNodeId = 'google';
 
- await  communicationManager.startStreaming(remoteNodeId);
+ //await  communicationManager.startStreaming(remoteNodeId);
 
 // In the starting of the B4olm you need to Send RT request to the bootstrapNode.
   await communicationManager.sendMessage(
@@ -72,7 +72,7 @@ void main () async {
   var message2 = 'THIS IS MESSAGE FROM PUSHPENDRA ';
   var proxyIP2 = '35.185.142.164';
   var proxyPORT2 = 22355;
-  var type12 = 'TP';
+  var type12 = 'D';
   var remoteNodeId12 = 'aman';
 
 

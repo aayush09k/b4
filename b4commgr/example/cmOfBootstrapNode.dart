@@ -18,11 +18,14 @@ void main () async {
       stunIp, stunPort);
   print(natStatus);
 
+
+
 // According to the natStatus you need to activate the node.
 // If you are public node then no need to give the  proxyIp, proxyPort.
   var listeningPort = 22355;
   await communicationManager.activateNode(
       null, null, listeningPort,2,null);
+
 
 
 }
