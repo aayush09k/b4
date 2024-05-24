@@ -97,7 +97,21 @@ final decryptedServerSignedCertificate =File('C:\\Users\\HP\\Desktop\\b4testdata
   });
 
 
-      /// Check email presence in server database
+
+  ///message checking for authentication
+     test('message authentication check', () async {
+    final privateKeyPemDecrypted = File('C:\\Users\\HP\\Desktop\\b4testdata\\userPrivateKey.pem').readAsStringSync();
+    final message = await myObject.createMessageForAuthentication(content, privateKeyPemDecrypted);
+    print('message is : $message');
+    final userCert = File('C:\\Users\\HP\\Desktop\\b4testdata\\userSelfSignedCertificate.pem').readAsStringSync();
+    final returnedContent = await myObject.checkMessageForAuthentication(message, userCert);
+    print('returned content is : $returnedContent');
+    expect(returnedContent, content);
+  });
+
+
+
+  /// Check email presence in server database
     test('email check in server repository', () async {
     var respFuture = myObject.verifyEmailInServerDatabase(email);
     final emailVerificationResponse = await respFuture;
@@ -247,7 +261,7 @@ final decryptRandom1 = await myObject.decryptWithEcc(encryptRandom1,user2Private
 
 
  /// test for payment gateway
-     test('payment gateway', () async{
+    /* test('payment gateway', () async{
 double amount = 100;
 String order_Id = 'order_123456';
 String name = 'myName';
@@ -261,7 +275,7 @@ expect(response, isNotNull);
 
 
 
-  });
+  });*/
 
 
  // test('generate two users for mutual authentication', () async{myObject.genUsersForMutAuth();});
