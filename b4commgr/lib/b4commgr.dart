@@ -1,10 +1,7 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'stungetip.dart';
 import 'package:b4connection/B4connection.dart';
-import 'package:b4utils/bufferdata.dart';
-import 'package:b4utils/connectivity_monitor.dart';
 
 
 // A class for node to node communication.
@@ -25,9 +22,6 @@ class CommunicationManager {
   }
 
   StunClient stunClient = StunClient();
-  DataBuffer bufferData = DataBuffer();
-  final monitor = ConnectivityMonitor();
-
   String? _publicIPv6;
   final Map<String, B4connection> _connections = {};
   //final Map<String, WebRTCManager> _connectionsWebrtc = {};
@@ -91,11 +85,6 @@ class CommunicationManager {
       };
     }
     catch (e) {}
-  }
-
-
-  dynamic getBufferData() {
-    return bufferData.pull();
   }
 
 
@@ -169,51 +158,60 @@ class CommunicationManager {
 
   // According to the information gathered it will start Listening for connection or
   // else it will be connected to provided  brahaspati node.
-  Future<void> activateNode(proxyIp, proxyPort, listeningPort,
+  Future<void> activateNode(communicatorIp,communicatorPort, listeningPort,
       natStatus, remoteNodeID) async {
     switch (natStatus) {
       case 0:
         print('Behind NAT in ipv4system');
-        await communicate(proxyIp, proxyPort, 'MP', 'please accept me', remoteNodeID);
-      case 1:
-      case 2:
-        print('publicly available');
+        //await communicate(communicatorIp, communicatorPort, 'MP', 'please accept me', remoteNodeID);
+        await _createInstanceCorrespondingToNodeId(listeningPort);
 
-        B4connection b4connection = B4connection();
-        await b4connection.startNodeLiseNing(listeningPort);
+      case 1:// only listen for the connection.
+        _createInstanceCorrespondingToNodeId(listeningPort);
+      case 2:// Here we do both listen for the connection. relay registration.
 
-        b4connection.receiveSocketAndCorrespondingNodeID((nodeId, socket,
-            active) async {
-          if (active) {
-            if (nodeId == null) {}
-            else {
-              if (_connections.containsKey(nodeId)) {
-                print('Instance corresponding to $nodeId is present.');
-              }
-              else {
-                // Whenever we receive socket from the any cNode we create a b4connection instance corresponding to that nodeID.
-                // then we set _nodeIdSocket of created instance = socket received.
-                // It is important because we use it to send message in that b4connection instance.
-                _connections[nodeId] = B4connection();
-                _connections[nodeId]!.setNodeSocket(socket);
-              }
-            }
-          }
-          else {
-            while (true) {
-              if (_connections[nodeId] == null) {
-                break;
-              }
-              _connections.remove(nodeId);
-              print(
-                  "Connection for $nodeId has been removed from manager due to closure.");
-            }
-          }
-        });
+        await communicate(communicatorIp, communicatorPort, 'MP', 'please accept me', remoteNodeID);
+        await _createInstanceCorrespondingToNodeId(listeningPort);
 
       default:
         print('natStatus is not defined');
     }
+  }
+
+
+  Future _createInstanceCorrespondingToNodeId(listeningPort) async{
+
+    B4connection b4connection = B4connection();
+    await b4connection.startNodeLiseNing(listeningPort);
+
+    b4connection.receiveSocketAndCorrespondingNodeID((nodeId, socket,
+        active) async {
+      if (active) {
+        if (nodeId == null) {}
+        else {
+          if (_connections.containsKey(nodeId)) {
+            print('Instance corresponding to $nodeId is present.');
+          }
+          else {
+            // Whenever we receive socket from the any cNode we create a b4connection instance corresponding to that nodeID.
+            // then we set _nodeIdSocket of created instance = socket received.
+            // It is important because we use it to send message in that b4connection instance.
+            _connections[nodeId] = B4connection();
+            _connections[nodeId]!.setNodeSocket(socket);
+          }
+        }
+      }
+      else {
+        while (true) {
+          if (_connections[nodeId] == null) {
+            break;
+          }
+          _connections.remove(nodeId);
+          print(
+              "Connection for $nodeId has been removed from manager due to closure.");
+        }
+      }
+    });
   }
 
 

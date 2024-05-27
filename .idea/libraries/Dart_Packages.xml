@@ -368,7 +368,6 @@
           <value>
             <list>
               <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/geolocator_android-4.6.0/lib" />
-              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/geolocator_android-4.5.5/lib" />
               <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/geolocator_android-4.5.4/lib" />
             </list>
           </value>
@@ -1043,7 +1042,6 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/geolocator-11.0.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/geolocator-11.1.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/geolocator_android-4.5.4/lib" />
-      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/geolocator_android-4.5.5/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/geolocator_android-4.6.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/geolocator_apple-2.3.7/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/geolocator_platform_interface-4.2.2/lib" />
