@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'dart:io';
-
-import 'package:b4commgr/stungetip.dart';
-import 'package:b4connection/b4connection.dart';
-import 'bufferdata.dart';
-import 'connectivity_monitor.dart';
+import 'stungetip.dart';
+import 'package:b4connection/B4connection.dart';
 
 
-
+// A class for node to node communication.
 class CommunicationManager {
+
  // For each other nodeID,
 // a separate connection instance is to be created, as connection is bound to nodeID of other node.
   // Private static instance of the buffer
@@ -24,9 +22,6 @@ class CommunicationManager {
   }
 
   StunClient stunClient = StunClient();
-  DataBuffer bufferData = DataBuffer();
-  final monitor = ConnectivityMonitor();
-
   String? _publicIPv6;
   final Map<String, B4connection> _connections = {};
   //final Map<String, WebRTCManager> _connectionsWebrtc = {};
@@ -67,8 +62,8 @@ class CommunicationManager {
 
   }
 
-
-  Future sendMessage(ip, port, type, message, remoteNodeID) async {
+  // This function is used to communicate between two nodes in a end to end fashion.
+  Future communicate(ip, port, type, message, remoteNodeID) async {
     // Check if a connection already exists
     if (_connections.containsKey(remoteNodeID)) {
       _connections[remoteNodeID]!.sendMessage(message, type, remoteNodeID);
@@ -93,11 +88,7 @@ class CommunicationManager {
   }
 
 
-  dynamic getBufferData() {
-    return bufferData.pull();
-  }
-
-
+  // Below function can be use to identify the network environment.
   Future<int?> getNetworkInformation(stunIp, stunPort) async {
     var natStatus = 5;
     //Start connection with STUN server for all the network information.
@@ -165,54 +156,62 @@ class CommunicationManager {
   }
 
 
-  //According to the information gathered it will start Listening for connection or
-  // else it will be connected to provided  proxy sNode.
-
-  Future<void> activateNode(proxyIp, proxyPort, listeningPort,
+  // According to the information gathered it will start Listening for connection or
+  // else it will be connected to provided  brahaspati node.
+  Future<void> activateNode(communicatorIp,communicatorPort, listeningPort,
       natStatus, remoteNodeID) async {
     switch (natStatus) {
       case 0:
         print('Behind NAT in ipv4system');
-        await sendMessage(proxyIp, proxyPort, 'MP', 'please accept me', remoteNodeID);
-      case 1:
-      case 2:
-        print('publicly available');
+        //await communicate(communicatorIp, communicatorPort, 'MP', 'please accept me', remoteNodeID);
+        await _createInstanceCorrespondingToNodeId(listeningPort);
 
-        B4connection b4connection = B4connection();
-        await b4connection.startNodeLiseNing(listeningPort);
+      case 1:// only listen for the connection.
+        _createInstanceCorrespondingToNodeId(listeningPort);
+      case 2:// Here we do both listen for the connection. relay registration.
 
-        b4connection.getRemoteIdCreationOfInstance((nodeId, socket,
-            active) async {
-          if (active) {
-            if (nodeId == null) {}
-            else {
-              if (_connections.containsKey(nodeId)) {
-                print('Instance corresponding to $nodeId is present.');
-              }
-              else {
-                // Whenever we receive socket from the any cNode we create a b4connection instance corresponding to that nodeID.
-                // then we set _nodeIdSocket of created instance = socket received.
-                // It is important because we use it to send message in that b4connection instance.
-                _connections[nodeId] = B4connection();
-                _connections[nodeId]!.setNodeSocket(socket);
-              }
-            }
-          }
-          else {
-            while (true) {
-              if (_connections[nodeId] == null) {
-                break;
-              }
-              _connections.remove(nodeId);
-              print(
-                  "Connection for $nodeId has been removed from manager due to closure.");
-            }
-          }
-        });
+        await communicate(communicatorIp, communicatorPort, 'MP', 'please accept me', remoteNodeID);
+        await _createInstanceCorrespondingToNodeId(listeningPort);
 
       default:
         print('natStatus is not defined');
     }
+  }
+
+
+  Future _createInstanceCorrespondingToNodeId(listeningPort) async{
+
+    B4connection b4connection = B4connection();
+    await b4connection.startNodeLiseNing(listeningPort);
+
+    b4connection.receiveSocketAndCorrespondingNodeID((nodeId, socket,
+        active) async {
+      if (active) {
+        if (nodeId == null) {}
+        else {
+          if (_connections.containsKey(nodeId)) {
+            print('Instance corresponding to $nodeId is present.');
+          }
+          else {
+            // Whenever we receive socket from the any cNode we create a b4connection instance corresponding to that nodeID.
+            // then we set _nodeIdSocket of created instance = socket received.
+            // It is important because we use it to send message in that b4connection instance.
+            _connections[nodeId] = B4connection();
+            _connections[nodeId]!.setNodeSocket(socket);
+          }
+        }
+      }
+      else {
+        while (true) {
+          if (_connections[nodeId] == null) {
+            break;
+          }
+          _connections.remove(nodeId);
+          print(
+              "Connection for $nodeId has been removed from manager due to closure.");
+        }
+      }
+    });
   }
 
 

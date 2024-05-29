@@ -28,4 +28,6 @@ dev_dependencies:
     path: ../b4auth
   nodeid:
     path: ../nodeid
+  b4utils:
+    path: ../b4utils
 
