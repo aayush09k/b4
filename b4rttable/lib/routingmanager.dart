@@ -5,7 +5,8 @@ import 'dart:io';
 import 'package:nodeid/nodeid.dart';
 import 'package:b4rttable/config.dart';
 import 'package:b4commgr/b4commgr.dart';
-import 'package:b4commgr/bufferdata.dart';
+import 'package:b4utils/bufferdata.dart';
+import 'package:b4utils/connectivity_monitor.dart';
 import 'package:basic_utils/basic_utils.dart';
 
 class RoutingManager {
@@ -28,6 +29,7 @@ class RoutingManager {
   Map<String, B4RoutingTable> latlongTables = {};
   CommunicationManager manager = CommunicationManager();
   DataBuffer dataBuffer = DataBuffer();
+  ConnectivityMonitor monitor =ConnectivityMonitor();
 
   RoutingManager._() {
     RTfilepath =
@@ -38,11 +40,11 @@ class RoutingManager {
     _localNodeID.nodeid.sign=ECSignature(BigInt.parse("65470513412405851950885404129427616067309932491674362141979488612896203164025"), BigInt.parse("35241799610163012077198311829834117378791561246876962545184629718444186922890"));
    _localNodeID.nodeid.publicKeyPem="-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEr8xH1as9ZYF2t+Bc6iQVBNtB4WxK\nUBlQ5sX9oBpTSrTdS39R2c8W4r/Wq/fXNHk+df5uig06vSozEnADHgY8xQ==\n-----END PUBLIC KEY-----" ;
    _localNodeID.nodeid.pubKey= CryptoUtils.ecPublicKeyFromPem(_localNodeID.nodeid.publicKeyPem);
-   _localNodeID.nodeid.publicIpv4="172.20.160.56";
+   _localNodeID.nodeid.publicIpv4="103.246.106.197";
    _localNodeID.nodeid.natStatus=null;
-   _localNodeID.nodeid.listeningPort=22800;
+   _localNodeID.nodeid.listeningPort=22801;
    _localNodeID.nodeid.publicIpv6="";
-   _localNodeID.nodeid.localIpv4="103.246.106.197";
+   _localNodeID.nodeid.localIpv4="172.20.160.56";
    init();
   }
   LocalNodeID get localNodeID => _localNodeID;
@@ -188,7 +190,7 @@ class RoutingManager {
 
 
   Future<void> geTinFormation() async {
-    manager.monitor.onConnectivityChanged.listen((interfaces) async {
+    monitor.onConnectivityChanged.listen((interfaces) async {
       print('Network interfaces changed:');
       natStatus =
           await manager.getNetworkInformation("stun.l.google.com", 19302);
@@ -228,7 +230,7 @@ class RoutingManager {
     // await manager.sendMessage("35.185.142.164", 22355, "D", message, "google");
     if (nodeIDtoSend!.natStatus == 0) {
 
-      manager.sendMessage(
+      manager.communicate(
           nodeIDtoSend!.communicatorIP,
           nodeIDtoSend.communicatorPort,
           "TP",
@@ -247,7 +249,7 @@ class RoutingManager {
             ip = nodeIDtoSend.publicIpv6;
             port =nodeIDtoSend.publicIpv6Port;
           }
-          manager.sendMessage(
+          manager.communicate(
               ip, port, "D", message, nodeIDtoSend.hashID);
         }
       }
@@ -368,7 +370,7 @@ class RoutingManager {
   }
 
   void handleForMessages() {
-    dynamic messageFromCMBuffer = manager.getBufferData();
+    dynamic messageFromCMBuffer = dataBuffer.pull();
     print(messageFromCMBuffer);
 
     if (messageFromCMBuffer != null) {
@@ -410,7 +412,7 @@ class RoutingManager {
                 "myEndpoint",
                 "0",
                 "P");
-            manager.sendMessage(
+            manager.communicate(
                 rtTable[i][j]!.communicatorIP,
                 rtTable[i][j]!.communicatorPort,
                 "TP",
@@ -440,7 +442,7 @@ class RoutingManager {
                   ip = rtTable[i][j]!.publicIpv6;
                   port = rtTable[i][j]!.publicIpv6Port;
                 }
-                manager.sendMessage(
+                manager.communicate(
                     ip, port, "D", message, rtTable[i][j]!.hashID);
               }
             }
