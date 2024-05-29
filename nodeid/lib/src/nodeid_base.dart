@@ -3,12 +3,24 @@ import 'package:convert/convert.dart';
 import 'package:basic_utils/basic_utils.dart';
 
 class NodeID {
-  dynamic pubKey;
+  var pubKey;
   late String hashID;
   late ECSignature sign;
   late String publicKeyPem ;
+  late String? localIpv4=null;
+  late String? publicIpv4=null;
+  late String? publicIpv6=null;
+  late int? natStatus=null;
+  late int? localIpv4Port=null;
+  late int? publicIpv4Port=null;
+  late int? publicIpv6Port=null;
+  late String? communicatorIP=null;
+  late int? communicatorPort=null;
+  late int listeningPort=22800;
+  var keyp;
 
   NodeID(AsymmetricKeyPair keyPair) {
+    keyp=keyPair;
     pubKey = keyPair.publicKey;
     publicKeyPem = CryptoUtils.encodeEcPublicKeyToPem(pubKey);
     final pubBytes = CryptoUtils.getBytesFromPEMString(publicKeyPem);
@@ -19,7 +31,7 @@ class NodeID {
     sign = CryptoUtils.ecSign(pvtKey, unit8List);
   }
 
-  NodeID.createFromTable(this.publicKeyPem,this.sign,this.hashID,this.pubKey);
+  NodeID.createFromTable(this.publicKeyPem,this.sign,this.hashID,this.pubKey,this.localIpv4,this.publicIpv4,this.publicIpv6,this.natStatus,this.localIpv4Port,this.publicIpv4Port,this.publicIpv6Port,this.communicatorIP,this.communicatorPort,this.listeningPort);
 }
 
 class LocalNodeID {

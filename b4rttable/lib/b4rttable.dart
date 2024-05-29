@@ -14,8 +14,7 @@ class B4RoutingTable {
   Map<String, Duration> mRtt = {};
   String? LayerID;
   LocalNodeID? localIdb;
-  List<List<NodeID?>> RoutingTable = List.generate(
-      3, (_) => List.filled(40, null)); // To be removed later.
+  List<List<NodeID?>> RoutingTable = List.generate( 3, (_) => List.filled(40, null)); // To be removed later.
   List<NodeID?> neibhourTable = List.generate(16, (index) => null);
   List<NodeID?> latLongTable = List.generate(16, (index) => null);
   Map<NodeID, List<String>>? latLongLocal;
@@ -28,6 +27,7 @@ class B4RoutingTable {
     // added to the map. If they do not respond to ping test 3 times then,
     // they are removed from the onHoldNodes map as well.If they respond to 1st or 2nd ping then they are removed from map and updated into local RT .
     localIdb = localId;
+    localIdb!.nodeid.hashID="62D67DFC3E4616381DACA70A90CDF3C59EA80D32";
   }
 
   // Function to update the nodeID in the routing table. When any new Node Id is received by the node, it is always updated
@@ -40,13 +40,12 @@ class B4RoutingTable {
   /// Describe the inputs, output, and functionality of the this function.
   /// This function receives local Routing table, and Routing table of other node and rtt . It checks for each node ID in RT and update it's own local Routing table,
   /// based on the routing algorithm(chord-tapestry).    ///
-  void updateRtTable(List<List<NodeID?>> localRTtable,
-      List<List<NodeID?>> rtTable) {
+  void updateRtTable(List<List<NodeID?>> localRTtable, List<List<NodeID?>> rtTable) {
     RoutingTable = localRTtable;
     // this is the loop to check for each node in rtTable and compare with node already present in it's localRTtable.
     for (int row = 0; row < 3; row++) {
       for (int col = 0; col < 40; col++) {
-        if (rtTable[row][col] != null) {
+        if (rtTable[row][col] != null && rtTable[row][col]!.hashID != localIdb!.nodeid.hashID) {
           //check if node is present in putonHold, if present them remove from there.
           if (onHoldNodes != null) {
             if (onHoldNodes!.containsKey(rtTable[row][col])) {
@@ -99,7 +98,7 @@ class B4RoutingTable {
 
               // This is the integer value of ideal mid distance from localnodeID. It will be used in later part of code to update mid nodeID
               // of the routing table.NodeIDs are arranged in circular fashionIt is circular hence modulo operation is done.
-              int idealMidNodeIdint = (localnodeIdint + 16) % 16;
+              int idealMidNodeIdint = (localnodeIdint + 8) % 16;
 
               // This part of code(06 if-elseif conditions) deals with various scenarios where we calculate distance between pre-nodeID,suc-nodeID,mid-nodeID.
 
@@ -389,7 +388,7 @@ class B4RoutingTable {
                 int sucNodeIdint = int.parse(sucNodeIdC[m], radix: 16);
                 int localnodeIdint = int.parse(localNodeIdC[m], radix: 16);
                 int nodeIdint = int.parse(nodeIdC[m], radix: 16);
-                int idealMidNodeIdint = (localnodeIdint + 16) % 16;
+                int idealMidNodeIdint = (localnodeIdint + 8) % 16;
 
                 if (((localnodeIdint - preNodeIdint + 16) % 16) > ((nodeIdint - preNodeIdint + 16) % 16))
                 {
@@ -462,7 +461,7 @@ class B4RoutingTable {
 
     //this is update id function
 
-  // void updateNodeID(NodeID nodeID, Duration rtt) {
+  // void updateNodeIDtest(NodeID nodeID, Duration rtt) {
   //
   //   //check if node is present in putonHold, if present them remove from there.
   //
@@ -508,7 +507,7 @@ class B4RoutingTable {
   //       int sucNodeIdint = int.parse(sucNodeIdC[m], radix: 16);
   //       int localnodeIdint = int.parse(localNodeIdC[m], radix: 16);
   //       int nodeIdint = int.parse(nodeIdC[m], radix: 16);
-  //       int idealMidNodeIdint = (localnodeIdint + 16) % 16;
+  //       int idealMidNodeIdint = (localnodeIdint + 8)%16;
   //
   //       if (((localnodeIdint - preNodeIdint + 16) % 16) > ((nodeIdint - preNodeIdint + 16) % 16))
   //       {
