@@ -7,7 +7,7 @@ import 'package:b4connection/B4connection.dart';
 // A class for node to node communication.
 class CommunicationManager {
 
- // For each other nodeID,
+  // For each other nodeID,
 // a separate connection instance is to be created, as connection is bound to nodeID of other node.
   // Private static instance of the buffer
   static final CommunicationManager _instance = CommunicationManager
@@ -24,18 +24,18 @@ class CommunicationManager {
   StunClient stunClient = StunClient();
   String? _publicIPv6;
   final Map<String, B4connection> _connections = {};
+
   //final Map<String, WebRTCManager> _connectionsWebrtc = {};
   Socket? socket;
   Socket? nodeSocket;
 
-  Future startStreaming(remoteNodeID)async{
-
-    Map<String, dynamic> configuration = {
-      "iceServers":
-      [
-        {"url": "stun:stun.l.google.com:19302"},
-      ]
-    };
+  Future startStreaming(remoteNodeID) async {
+    // Map<String, dynamic> configuration = {
+    //   "iceServers":
+    //   [
+    //     {"url": "stun:stun.l.google.com:19302"},
+    //   ]
+    // };
 
 
     // Check if a connection already exists
@@ -58,18 +58,18 @@ class CommunicationManager {
       print(offer);
     }*/
 
-
-
   }
 
   // This function is used to communicate between two nodes in a end to end fashion.
   Future communicate(ip, port, type, message, remoteNodeID) async {
     // Check if a connection already exists
     if (_connections.containsKey(remoteNodeID)) {
-      _connections[remoteNodeID]!.sendMessage(message, type, remoteNodeID);
+      await _connections[remoteNodeID]!.sendMessage(
+          message, type, remoteNodeID);
     } else {
       // Create a new connection if it does not exist
       _connections[remoteNodeID] = B4connection();
+      _connections[remoteNodeID]!.setMyNodeId(remoteNodeID);
 
       await _connections[remoteNodeID]!.startConnection(
           ip, port, type, remoteNodeID);
@@ -101,18 +101,19 @@ class CommunicationManager {
           .closeIpv4(); //After getting information closed immediately.
       stunClient.N = 2;
       stunClient.resetIP();
-      try {
-        await stunClient.initializeIpv6();
-        await stunClient.fetchPublicIPIpv6(stunIp, stunPort);
-        await stunClient
-            .closeIpv6(); //After getting information closed immediately.
-      }
-      catch (e) {
-        print(
-            'Node can not bind to both at a time . Node is not on dual network ');
-        stunClient.N = 2;
-        stunClient.resetIP();
-      }
+      // For current situation we do not need this.
+      // try {
+      //   await stunClient.initializeIpv6();
+      //   await stunClient.fetchPublicIPIpv6(stunIp, stunPort);
+      //   await stunClient
+      //       .closeIpv6(); //After getting information closed immediately.
+      // }
+      // catch (e) {
+      //   print(
+      //       'Node can not bind to both at a time . Node is not on dual network ');
+      //   stunClient.N = 2;
+      //   stunClient.resetIP();
+      // }
     }
     catch (e) {
       print("Error with IPv4 STUN client: $e");
@@ -157,20 +158,21 @@ class CommunicationManager {
 
 
   // According to the information gathered it will start Listening for connection or
-  // else it will be connected to provided  brahaspati node.
-  Future<void> activateNode(communicatorIp,communicatorPort, listeningPort,
+  // else it will be connected to provided  braHasPaTi node.
+  Future<void> activateNode(communicatorIp, communicatorPort, listeningPort,
       natStatus, remoteNodeID) async {
     switch (natStatus) {
       case 0:
-        print('Behind NAT in ipv4system');
-        //await communicate(communicatorIp, communicatorPort, 'MP', 'please accept me', remoteNodeID);
+        await communicate(
+            communicatorIp, communicatorPort, 'MP', null, remoteNodeID);
         await _createInstanceCorrespondingToNodeId(listeningPort);
 
-      case 1:// only listen for the connection.
+      case 1: // only listen for the connection.
         _createInstanceCorrespondingToNodeId(listeningPort);
-      case 2:// Here we do both listen for the connection. relay registration.
+      case 2: // Here we do both listen for the connection. relay registration.
 
-        await communicate(communicatorIp, communicatorPort, 'MP', 'please accept me', remoteNodeID);
+        await communicate(
+            communicatorIp, communicatorPort, 'MP', null, remoteNodeID);
         await _createInstanceCorrespondingToNodeId(listeningPort);
 
       default:
@@ -179,8 +181,7 @@ class CommunicationManager {
   }
 
 
-  Future _createInstanceCorrespondingToNodeId(listeningPort) async{
-
+  Future _createInstanceCorrespondingToNodeId(listeningPort) async {
     B4connection b4connection = B4connection();
     await b4connection.startNodeLiseNing(listeningPort);
 

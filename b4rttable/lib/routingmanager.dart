@@ -11,48 +11,61 @@ import 'package:basic_utils/basic_utils.dart';
 
 class RoutingManager {
   String filePath = AppConfig.filepath; // Get file path from AppConfig.
-  String? rcvdMessage;
-  String? RTfilepath; //
+  String? receiveMessage;
+  String? rtFilePath; //
   int? natStatus;
   int layers = AppConfig.numberOfLayers;
   late LocalNodeID _localNodeID;
   Map<String, B4RoutingTable> routingTables = {};
+
   /*
     0 - Base layer
-    1 - IPv4 non-nated layer
-    2 - IPv6 non-nated layer
-    3 - IPv4/IPv6 dual stack non-nated layer
+    1 - IPv4 non-NATed layer
+    2 - IPv6 non-NATed layer
+    3 - IPv4/IPv6 dual stack non-NATed layer
     4 - file storage layer
     5 - file storage reputation layer
     */
   Map<String, B4RoutingTable> neighbourTables = {};
-  Map<String, B4RoutingTable> latlongTables = {};
+  Map<String, B4RoutingTable> latLongTables = {};
   CommunicationManager manager = CommunicationManager();
   DataBuffer dataBuffer = DataBuffer();
-  ConnectivityMonitor monitor =ConnectivityMonitor();
-  bool flag=true;
+  ConnectivityMonitor monitor = ConnectivityMonitor();
+  bool flag = false;
 
   RoutingManager._() {
-    RTfilepath =
-    "${filePath}rttable.json"; // the path where routing table file will be stored as json.
+    rtFilePath =
+    "${filePath}rtTable.json"; // the path where routing table file will be stored as json.
     _localNodeID = LocalNodeID();
-    if(flag==true){
-      _localNodeID.nodeid.hashID = "62D67DFC3E4616381DACA70A90CDF3C59EA80D32"; // we have to get this from auth manager, for testing change this ib b4rttable class also at line no. 30
+    _localNodeID.nodeid.listeningPort = 34803;
+    _localNodeID.nodeid.hashID = "92D67DFC3E4616381DACA70A90CDF3C59EA80D32";
+
+
+    if (flag == true) {
+      // we have to get this from auth manager, for testing change this ib b4rtTable class also at line no. 30
       // Call the init() function when the instance is created
-      _localNodeID.nodeid.sign=ECSignature(BigInt.parse("65470513412405851950885404129427616067309932491674362141979488612896203164025"), BigInt.parse("35241799610163012077198311829834117378791561246876962545184629718444186922890"));
-      _localNodeID.nodeid.publicKeyPem="-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEr8xH1as9ZYF2t+Bc6iQVBNtB4WxK\nUBlQ5sX9oBpTSrTdS39R2c8W4r/Wq/fXNHk+df5uig06vSozEnADHgY8xQ==\n-----END PUBLIC KEY-----" ;
-      _localNodeID.nodeid.pubKey= CryptoUtils.ecPublicKeyFromPem(_localNodeID.nodeid.publicKeyPem);
-      _localNodeID.nodeid.publicIpv4="103.246.106.197";
-      _localNodeID.nodeid.natStatus=null;
-      _localNodeID.nodeid.listeningPort=22802;
-      _localNodeID.nodeid.publicIpv6="";
-      _localNodeID.nodeid.localIpv4="172.20.160.56";
+      _localNodeID.nodeid.sign = ECSignature(BigInt.parse(
+          "65470513412405851950885404129427616067309932491674362141979488612896203164025"),
+          BigInt.parse(
+              "35241799610163012077198311829834117378791561246876962545184629718444186922890"));
+      _localNodeID.nodeid.publicKeyPem =
+      "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEr8xH1as9ZYF2t+Bc6iQVBNtB4WxK\nUBlQ5sX9oBpTSrTdS39R2c8W4r/Wq/fXNHk+df5uig06vSozEnADHgY8xQ==\n-----END PUBLIC KEY-----";
+      _localNodeID.nodeid.pubKey =
+          CryptoUtils.ecPublicKeyFromPem(_localNodeID.nodeid.publicKeyPem);
+
+
+      _localNodeID.nodeid.publicIpv4 = "103.246.106.197";
+      _localNodeID.nodeid.natStatus = 1;
+      _localNodeID.nodeid.publicIpv6 = "";
+      _localNodeID.nodeid.localIpv4 = "172.20.160.56";
     }
 
 
     init();
   }
+
   LocalNodeID get localNodeID => _localNodeID;
+
   // Getter to access the singleton instance
   static RoutingManager get instance {
     _instance ??= RoutingManager._();
@@ -60,21 +73,24 @@ class RoutingManager {
   }
 
   static RoutingManager? _instance;
+
   Future<void> init() async {
     // Check if the file exists;
-    NodeID? BootStrapNodeID;
+    NodeID? bootStrapNodeID;
 
     if (File(filePath).existsSync()) {
-      print('File exists.');
+
       // Perform actions related to the existing file,check liveliness of nodes.
     } else {
-      print('File does not exist.');
+
       for (int i = 0; i <= layers; i++) {
         routingTables[i.toString()] = B4RoutingTable(localNodeID);
       }
     }
-    if(flag==false) {
-      BootStrapNodeID = NodeID.createFromTable(
+
+    // Skip as flag=true for botsTrapNode.
+    if (flag == false) {
+      bootStrapNodeID = NodeID.createFromTable(
         "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEr8xH1as9ZYF2t+Bc6iQVBNtB4WxK\nUBlQ5sX9oBpTSrTdS39R2c8W4r/Wq/fXNHk+df5uig06vSozEnADHgY8xQ==\n-----END PUBLIC KEY-----",
         // Assuming this is how you reconstruct pubKey
         ECSignature(BigInt.parse(
@@ -85,47 +101,53 @@ class RoutingManager {
         // Assuming this is how you reconstruct sign
         CryptoUtils.ecPublicKeyFromPem(
             "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEr8xH1as9ZYF2t+Bc6iQVBNtB4WxK\nUBlQ5sX9oBpTSrTdS39R2c8W4r/Wq/fXNHk+df5uig06vSozEnADHgY8xQ==\n-----END PUBLIC KEY-----"),
-        "172.20.160.56",
-        "103.246.106.197",
+        "172.20.160.56", //localIPV4
+        "103.246.106.197",//publicIPV4
+        null.toString(),
+        1,
+        null,
+        null,
+        null,
         null.toString(),
         null,
-        null,
-        null,
-        null,
-        null.toString(),
-        null,
-        22801,
+        34803,
       );
     }
 
-    if(flag==true){
-      manager.activateNode("103.246.106.197", 22801, localNodeID.nodeid.listeningPort, natStatus, "62D67DFC3E4616381DACA70A90CDF3C59EA80D32");
+
+    if (flag == true) {
+      manager.activateNode(
+          null, null, localNodeID.nodeid.listeningPort, 1, null);
     }
 
 
-
-
-    // un comment this line for normal nodes.This line will reamin comment for bootstrap.
-    if(flag==false){
+    // un comment this line for normal nodes.This line will remain comment for bootstrap.
+    if (flag == false) {
       await geTinFormation();
+      await manager.activateNode(bootStrapNodeID!.publicIpv4,bootStrapNodeID.listeningPort,34803, natStatus,
+          bootStrapNodeID.hashID); // hard code boots
+      await sendMessageRM(
+          'RM',
+          "D",
+          localNodeID.nodeid,
+          "hashID",
+          "s",
+          "current",
+          "natStatus",
+          localNodeID.nodeid,
+          "myEndpoint",
+          "0",
+          'Y');
+    }
 
-      int? natStatus = localNodeID.nodeid.natStatus;
-      if (natStatus == 0) {
-        manager.activateNode("103.246.106.197", 22801, null, natStatus,"62D67DFC3E4616381DACA70A90CDF3C59EA80D32"); // hard code boots
-      } else {
-        manager.activateNode(null, null, localNodeID.nodeid.listeningPort, natStatus, null); //it is already public
-      }
-      await sendmessageRM('RM', "D", localNodeID.nodeid, "hashID", "s",
-          "current", "natStatus", BootStrapNodeID!, "myEndpoint", "0", 'Y');}
 
     checkForMessagesCMExecution();
-    Timer.periodic(Duration(minutes: 5),
+    Timer.periodic(const Duration(minutes: 5),
             (Timer t) => sendPeriodicUpdate(routingTables["0"]!.RoutingTable));
   }
 
-  String createMessageRM(
-      String RM,
-      String Relay,
+  String createMessageRM(String rM,
+      String reLay,
       NodeID myNodeID,
       String hashID,
       String s,
@@ -151,22 +173,32 @@ class RoutingManager {
             // 'publicKeyPem': nodeID.publicKeyPem.toString(),
 
             'hashID': nodeID.hashID,
-            'publicKey':  {'x':CryptoUtils.ecPublicKeyFromPem( nodeID.publicKeyPem.toString()).Q!.x!.toBigInteger()!.toRadixString(16),
-              'y':CryptoUtils.ecPublicKeyFromPem( nodeID.publicKeyPem.toString()).Q!.y!.toBigInteger()!.toRadixString(16),
+            'publicKey': {'x': CryptoUtils
+                .ecPublicKeyFromPem(nodeID.publicKeyPem.toString())
+                .Q!
+                .x!
+                .toBigInteger()!
+                .toRadixString(16),
+              'y': CryptoUtils
+                  .ecPublicKeyFromPem(nodeID.publicKeyPem.toString())
+                  .Q!
+                  .y!
+                  .toBigInteger()!
+                  .toRadixString(16),
             },
-            'sign':{'r':nodeID.sign.r.toString(),
-              's':nodeID.sign.s.toString()},
-            'publicKeyPem':nodeID.publicKeyPem.toString(),
-            'localIpv4':nodeID.localIpv4.toString(),
-            'publicIpv4':nodeID.publicIpv4.toString(),
-            'publicIpv6':nodeID.localIpv4.toString(),
-            'natStatus':nodeID.natStatus.toString(),
-            'localIpv4Port':nodeID.localIpv4Port.toString(),
-            'publicIpv4Port':nodeID.publicIpv4Port.toString(),
-            'publicIpv6Port':nodeID.publicIpv6Port.toString(),
-            'communicatorIP':nodeID.publicIpv6Port.toString(),
-            'communicatorPort':nodeID.communicatorPort.toString(),
-            'listeningPort':nodeID.listeningPort.toString(),
+            'sign': {'r': nodeID.sign.r.toString(),
+              's': nodeID.sign.s.toString()},
+            'publicKeyPem': nodeID.publicKeyPem.toString(),
+            'localIpv4': nodeID.localIpv4.toString(),
+            'publicIpv4': nodeID.publicIpv4.toString(),
+            'publicIpv6': nodeID.localIpv4.toString(),
+            'natStatus': nodeID.natStatus.toString(),
+            'localIpv4Port': nodeID.localIpv4Port.toString(),
+            'publicIpv4Port': nodeID.publicIpv4Port.toString(),
+            'publicIpv6Port': nodeID.publicIpv6Port.toString(),
+            'communicatorIP': nodeID.publicIpv6Port.toString(),
+            'communicatorPort': nodeID.communicatorPort.toString(),
+            'listeningPort': nodeID.listeningPort.toString(),
 
           };
         } else {
@@ -177,46 +209,66 @@ class RoutingManager {
 
     Map<String, dynamic> jsonNodeIdToSend = {
       'hashID': nodeID.hashID,
-      'publicKey':  {'x':CryptoUtils.ecPublicKeyFromPem( nodeID.publicKeyPem.toString()).Q!.x!.toBigInteger()!.toRadixString(16),
-        'y':CryptoUtils.ecPublicKeyFromPem( nodeID.publicKeyPem.toString()).Q!.y!.toBigInteger()!.toRadixString(16),
+      'publicKey': {'x': CryptoUtils
+          .ecPublicKeyFromPem(nodeID.publicKeyPem.toString())
+          .Q!
+          .x!
+          .toBigInteger()!
+          .toRadixString(16),
+        'y': CryptoUtils
+            .ecPublicKeyFromPem(nodeID.publicKeyPem.toString())
+            .Q!
+            .y!
+            .toBigInteger()!
+            .toRadixString(16),
       },
-      'sign':{'r':nodeID.sign.r.toString(),
-        's':nodeID.sign.s.toString()},
-      'publicKeyPem':nodeID.publicKeyPem.toString(),
-      'localIpv4':nodeID.localIpv4.toString(),
-      'publicIpv4':nodeID.publicIpv4.toString(),
-      'publicIpv6':nodeID.localIpv4.toString(),
-      'natStatus':nodeID.natStatus.toString(),
-      'localIpv4Port':nodeID.localIpv4Port.toString(),
-      'publicIpv4Port':nodeID.publicIpv4Port.toString(),
-      'publicIpv6Port':nodeID.publicIpv6Port.toString(),
-      'communicatorIP':nodeID.publicIpv6Port.toString(),
-      'communicatorPort':nodeID.communicatorPort.toString(),
-      'listeningPort':nodeID.listeningPort.toString(),
+      'sign': {'r': nodeID.sign.r.toString(),
+        's': nodeID.sign.s.toString()},
+      'publicKeyPem': nodeID.publicKeyPem.toString(),
+      'localIpv4': nodeID.localIpv4.toString(),
+      'publicIpv4': nodeID.publicIpv4.toString(),
+      'publicIpv6': nodeID.localIpv4.toString(),
+      'natStatus': nodeID.natStatus.toString(),
+      'localIpv4Port': nodeID.localIpv4Port.toString(),
+      'publicIpv4Port': nodeID.publicIpv4Port.toString(),
+      'publicIpv6Port': nodeID.publicIpv6Port.toString(),
+      'communicatorIP': nodeID.publicIpv6Port.toString(),
+      'communicatorPort': nodeID.communicatorPort.toString(),
+      'listeningPort': nodeID.listeningPort.toString(),
 
 
     };
     String jsonNodesString = jsonEncode(jsonRT);
-    String jsonStringNodetoSend = jsonEncode(jsonNodeIdToSend);
+    String jsonStringNodeToSend = jsonEncode(jsonNodeIdToSend);
 
     Map<String, dynamic> jsonMyNodeId = {
       'hashID': myNodeID.hashID,
-      'publicKey':  {'x':CryptoUtils.ecPublicKeyFromPem( myNodeID.publicKeyPem.toString()).Q!.x!.toBigInteger()!.toRadixString(16),
-        'y':CryptoUtils.ecPublicKeyFromPem( myNodeID.publicKeyPem.toString()).Q!.y!.toBigInteger()!.toRadixString(16),
+      'publicKey': {'x': CryptoUtils
+          .ecPublicKeyFromPem(myNodeID.publicKeyPem.toString())
+          .Q!
+          .x!
+          .toBigInteger()!
+          .toRadixString(16),
+        'y': CryptoUtils
+            .ecPublicKeyFromPem(myNodeID.publicKeyPem.toString())
+            .Q!
+            .y!
+            .toBigInteger()!
+            .toRadixString(16),
       },
-      'sign':{'r':myNodeID.sign.r.toString(),
-        's':myNodeID.sign.s.toString()},
-      'publicKeyPem':myNodeID.publicKeyPem.toString(),
-      'localIpv4':myNodeID.localIpv4.toString(),
-      'publicIpv4':myNodeID.publicIpv4.toString(),
-      'publicIpv6':myNodeID.localIpv4.toString(),
-      'natStatus':myNodeID.natStatus.toString(),
-      'localIpv4Port':myNodeID.localIpv4Port.toString(),
-      'publicIpv4Port':myNodeID.publicIpv4Port.toString(),
-      'publicIpv6Port':myNodeID.publicIpv6Port.toString(),
-      'communicatorIP':myNodeID.publicIpv6Port.toString(),
-      'communicatorPort':myNodeID.communicatorPort.toString(),
-      'listeningPort':myNodeID.listeningPort.toString(),
+      'sign': {'r': myNodeID.sign.r.toString(),
+        's': myNodeID.sign.s.toString()},
+      'publicKeyPem': myNodeID.publicKeyPem.toString(),
+      'localIpv4': myNodeID.localIpv4.toString(),
+      'publicIpv4': myNodeID.publicIpv4.toString(),
+      'publicIpv6': myNodeID.localIpv4.toString(),
+      'natStatus': myNodeID.natStatus.toString(),
+      'localIpv4Port': myNodeID.localIpv4Port.toString(),
+      'publicIpv4Port': myNodeID.publicIpv4Port.toString(),
+      'publicIpv6Port': myNodeID.publicIpv6Port.toString(),
+      'communicatorIP': myNodeID.publicIpv6Port.toString(),
+      'communicatorPort': myNodeID.communicatorPort.toString(),
+      'listeningPort': myNodeID.listeningPort.toString(),
 
 
     };
@@ -233,7 +285,7 @@ class RoutingManager {
       's': "s",
       'current': current,
       'R': "R",
-      'nodeID': jsonStringNodetoSend,
+      'nodeID': jsonStringNodeToSend,
       'myEndpoint': myEndpoint,
       'reqRT': reqRT,
       'layerID': layerID,
@@ -245,33 +297,32 @@ class RoutingManager {
   }
 
 
-
   Future<void> geTinFormation() async {
+    natStatus = await manager.getNetworkInformation("stun.l.google.com", 19302);
 
+    String? iPl;
+    String? iP4;
+    String? iP6;
+    if (manager.stunClient.getLocalIPv4() != null) {
+      iPl = manager.stunClient.getLocalIPv4()!.address;
+    }
 
-    natStatus =
-    await manager.getNetworkInformation("stun.l.google.com", 19302);
-    print(natStatus);
-    String? Ipl;
-    String? Ip4;
-    String? Ip6;
-    if(manager.stunClient.getLocalIPv4()!=null){
-      Ipl =  manager.stunClient.getLocalIPv4()!.address;}
-    if(manager.stunClient.getPublicIPv4()!=null){
-      Ip4 =  manager.stunClient.getPublicIPv4()!.address;}
-    if(manager.stunClient.getPublicIPv6()!=null){
-      Ip6 =  manager.stunClient.getPublicIPv6()!.address;}
-    localNodeID.nodeid.localIpv4 = Ipl;
-    localNodeID.nodeid.publicIpv6 = Ip6 ;
-    localNodeID.nodeid.publicIpv4 = Ip4 ;
+    if (manager.stunClient.getPublicIPv4() != null) {
+      iP4 = manager.stunClient.getPublicIPv4()!.address;
+    }
+
+    if (manager.stunClient.getPublicIPv6() != null) {
+      iP6 = manager.stunClient.getPublicIPv6()!.address;
+    }
+
+    localNodeID.nodeid.localIpv4 = iPl;
+    localNodeID.nodeid.publicIpv6 = iP4;
+    localNodeID.nodeid.publicIpv4 = iP6;
     localNodeID.nodeid.natStatus = natStatus;
-
-
   }
 
-  Future<void> sendmessageRM(
-      String RM,
-      String Relay,
+  Future<void> sendMessageRM(String rM,
+      String reLay,
       NodeID myNodeID,
       String hashID,
       String s,
@@ -283,38 +334,44 @@ class RoutingManager {
       String reqRT) async {
     String message;
 
-    message = createMessageRM(RM, Relay, myNodeID, hashID, s, current,
-        "${natStatus}", nodeIDtoSend, myEndpoint, layerID, reqRT);
+    message = createMessageRM(
+        rM,
+        reLay,
+        myNodeID,
+        hashID,
+        s,
+        current,
+        "$natStatus",
+        nodeIDtoSend,
+        myEndpoint,
+        layerID,
+        reqRT
+    );
 
-    // await manager.sendMessage("35.185.142.164", 22355, "D", "hello psj", "google");
 
-    // await manager.sendMessage("35.185.142.164", 22355, "D", message, "google");
     if (nodeIDtoSend.natStatus == 0) {
-
       manager.communicate(
-          nodeIDtoSend.communicatorIP,
-          nodeIDtoSend.communicatorPort,
-          "TP",
+          nodeIDtoSend.localIpv4,
+          nodeIDtoSend.listeningPort,
+          "D",
           message,
           nodeIDtoSend.hashID);
     } else {
-      if (nodeIDtoSend!= null) {
-        int? port;
-        String? ip;
-        if (nodeIDtoSend.natStatus != 0) {
 
-          if (nodeIDtoSend.publicIpv6 == null) {
-            ip = nodeIDtoSend.publicIpv4;
-            port = nodeIDtoSend.publicIpv4Port;
-          } else {
-            ip = nodeIDtoSend.publicIpv6;
-            port =nodeIDtoSend.publicIpv6Port;
-          }
-          manager.communicate(
-              ip, port, "D", message, nodeIDtoSend.hashID);
+      int? port;
+      String? ip;
+      if (nodeIDtoSend.natStatus != 0) {
+        if (nodeIDtoSend.publicIpv6 == null) {
+          ip = nodeIDtoSend.publicIpv4;
+          port = nodeIDtoSend.publicIpv4Port;
+        } else {
+          ip = nodeIDtoSend.publicIpv6;
+          port = nodeIDtoSend.publicIpv6Port;
         }
+        manager.communicate(
+            ip, port, "D", message, nodeIDtoSend.hashID);
       }
-    }
+        }
 
 
     // await Future.delayed(Duration(milliseconds: 500));
@@ -323,18 +380,11 @@ class RoutingManager {
 
   Future<void> rMessageRM(dynamic rcvdMessage) async {
     Map<String, dynamic> decodedMessageRM = jsonDecode(rcvdMessage);
-    String RM = decodedMessageRM['RM'];
-    String Relay = decodedMessageRM['Relay'];
+
     String senderNodeID = decodedMessageRM['myNodeID'];
-    String hashID = decodedMessageRM['hashID'];
-    String s = decodedMessageRM['s'];
-    String current = decodedMessageRM['current'];
-    String R = decodedMessageRM['R'];
-    String nodeID = decodedMessageRM['nodeID'];
-    String Endpoint = decodedMessageRM['myEndpoint'];
     String reqRT = decodedMessageRM['reqRT'];
     String layerID = decodedMessageRM['layerID'];
-    String RT = decodedMessageRM['RT'];
+    String rT = decodedMessageRM['RT'];
 
 // This part of code is written to take senders node and update it because that will be not part of it's own routing table.
 
@@ -360,9 +410,9 @@ class RoutingManager {
       int.parse(jsonNodeid['listeningPort']),
     );
     routingTables[layerID]!.updateNodeID(sendersNodeID,
-        Duration(milliseconds: 300), routingTables[layerID]!.RoutingTable);
+        const Duration(milliseconds: 300), routingTables[layerID]!.RoutingTable);
 
-    List<dynamic> decodedRT = jsonDecode(RT);
+    List<dynamic> decodedRT = jsonDecode(rT);
 
     List<List<NodeID?>> nodeList = decodedRT.map((innerList) {
       return (innerList as List<dynamic>).map((jsonNode) {
@@ -394,26 +444,45 @@ class RoutingManager {
     }).toList();
     routingTables[layerID]!
         .updateRtTable(routingTables[layerID]!.RoutingTable, nodeList);
-    print("updated node id is");
+    print("updated table");
     print(routingTables[layerID]!.RoutingTable);
 
     if (reqRT == 'Y') {
-      await sendmessageRM('RM', "D", localNodeID.nodeid, "hashID", "s",
-          "current", "R", sendersNodeID, "myEndpoint", "0", 'N');
+      await sendMessageRM(
+          'RM',
+          "D",
+          localNodeID.nodeid,
+          "hashID",
+          "s",
+          "current",
+          "R",
+          sendersNodeID,
+          "myEndpoint",
+          "0",
+          'N');
     }
     if (reqRT == 'P') {
       for (int i = 0; i < 40; i++) {
         if (sendersNodeID.hashID.split('') !=
             localNodeID.nodeid.hashID.split('')[i]) {
-
           if (!((nodeList[0][i] != null &&
               nodeList[0][i]!.hashID == localNodeID.nodeid.hashID) ||
               (nodeList[1][i] != null &&
                   nodeList[1][i]!.hashID == localNodeID.nodeid.hashID) ||
               (nodeList[2][i] != null &&
                   nodeList[2][i] == localNodeID.nodeid.hashID))) {
-            await sendmessageRM('RM', "D", localNodeID.nodeid, "hashID", "s",
-                "current", "R",sendersNodeID, "myEndpoint", "0", 'N');
+            await sendMessageRM(
+                'RM',
+                "D",
+                localNodeID.nodeid,
+                "hashID",
+                "s",
+                "current",
+                "R",
+                sendersNodeID,
+                "myEndpoint",
+                "0",
+                'N');
             i = 40;
           }
         }
@@ -422,23 +491,21 @@ class RoutingManager {
   }
 
   Future<void> checkForMessagesCMExecution() async {
-    const duration = Duration(seconds: 5); // Adjust duration as needed
+    const duration = Duration(seconds: 2); // Adjust duration as needed
     Timer.periodic(duration, (timer) {
       // This function will be executed periodically
-
       handleForMessages();
     });
   }
 
   void handleForMessages() {
     dynamic messageFromCMBuffer = dataBuffer.pull();
-    print(messageFromCMBuffer);
 
     if (messageFromCMBuffer != null) {
       Map<String, dynamic> decodedMessageRM = jsonDecode(messageFromCMBuffer);
-      String RM = decodedMessageRM['RM'];
+      String rM = decodedMessageRM['RM'];
 
-      if (RM != 'RM') {
+      if (rM != 'RM') {
         dataBuffer.push(messageFromCMBuffer);
       } else {
         rMessageRM(messageFromCMBuffer);
@@ -516,20 +583,19 @@ class RoutingManager {
   bool checkRTTableForSpoof(List<List<NodeID?>> rtTable, String node) {
     List<String> nodeIdC = node.split('');
     bool flag = true;
-    int p, q;
     for (int i = 0; i <= 2; i++) {
       for (int j = 0; j <= 39; j++) {
         if (rtTable[i][j] != null) {
-          List<String> tablenodeIdC = rtTable[i][j]!.hashID.split('');
+          List<String> tableNodeIdC = rtTable[i][j]!.hashID.split('');
           if (j == 0) {
-            if (nodeIdC[0] == tablenodeIdC[0]) {
+            if (nodeIdC[0] == tableNodeIdC[0]) {
               flag = false;
               i = 3;
               j = 40;
             }
           } else {
             for (int k = j - 1; k >= 0; k--) {
-              if (nodeIdC[k] != tablenodeIdC[k]) {
+              if (nodeIdC[k] != tableNodeIdC[k]) {
                 flag = false;
                 i = 3;
                 j = 40;

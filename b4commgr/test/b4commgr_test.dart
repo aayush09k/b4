@@ -1,8 +1,10 @@
 import 'package:b4commgr/b4commgr.dart';
 import 'package:test/test.dart';
+import 'package:b4utils/bufferdata.dart';
 
 void main() {
   CommunicationManager communicationManager = CommunicationManager();
+  DataBuffer dataBuffer = DataBuffer();
 
   test('when you need  to Relay Behind NAT', () async {
     var message = 'hello brother';
@@ -17,11 +19,12 @@ void main() {
     // will block your other operation.
     while (true) {
       await Future.delayed(Duration(seconds: 3));
-      print(communicationManager.getBufferData());
+      print(dataBuffer.pull());
     }
   });
 
-  test('when A node is publicly available / when i am responding to the connected client', () async {
+  test(
+      'when A node is publicly available / when i am responding to the connected client', () async {
     var message = 'hello brother';
     var publicIp = '35.185.142.164';
     var publicPort = 22356;
@@ -31,7 +34,7 @@ void main() {
         publicIp, publicPort, type, message, remoteNodeId);
     while (true) {
       await Future.delayed(Duration(seconds: 3));
-      print(communicationManager.getBufferData());
+      print(dataBuffer.pull());
     }
   });
 
@@ -46,7 +49,7 @@ void main() {
 
     while (true) {
       await Future.delayed(Duration(seconds: 3));
-      print(communicationManager.getBufferData());
+      print(dataBuffer.pull());
     }
   });
 
@@ -65,7 +68,7 @@ void main() {
     Future<void> getData() async {
       while (true) {
         await Future.delayed(Duration(seconds: 3));
-        print(communicationManager.getBufferData());
+        print(dataBuffer.pull());
       }
     }
 
@@ -98,12 +101,11 @@ void main() {
         bootstrapIp, bootstrapPort, type, message, remoteNodeId);
 
 
-
     //for getting data from the  common buffer.
     Future<void> getData() async {
       while (true) {
         await Future.delayed(Duration(seconds: 3));
-        print(communicationManager.getBufferData());
+        print(dataBuffer.pull());
       }
     }
 
@@ -111,7 +113,7 @@ void main() {
     // Then give the stunIp and Port to identify the network environment.
     var stunIp = 'stun.l.google.com';
     var stunPort = 19302;
-    var natStatus=await communicationManager.getNetworkInformation(
+    var natStatus = await communicationManager.getNetworkInformation(
         stunIp, stunPort);
 
     print(natStatus);
@@ -121,13 +123,13 @@ void main() {
     var listeningPort = 22355;
     var proxyIp = '35.185.142.164';
     var proxyPort = 22355;
-    var remoteNodeId2= 'macbook';
+    var remoteNodeId2 = 'macbook';
     await communicationManager.activateNode(
-        proxyIp, proxyPort, listeningPort, natStatus,remoteNodeId2);
+        proxyIp, proxyPort, listeningPort, natStatus, remoteNodeId2);
 
     //Now further you can send messages to any nodeID.
     //So here we have simulated the main purpose of communication manager.
-  await  getData();
+    await getData();
   }
 
   );
