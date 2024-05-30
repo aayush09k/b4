@@ -31,14 +31,14 @@ class RoutingManager {
   CommunicationManager manager = CommunicationManager();
   DataBuffer dataBuffer = DataBuffer();
   ConnectivityMonitor monitor = ConnectivityMonitor();
-  bool flag = false;
+  bool flag = true;
 
   RoutingManager._() {
     rtFilePath =
     "${filePath}rtTable.json"; // the path where routing table file will be stored as json.
     _localNodeID = LocalNodeID();
-    _localNodeID.nodeid.listeningPort = 34803;
-    _localNodeID.nodeid.hashID = "92D67DFC3E4616381DACA70A90CDF3C59EA80D32";
+    _localNodeID.nodeid.listeningPort = 8888;
+    _localNodeID.nodeid.hashID = "62D67DFC3E4616381DACA70A90CDF3C59EA80D32";
 
 
     if (flag == true) {
@@ -110,7 +110,7 @@ class RoutingManager {
         null,
         null.toString(),
         null,
-        34803,
+        8888,
       );
     }
 
@@ -124,7 +124,7 @@ class RoutingManager {
     // un comment this line for normal nodes.This line will remain comment for bootstrap.
     if (flag == false) {
       await geTinFormation();
-      await manager.activateNode(bootStrapNodeID!.publicIpv4,bootStrapNodeID.listeningPort,34803, natStatus,
+      await manager.activateNode(bootStrapNodeID!.publicIpv4,bootStrapNodeID.listeningPort,localNodeID.nodeid.listeningPort, natStatus,
           bootStrapNodeID.hashID); // hard code boots
       await sendMessageRM(
           'RM',
@@ -500,7 +500,7 @@ class RoutingManager {
 
   void handleForMessages() {
     dynamic messageFromCMBuffer = dataBuffer.pull();
-
+    print(messageFromCMBuffer);
     if (messageFromCMBuffer != null) {
       Map<String, dynamic> decodedMessageRM = jsonDecode(messageFromCMBuffer);
       String rM = decodedMessageRM['RM'];

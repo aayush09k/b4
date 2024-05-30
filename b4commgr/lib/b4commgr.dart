@@ -163,17 +163,19 @@ class CommunicationManager {
       natStatus, remoteNodeID) async {
     switch (natStatus) {
       case 0:
+        await _createInstanceCorrespondingToNodeId(listeningPort);
         await communicate(
             communicatorIp, communicatorPort, 'MP', null, remoteNodeID);
-        await _createInstanceCorrespondingToNodeId(listeningPort);
+
 
       case 1: // only listen for the connection.
-        _createInstanceCorrespondingToNodeId(listeningPort);
+        await _createInstanceCorrespondingToNodeId(listeningPort);
       case 2: // Here we do both listen for the connection. relay registration.
 
+        await _createInstanceCorrespondingToNodeId(listeningPort);
         await communicate(
             communicatorIp, communicatorPort, 'MP', null, remoteNodeID);
-        await _createInstanceCorrespondingToNodeId(listeningPort);
+
 
       default:
         print('natStatus is not defined');
