@@ -1,151 +1,167 @@
-// updated on 24 April as RFC 8656
+/*   Squadron Leader Tarun Chaudhary    */
+import 'dart:async'; // Used for Timer
+import 'dart:io'; // Provides RawDatagramSocket and InternetAddress
+import 'dart:convert'; // For UTF-8 encoding and decoding
+import 'dart:typed_data'; // For Uint8List
 
-import 'dart:async';
-import 'dart:html';
-import 'dart:io';
-import 'dart:convert';
-import 'dart:typed_data';
-
-// Define a class representing a TURN server
 class TurnServer {
-  // Map to store allocation entries (client ID -> AllocationEntry)
+  // A map to keep track of all active allocations. The key is the client ID.
   final Map<String, AllocationEntry> _allocationTable = {};
-   dynamic socket;
-  // Method to start the TURN server
+
+  // Starts the TURN server
   void startTurnServer() async {
     try {
-      // Bind a UDP socket to port 3478
-       socket= await RawDatagramSocket.bind(InternetAddress.anyIPv4, 3478);
+      // Bind the server to listen on any IPv4 address on port 3478
+      var socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 3478);
       print('TURN server listening on port 3478');
 
-      // Listen for events on the socket
+      // Set up the server to listen for incoming datagrams
       socket.listen((RawSocketEvent event) {
-        // If data is available to read
         if (event == RawSocketEvent.read) {
-          // Receive a datagram from the socket
           Datagram? datagram = socket.receive();
-          // If a datagram is received
           if (datagram != null) {
-            // Process the received datagram
+            print('Received datagram from ${datagram.address.address}:${datagram.port}');
             handleMessage(datagram, socket);
           }
         }
       });
+
+      // Optionally: Print allocations when the server starts
+      printCurrentAllocations();
     } catch (e) {
-      // Handle errors while starting the server
+      // Catch and print any errors that occur while starting the server
       print('Error starting TURN server: $e');
     }
   }
 
-  // This method handles incoming datagrams.
-  // It extracts the client ID from the datagram,
-  // checks if an allocation exists for the client,
-  // and either forwards the data to the intended destination peer
-  // or authenticates and allocates resources for the client if no allocation exists.
+  // Handles incoming messages and determines their type
   void handleMessage(Datagram datagram, RawDatagramSocket socket) {
-    // Extract client ID from datagram
+    // Get a unique client ID based on the sender's IP address and port
     String clientId = getClientId(datagram.address, datagram.port);
+    List<int> requestData = datagram.data;
+
+    print('Received TURN request from $clientId');
+    print('Request Data: $requestData');
 
     // Check if the datagram is a TURN request
     if (isTurnRequest(datagram.data)) {
-      // If it's a TURN request, process it
-      if (!(_allocationTable.containsKey(clientId))) {
-        // Forward data to the intended destination peer
-        //forwardData(clientId, String.fromCharCodes(datagram.data));
-        // Authenticate and allocate resources for the client
-        authenticateAndAllocate(clientId, datagram.address, datagram.port, socket);
-       // forwardData(clientId, String.fromCharCodes(datagram.data));
+      print('Valid TURN request from $clientId');
+      // Check if an allocation already exists for the client
+      if (!_allocationTable.containsKey(clientId)) {
+        // If no allocation exists, authenticate and allocate resources
+        authenticateAndAllocate(socket, clientId, datagram.address, datagram.port);
+      } else {
+        print('Allocation already exists for $clientId');
       }
-      forwardData(clientId, String.fromCharCodes(datagram.data));
+    } else if (isForwardRequest(datagram.data)) {
+      // If it's a forward request, forward the data
+      forwardData(socket, clientId, String.fromCharCodes(datagram.data));
     } else {
-      // If it's not a TURN request, handle it accordingly
-      // For example, you can log the message or ignore it
-      print('Received datagram is not a TURN request');
+      // If the datagram is neither a TURN request nor a forward request
+      print('Received datagram is not a TURN request from $clientId');
     }
   }
 
-  // Method to authenticate the client and allocate resources.
-  void authenticateAndAllocate(String clientId, InternetAddress clientAddress, int clientPort, RawDatagramSocket socket) {
-    // Simulate authentication
-    bool authenticated = true; // Replace with actual authentication logic
+  // Checks if the packet is a TURN allocation request
+  bool isTurnRequest(List<int> packet) {
+    // TURN request identified by the first two bytes being 0x00 and 0x03
+    return packet.length > 1 && packet[0] == 0x00 && packet[1] == 0x03;
+  }
+
+  // Checks if the packet is a data forwarding request
+  bool isForwardRequest(List<int> packet) {
+    // Forward requests start with the word "SEND"
+    String data = utf8.decode(packet);
+    return data.startsWith('SEND');
+  }
+
+  // Constructs a unique client ID based on the sender's IP address and port
+  String getClientId(InternetAddress address, int port) {
+    return '${address.address}:$port';
+  }
+
+  // Authenticates the client and allocates resources if authentication is successful
+  void authenticateAndAllocate(RawDatagramSocket socket, String clientId, InternetAddress clientAddress, int clientPort) {
+    // In a real scenario, add proper authentication logic here
+    bool authenticated = true; // Placeholder for authentication
 
     if (authenticated) {
-      // Allocate relayed transport address
-      String relayedTransportAddress = '${socket.address.address}:${socket.port}';
-      // Create AllocationEntry and add to allocation table
+      // Determine the server's IP address and port for relaying
+      String serverIpAddress = InternetAddress.anyIPv4.address; // This should typically be the public IP
+      int relayedTransportPort = socket.port;
+      String relayedTransportAddress = '$serverIpAddress:$relayedTransportPort';
+
+      // Create an allocation entry for the client
       _allocationTable[clientId] = AllocationEntry(
         clientId: clientId,
         serverReflexiveIp: clientAddress.address,
         serverReflexivePort: clientPort,
         relayedTransportAddress: relayedTransportAddress,
+        // Set a timer to expire the allocation after 10 minutes
         timer: Timer(Duration(minutes: 10), () {
-          // Remove allocation after 10 minutes
+          // Remove allocation when the timer expires
           _allocationTable.remove(clientId);
           print('Allocation closed for $clientId (timer expiry)');
         }),
       );
-      // Send response to client with allocated relayed transport address
+
+      // Send the relayed transport address back to the client
       socket.send(utf8.encode(relayedTransportAddress), clientAddress, clientPort);
       print('Allocation created for $clientId');
+
+      // Print current allocations after creating a new one
+      printCurrentAllocations();
     } else {
-      // Authentication failed, handle error
       print('Authentication failed for $clientId');
     }
   }
 
-  // Method to forward data to the intended destination peer.
-  void forwardData(String clientId, String data) {
-    // Extract destination peer and application data from message
-    List<String> parts = data.split(':');
-    String destinationPeer = parts[0].trim();
-    String applicationData = parts.sublist(1).join(':').trim();
-    if (_allocationTable.containsKey(destinationPeer)) {
-      AllocationEntry destinationEntry = _allocationTable[destinationPeer]!;
-      // Use the relayed transport address of the destination peer
-      String relayedTransportAddress = destinationEntry.relayedTransportAddress;
-      List<String> addressParts = relayedTransportAddress.split(':');
-      InternetAddress destinationAddress = InternetAddress(addressParts[0]); // IP address
-      int destinationPort = int.parse(addressParts[1]); // Port
-      // Prepare the message to be forwarded
-      String message = '$clientId:$applicationData';
-      Uint8List messageBytes = utf8.encode(message);
-      // Forward application data to destination peer via TURN server
-      socket.send(messageBytes, destinationAddress, destinationPort);
-      print('Forwarding data from $clientId to $destinationPeer: $applicationData');
-    } else {
-      // Destination peer is not found in the allocation table
-      print('Destination peer $destinationPeer not found. Unable to forward data from $clientId.');
+  // Forwards data to the specified destination
+  void forwardData(RawDatagramSocket socket, String clientId, String data) {
+    try {
+      // Parse the forwarded data
+      List<String> parts = data.split(' ');
+      if (parts.length < 4) {
+        print('Malformed data received from $clientId: $data');
+        return;
+      }
 
+      // Extract the destination address and port
+      String destinationAddress = parts[1].trim();
+      int destinationPort = int.parse(parts[2].trim());
+      // Extract the actual application data to be forwarded
+      String applicationData = parts.sublist(3).join(' ').trim();
+
+      // Prepare the message to be forwarded
+      String message = '$clientId: $applicationData';
+      Uint8List messageBytes = utf8.encode(message);
+      // Send the message to the destination address and port
+      socket.send(messageBytes, InternetAddress(destinationAddress), destinationPort);
+      print('Forwarding data from $clientId to $destinationAddress:$destinationPort: $applicationData');
+    } catch (e) {
+      // Catch and print any errors that occur during data forwarding
+      print('Error forwarding data from $clientId: $e');
     }
   }
 
-
-
-
-  // Method to construct a client ID using the client's IP address and port.
-  String getClientId(InternetAddress address, int port) {
-    return '${address.address}:$port';
-  }
-
-  // Method to check if a datagram contains a TURN request.
-  bool isTurnRequest(Uint8List packet) {
-    // Offset for the method field in the packet
-    int methodOffset = 0;
-    // Check if the packet length is greater than the method offset and if the method is 0x01
-    return packet.length > methodOffset && packet[methodOffset] == 0x01;
+  // Prints the current allocations
+  void printCurrentAllocations() {
+    print('Current Allocations:');
+    // Iterate through the allocation table and print details of each allocation
+    _allocationTable.forEach((clientId, allocation) {
+      print('Client ID: $clientId, Allocation: serverReflexiveIp: ${allocation.serverReflexiveIp}, serverReflexivePort: ${allocation.serverReflexivePort}, relayedTransportAddress: ${allocation.relayedTransportAddress}');
+    });
   }
 }
 
-// Class representing an allocation entry
+// Represents an allocation entry for a client
 class AllocationEntry {
-  // Properties of an allocation entry
-  String clientId;
-  String serverReflexiveIp;
-  int serverReflexivePort;
-  String relayedTransportAddress;
-  Timer timer;
+  String clientId; // Unique ID of the client
+  String serverReflexiveIp; // IP address of the client as seen by the server
+  int serverReflexivePort; // Port number of the client as seen by the server
+  String relayedTransportAddress; // Address used for relayed transport
+  Timer timer; // Timer to expire the allocation
 
-  // Constructor for an allocation entry
   AllocationEntry({
     required this.clientId,
     required this.serverReflexiveIp,
@@ -155,10 +171,8 @@ class AllocationEntry {
   });
 }
 
-// Main function
 void main() {
-  // Create an instance of the TurnServer class
+  // Create a TURN server instance and start it
   TurnServer turnServer = TurnServer();
-  // Start the TURN server
   turnServer.startTurnServer();
 }
