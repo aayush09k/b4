@@ -8,7 +8,7 @@ import 'package:pointycastle/api.dart' as crypto hide PublicKey ;
 import 'package:pointycastle/export.dart' hide PublicKey;
 import 'package:pointycastle/key_derivators/ecdh_kdf.dart';
 import 'package:pointycastle/pointycastle.dart' hide PublicKey;
-import 'package:dartsv/dartsv.dart';
+//import 'package:dartsv/dartsv.dart';
 import 'package:encrypt/encrypt.dart' hide SecureRandom;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart' hide Key  ;
@@ -21,7 +21,7 @@ import 'package:android_id/android_id.dart';
 import 'package:nodeid/nodeid.dart';
 import 'package:pointycastle/asymmetric/api.dart'  ; // Potentially needed
 import 'package:cryptography/cryptography.dart' ;
-import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:crypto/crypto.dart';
 
 
 
@@ -169,7 +169,54 @@ class AuthManager {
     }
 
 
-/// validateTime
+
+/// createMessageForAuthentication
+    ///
+    /// This function is used to create a message with the help of create digital signature , the content along with the signate will be sent for
+    /// authentication.
+    Future<String> createMessageForAuthentication(String content, privateKeyPemDecrypted) async
+    {
+      final signature = await createDigitalSignature(content, privateKeyPemDecrypted);
+      Map<String, dynamic> messageJson = {
+        "signature": signature,
+        "content": content,
+      };
+      final message = jsonEncode(messageJson);
+      return message;
+    }
+
+
+/// checkMessageForAuthentication
+    ///
+    /// This function will be used to check the integrity of the content in the message if the content is not tampered then it will return the string
+    /// else it will give null.
+    Future<String?> checkMessageForAuthentication(String message, userCert) async {
+      try {
+        // Parse the JSON message to extract the signature and content
+        Map<String, dynamic> messageJson = jsonDecode(message);
+        String signature = messageJson["signature"];
+        String content = messageJson["content"];
+        Uint8List contentBytes = utf8.encode(content);
+        final publicKeyPem = await extractPublicKeyFromCertificate(userCert);
+        final publicKey = crypto_utils.CryptoUtils.ecPublicKeyFromPem(publicKeyPem);
+        bool isSignatureValid = crypto_utils.CryptoUtils.ecVerifyBase64(publicKey ,contentBytes,signature);
+        // If the signature is valid, return the content; otherwise, return null
+        if (isSignatureValid) {
+          return content;
+        } else {
+          return null;
+        }
+      } catch (e) {
+        // Handle JSON parsing errors or signature verification errors
+        print("Error checking message: $e");
+        return null;
+      }
+    }
+
+
+
+
+    /// validateTime
     ///
     /// The purpose of this function is to access the signed certificate from secure storage and check it's validity
     /// weather the certificate has expired or not. Validity is for 365 days, after that the user needs to again
@@ -467,6 +514,11 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
 
 
 
+
+
+
+
+
 /// decryptDataWithRandomKey
     ///
     /// This function will decrypt the ciphertext with the help of the symmetric random key.
@@ -479,6 +531,60 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
       //print('decrypted data is : $decryptedData');
       return decryptedData;
     }
+
+
+
+
+
+    /// toEncrypt
+    ///
+    /// This function will encrypt the data by help of 8 character key.
+    Future<String> toEncrypt( data,  userKey) async {
+      if (userKey.length != 8 ) {
+        throw ArgumentError('Key must be 8, characters long');
+      }
+      final concatenatedKey = userKey + userKey+userKey;
+      final keyBytes = sha256.convert(utf8.encode(userKey)).bytes;
+      //final key = Key.fromBase64(concatenatedKey ); // Use the first 16 bytes for AES-128 key
+      final key = Key(Uint8List.fromList(keyBytes.sublist(0, 16)));
+      final iv = IV.fromBase64(userKey); // AES-GCM requires a 12-byte IV, but can use 16 bytes
+      final encrypter = Encrypter(AES(key, mode: AESMode.gcm));
+      final encrypted = encrypter.encrypt(data, iv: iv);
+      final encryptedData = encrypted.base64;
+      print('encrypted data is : $encryptedData');
+      return encryptedData;
+    }
+
+
+    /// toDecrypt
+    ///
+    /// This function will decrypt the data by help of 8 character key.
+    Future<String?> toDecrypt(String encryptedData, String userKey) async {
+      if (userKey.length != 8) {
+        throw ArgumentError('Key must be 8 characters long');
+      }
+      final keyBytes = sha256.convert(utf8.encode(userKey)).bytes;
+      //print('Key bytes: ${keyBytes.toList()}'); // Log key bytes for debugging
+      final concatenatedKey = userKey + userKey+userKey;
+      //final key = Key.fromBase64(concatenatedKey); // Use the first 16 bytes for AES-128 key
+      final key = Key(Uint8List.fromList(keyBytes.sublist(0, 16)));
+      final iv = IV.fromBase64(userKey); // Use a 16-byte IV for AES-GCM
+
+      final encrypter = Encrypter(AES(key, mode: AESMode.gcm));
+
+      // Handle potential errors during decryption
+      try {
+        final encrypted = Encrypted.fromBase64(encryptedData);
+        final decryptedData = encrypter.decrypt(encrypted, iv: iv);
+        print('decrypted data is : $decryptedData');
+        return decryptedData;
+      } on InvalidCipherTextException catch (e) {
+        print('Decryption failed: $e');
+        return null; // Or throw a custom exception
+      }
+    }
+
+
 
     /// encryptWithEcc
     ///
