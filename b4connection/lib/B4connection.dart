@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
-import 'tcpConnection.dart';
-import 'package:b4commgr/bufferdata.dart';
+import 'package:b4utils/bufferdata.dart';
+import 'TcpConnection.dart';
 
 class B4connection {
 // This class is used to
@@ -30,14 +30,14 @@ class B4connection {
     // Below two very important variable for each instance of b4connection.
     String? _remoteNodeID; // Two which you want to send the message or relay the message.
     Socket? _nodeIdSocket; // it will be fixed and unique after creating the b4connection instance.
-    String _myNodeId = 'psj'; // For each of b4connection instance you need to set this.
+    String? _myNodeId; // For each of b4connection instance you need to set this.
 
     Function? onClosed; // Callback to execute when the connection is closed.
     Map <Socket,dynamic> eliminate={};
 
 
     //Instance of class used.
-    TcpClient tcpClient = TcpClient();
+    TcpConnection tcpClient =TcpConnection();
     DataBuffer dataBuffer = DataBuffer();
 
 
@@ -68,6 +68,7 @@ class B4connection {
         return _nodeIdSocket;
     }
 
+    //It is used to close the socket and triggers the callback function.
     void close() {
 
         if (_nodeIdSocket != null) {
@@ -144,7 +145,7 @@ class B4connection {
                 if (_remoteNodeID != null) {
                     String toSend = tcpClient.createMessageJson(
                         _type, _remoteNodeID, _myNodeId, message);
-                    tcpClient.send(toSend, _nodeIdSocket!);
+                    await tcpClient.send(toSend, _nodeIdSocket!);
                 }
                 else {
                     print('no relay connection exits');
@@ -153,7 +154,7 @@ class B4connection {
             else if (_type == 'D') {
                 String toSend = tcpClient.createMessageJson(
                     _type,_remoteNodeID, _myNodeId, message);
-                tcpClient.send(toSend, _nodeIdSocket!);
+                await tcpClient.send(toSend, _nodeIdSocket!);
             }
             else if (_type == 'MP') {
                 String toSend = tcpClient.createMessageJson(

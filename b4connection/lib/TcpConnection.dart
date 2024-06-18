@@ -40,7 +40,7 @@ class TcpConnection {
             return _loCalcNodeSocket;
         }
         on SocketException catch (e) {
-            print('Failed to connect: $e');
+
             return null;
         }
     }
@@ -50,12 +50,10 @@ class TcpConnection {
         try {
             _loCalsNodeSocket =
             await ServerSocket.bind(
-                InternetAddress.anyIPv6, listeningPort, v6Only: false);
+                InternetAddress.anyIPv6, listeningPort, v6Only: false,shared: true);
         }
-        catch (e) {
-            print(e);
-        }
-        //print('Server: started  on port ${_loCalsNodeSocket!.port}');
+        catch (e) {}
+        print('Server: started  on port ${_loCalsNodeSocket!.address.address} ${_loCalsNodeSocket!.port}');
         return _loCalsNodeSocket;
     }
 
@@ -65,8 +63,8 @@ class TcpConnection {
     {
         // Listen for incoming  connection from any cNode.
         _loCalsNodeSocket!.listen((socket) {
-            /*print('RemoteNode is Connected to us from ${socket.remoteAddress
-                .address}:${socket.remotePort}');*/
+            print('RemoteNode is Connected to us from ${socket.remoteAddress
+                .address}:${socket.remotePort}');
 
             // whenever socket received it calls the call back function onDataReceived with newly connected socket.
             onDataReceived(socket);
@@ -108,7 +106,7 @@ class TcpConnection {
             length & 0xFF
         ]; // Prepare the length header
 
-
+    //  await  Future.delayed(Duration(seconds: 2));
         socket.add(
             lengthBytes); // Send the length header
         socket.add(
@@ -208,6 +206,7 @@ class TcpConnection {
     // Message handling should be done whenever a message is received.
     void _handleMessageFroMNode(decodedMessage, Socket socket) async {
         if (decodedMessage['type'] == 'MP') {
+            print('relay registered');
             if (decodedMessage['myNodeID'] != null) {
                 _remoTecNodeSocket[decodedMessage['myNodeID']] = socket;
             }

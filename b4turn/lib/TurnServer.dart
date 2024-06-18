@@ -1,6 +1,7 @@
 // updated on 24 April as RFC 8656
 
 import 'dart:async';
+import 'dart:html';
 import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -9,12 +10,12 @@ import 'dart:typed_data';
 class TurnServer {
   // Map to store allocation entries (client ID -> AllocationEntry)
   final Map<String, AllocationEntry> _allocationTable = {};
-
+   dynamic socket;
   // Method to start the TURN server
   void startTurnServer() async {
     try {
       // Bind a UDP socket to port 3478
-      var socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 3478);
+       socket= await RawDatagramSocket.bind(InternetAddress.anyIPv4, 3478);
       print('TURN server listening on port 3478');
 
       // Listen for events on the socket
