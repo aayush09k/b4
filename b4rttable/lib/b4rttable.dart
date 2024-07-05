@@ -23,9 +23,10 @@ class B4RoutingTable {
   B4RoutingTable(LocalNodeID localId) {
     onHoldNodes =
     {
-    }; // It is a map which hold nodes which are present in local RT but does not respond to ping test.Node is then removed from local RT table and
+    }; 
+	// It is a map which hold nodes which are present in local RT but does not respond to ping test. An unresponsive Node is removed from local RT table and
     // added to the map. If they do not respond to ping test 3 times then,
-    // they are removed from the onHoldNodes map as well.If they respond to 1st or 2nd ping then they are removed from map and updated into local RT .
+    // they are removed from the onHoldNodes map as well. If they respond to 1st or 2nd ping then they are removed from map and updated into local RT .
     localIdb = localId;
     localIdb!.nodeid.hashID="62D67DFC3E4616381DACA70A90CDF3C59EA80D32";
   }
@@ -35,11 +36,11 @@ class B4RoutingTable {
 
   // long lat based neighbour table is to be maintained. 16 nodes to be maintained based on shortest distance based on long
   // lat from the current node.
-  // layering in RT table...
+  // Each layer will have its own RT. To identify the layer, LayerID is used.
 
-  /// Describe the inputs, output, and functionality of the this function.
-  /// This function receives local Routing table, and Routing table of other node and rtt . It checks for each node ID in RT and update it's own local Routing table,
-  /// based on the routing algorithm(chord-tapestry).    ///
+  // This function receives local Routing table, and Routing table of other node and rtt . It checks for each node ID in RT and update it's own local Routing table,
+  // based on the routing algorithm (chord-tapestry).
+  
   void updateRtTable(List<List<NodeID?>> localRTtable, List<List<NodeID?>> rtTable) {
     RoutingTable = localRTtable;
     // this is the loop to check for each node in rtTable and compare with node already present in it's localRTtable.
