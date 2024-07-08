@@ -68,19 +68,19 @@ class AuthManager {
     String commonName = "";
     String surname = "";
     String stateOrProvinceName = "";
-    String givenName ="";
+    //String givenName ="";
     String userID = "";
 
 /// generateSelfSignedUserCertificate
     ///
     /// This function is used to take attributes from the user like country, organization,
-    ///commonName, surname,  stateOrProvinceName,  givenName for user AADHAR ID, userID for user Email ID
+    ///commonName, surname,  stateOrProvinceName, userID for user Email ID
     ///and then generate a X509 self signed certificate as Certificate Data in which we have
     ///the certificate, private key and public key which will be saved in secure storage(temporarily) and later on
     ///it will be sent to auth server for signature and the signed certificate returned from server will overwrite
     ///the self signed certificate only in secure storage but keys will not be changed.
     Future<CertificateData?> generateSelfSignedUserCertificate(String country, String organization,
-            String commonName,String surname, String stateOrProvinceName, String givenName,String userID) async {
+            String commonName,String surname, String stateOrProvinceName, /*String givenName*/String userID) async {
 
         final attributes = {
 'C': country,
@@ -88,7 +88,7 @@ class AuthManager {
 'CN': commonName,
 'SN': surname,
 'ST': stateOrProvinceName,
-'GN': givenName,  // for user Aadhar ID
+//'GN': givenName,  // for user Aadhar ID
 'UID': userID,    // for user email ID
         };
         final eccKeyPair = crypto_utils.CryptoUtils.generateEcKeyPair();
@@ -653,10 +653,47 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
     }
 
 
-/// genUsersForMutAuth
+
+
+
+/// isRevoked
     ///
-    /// This function was used to generate two users for testing purpose only of ECC mutual authentication.
-  genUsersForMutAuth(){
+    /// This function will take the X.509 certificate as argument and extract it's serial number and will send
+    /// it to auth server to check the number in the CRL(Certificate Revocation List) of the server. If the
+    /// certificate has been revoked by the auth server it will return a bool value True, if the certificate
+    /// has not been revoked it will return false.
+    Future<bool> isRevoked(String certificatePemFile) async{
+      x509.X509CertificateData certificateDetail = x509.X509Utils.x509CertificateFromPem(certificatePemFile);
+      final certificateSerialNumber = certificateDetail.tbsCertificate?.serialNumber;
+      print('Certificate Serial Number is : $certificateSerialNumber');
+      String MSrequrl = "$mserverurl/ProcessRequest?req=checkcrl&certsrno=$certificateSerialNumber";
+      String revocationResponse=await x509.HttpUtils.postForString(MSrequrl);
+      revocationResponse=revocationResponse.trim();
+      print('Response from server is : $revocationResponse');
+      if ((revocationResponse.compareTo("24"))==0) {
+         print('Revoked');
+         return true; // Certificate is revoked
+      }
+      else if ((revocationResponse.compareTo("25"))==0) {
+        print(' NOT Revoked');
+        return false; // Certificate is not revoked
+      }
+      else {
+        print('error in revocation check');
+        return false;
+      }
+
+    }
+
+}
+
+
+
+
+/// genUsersForMutAuth
+///
+/// This function was used to generate two users for testing purpose only of ECC mutual authentication.
+/*genUsersForMutAuth(){
     final commonName = 'user1';
     final organization = 'user1';
     final country = 'user1';
@@ -696,11 +733,8 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
     final csr2 = x509.X509Utils.generateEccCsrPem(attributes2, privateKeyTwo, publicKeyTwo);
     final user2Certificate = x509.X509Utils.generateSelfSignedCertificate(privateKeyTwo, csr2, 365);
     File('C:\\Users\\HP\\Desktop\\b4testdata\\user2Certificate.pem').writeAsStringSync(user2Certificate);
-  }
+  }*/
 
-
-
-}
 
 
 
@@ -950,7 +984,7 @@ String dn2organization = " ";
 String dn3commonName = " ";
 String dn4surname = " ";
 String dn5stateOrProvinceName = " ";
-String dn6givenName = " ";
+//String dn6givenName = " ";
 String dn7userID = " ";
 
 /*Future<String?> getNodeId() async {
