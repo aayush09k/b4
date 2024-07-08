@@ -11,13 +11,13 @@ class B4connection {
 // 3. setup a listener for sockets and corresponding nodeId.
 // 3. Setup a listener to receive incoming messages, either directly or through a reRouter node.
 // 5. Send message to other node as configured in the connection.
-// 6. Receive message from other node as configured in the connection and add received messages in the common buffer rof cm module.
+// 6. Receive message from other node as configured in the connection and add received messages in the common buffer of cm module.
 
 
 
     //Declaration of all required variables.
 
-    Timer? _inactivityTimer; // Timer used to delete the b4connection instance if it is not used the connection.
+    Timer? _inactivityTimer; // Timer used to delete the b4connection instance if the connection is not used before the timer expiry.
 
     String? _type;
     //It stores the input from the user.It helps in connection and messaging.
@@ -28,7 +28,7 @@ class B4connection {
 
 
     // Below two very important variable for each instance of b4connection.
-    String? _remoteNodeID; // Two which you want to send the message or relay the message.
+    String? _remoteNodeID; // The remote node ID to whom one want to send the message or relay the message.
     Socket? _nodeIdSocket; // it will be fixed and unique after creating the b4connection instance.
     String? _myNodeId; // For each of b4connection instance you need to set this.
 
