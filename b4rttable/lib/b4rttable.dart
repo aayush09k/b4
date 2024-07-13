@@ -20,14 +20,7 @@ class B4RoutingTable {
   Map<NodeID, List<String>>? latLongLocal;
   List<double>? coords = [0.0, 0.0]; //  initialising the co-ordinates
 
-  B4RoutingTable(LocalNodeID localId) {
-    onHoldNodes = {}; // It is a map which hold nodes which are present in local RT but does not respond to ping test.Node is then removed from local RT table and
-    // added to the map. If they do not respond to ping test 3 times then,
-    // they are removed from the onHoldNodes map as well.If they respond to 1st or 2nd ping then they are removed from map and updated into local RT .
-    localIdb = localId;
-    
-  }
-
+  B4RoutingTable(this.localIdb) : onHoldNodes = {};// it is constructor in which local node is passed as a parameter.
   // Function to update the nodeID in the routing table. When any new Node Id is received by the node, it is always updated
   // in RT table using this function only.
 
