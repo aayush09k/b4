@@ -31,14 +31,14 @@ class RoutingManager {
   CommunicationManager manager = CommunicationManager();
   DataBuffer dataBuffer = DataBuffer();
   ConnectivityMonitor monitor = ConnectivityMonitor();
-  bool flag = true;
+  bool flag = false;
 
   RoutingManager._() {
     rtFilePath =
     "${filePath}rtTable.json"; // the path where routing table file will be stored as json.
     _localNodeID = LocalNodeID();
     _localNodeID.nodeid.listeningPort = 8888;
-    _localNodeID.nodeid.hashID = "62D67DFC3E4616381DACA70A90CDF3C59EA80D32";
+    _localNodeID.nodeid.hashID = "72D67DFC3E4616381DACA70A90CDF3C59EA80D32";
 
 
     if (flag == true) {
@@ -101,8 +101,8 @@ class RoutingManager {
         // Assuming this is how you reconstruct sign
         CryptoUtils.ecPublicKeyFromPem(
             "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEr8xH1as9ZYF2t+Bc6iQVBNtB4WxK\nUBlQ5sX9oBpTSrTdS39R2c8W4r/Wq/fXNHk+df5uig06vSozEnADHgY8xQ==\n-----END PUBLIC KEY-----"),
-        "172.20.160.56", //localIPV4
-        "103.246.106.197",//publicIPV4
+        "172.17.80.80", //localIPV4
+        "172.17.80.80",//publicIPV4
         null.toString(),
         1,
         null,
@@ -126,6 +126,7 @@ class RoutingManager {
       await geTinFormation();
       await manager.activateNode(bootStrapNodeID!.publicIpv4,bootStrapNodeID.listeningPort,localNodeID.nodeid.listeningPort, natStatus,
           bootStrapNodeID.hashID); // hard code boots
+      await Future.delayed(const Duration(seconds: 3));
       await sendMessageRM(
           'RM',
           "D",
@@ -134,7 +135,7 @@ class RoutingManager {
           "s",
           "current",
           "natStatus",
-          localNodeID.nodeid,
+          bootStrapNodeID!,
           "myEndpoint",
           "0",
           'Y');
@@ -350,7 +351,7 @@ class RoutingManager {
 
 
     if (nodeIDtoSend.natStatus == 0) {
-      manager.communicate(
+     await  manager.communicate(
           nodeIDtoSend.localIpv4,
           nodeIDtoSend.listeningPort,
           "D",
@@ -368,7 +369,7 @@ class RoutingManager {
           ip = nodeIDtoSend.publicIpv6;
           port = nodeIDtoSend.publicIpv6Port;
         }
-        manager.communicate(
+       await  manager.communicate(
             ip, port, "D", message, nodeIDtoSend.hashID);
       }
         }
@@ -443,7 +444,7 @@ class RoutingManager {
       }).toList();
     }).toList();
     routingTables[layerID]!
-        .updateRtTable(routingTables[layerID]!.RoutingTable, nodeList);
+        .updateRtTable( nodeList);
     print("updated table");
     print(routingTables[layerID]!.RoutingTable);
 
@@ -520,7 +521,7 @@ class RoutingManager {
   void mergeTables(List<List<NodeID?>> newRoutingTable, String layerId) {
     List<List<NodeID?>> localRT = routingTables[layerId]!.RoutingTable;
 
-    routingTables[layerId]!.updateRtTable(localRT, newRoutingTable);
+    routingTables[layerId]!.updateRtTable( newRoutingTable);
   }
 
   void sendPeriodicUpdate(List<List<NodeID?>> rtTable) {
@@ -578,6 +579,13 @@ class RoutingManager {
         }
       }
     }
+  }
+
+  void checkNodeAliveness(){
+
+
+
+
   }
 
   bool checkRTTableForSpoof(List<List<NodeID?>> rtTable, String node) {

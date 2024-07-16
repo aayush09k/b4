@@ -20,29 +20,19 @@ class B4RoutingTable {
   Map<NodeID, List<String>>? latLongLocal;
   List<double>? coords = [0.0, 0.0]; //  initialising the co-ordinates
 
-  B4RoutingTable(LocalNodeID localId) {
-    onHoldNodes =
-    {
-    }; 
-	// It is a map which hold nodes which are present in local RT but does not respond to ping test. An unresponsive Node is removed from local RT table and
-    // added to the map. If they do not respond to ping test 3 times then,
-    // they are removed from the onHoldNodes map as well. If they respond to 1st or 2nd ping then they are removed from map and updated into local RT .
-    localIdb = localId;
-    localIdb!.nodeid.hashID="62D67DFC3E4616381DACA70A90CDF3C59EA80D32";
-  }
-
+  B4RoutingTable(this.localIdb) : onHoldNodes = {};// it is constructor in which local node is passed as a parameter.
   // Function to update the nodeID in the routing table. When any new Node Id is received by the node, it is always updated
   // in RT table using this function only.
 
   // long lat based neighbour table is to be maintained. 16 nodes to be maintained based on shortest distance based on long
   // lat from the current node.
-  // Each layer will have its own RT. To identify the layer, LayerID is used.
+  // layering in RT table...
 
-  // This function receives local Routing table, and Routing table of other node and rtt . It checks for each node ID in RT and update it's own local Routing table,
-  // based on the routing algorithm (chord-tapestry).
-  
-  void updateRtTable(List<List<NodeID?>> localRTtable, List<List<NodeID?>> rtTable) {
-    RoutingTable = localRTtable;
+  /// Describe the inputs, output, and functionality of the this function.
+  /// This function receives local Routing table, and Routing table of other node and rtt . It checks for each node ID in RT and update it's own local Routing table,
+  /// based on the routing algorithm(chord-tapestry).    ///
+  void updateRtTable(List<List<NodeID?>> rtTable) {
+
     // this is the loop to check for each node in rtTable and compare with node already present in it's localRTtable.
     for (int row = 0; row < 3; row++) {
       for (int col = 0; col < 40; col++) {
@@ -335,248 +325,245 @@ class B4RoutingTable {
   // }
 
 
-  void updateNeighbourTable(Map<NodeID, Duration> neighbourTable) {
 
+  ///
+  /// This function was made first to update object of NodeID for simplified implementation and testing.
+  /// It was later modified to function updateRtTable which is implemented above.It will be removed later. It is currently used to create a routing table initially for testing.
+  ///
+  void updateNodeID(NodeID nodeID, Duration rtt,List<List<NodeID?>> localRT) {
+
+    //check if node is present in putonHold, if present them remove from there.
+
+    if (onHoldNodes != null) {
+      if (onHoldNodes!.containsKey(nodeID)) {
+        onHoldNodes!.remove(nodeID);
+      }
+    }
+    mRtt[nodeID.hashID] = rtt;
+    List<String>? nodeIdC = nodeID.hashID.split('');
+    String? localNodeId = localIdb!.nodeid.hashID;
+    List<String> localNodeIdC = localNodeId.split('');
+
+    int m = -1; // initialising variable for index for finding first mis-match....
+    for (int i = 0; i < 40; i++) {
+      if (nodeIdC[i] != localNodeIdC[i]) {
+        m = i;
+        i = 40; // to exit the loop after getting index of first mismatch
+      }
+    }
+    if (nodeIdC[m] != localNodeIdC[m])
+    {
+      //
+      if (localRT[0][m]==null && localRT[1][m] == null && localRT[2][m] == null)
+      {
+        localRT[2][m] = nodeID; // If routing table is null in the column then copy the nodeID in all 3 rows of column.
+        localRT[1][m] = nodeID;
+        localRT[0][m] = nodeID;
+      }
+      // If routing table is not null, then we take node id of pre, succ and mid nodes.Then splitting the string node id into string of characters to compare.
+      else
+      {
+        String? preNodeId = localRT[2][m]?.hashID;
+        String? midNodeId = localRT[1][m]?.hashID;
+        String? sucNodeId = localRT[0][m]?.hashID;
+
+        List<String>? preNodeIdC = preNodeId!.split('');
+        List<String>? midNodeIdC = midNodeId!.split('');
+        List<String>? sucNodeIdC = sucNodeId!.split('');
+
+        int preNodeIdint = int.parse(preNodeIdC[m],radix: 16); // coverting hexadecimal value into int for comparison
+        int midNodeIdint = int.parse(midNodeIdC[m], radix: 16);
+        int sucNodeIdint = int.parse(sucNodeIdC[m], radix: 16);
+        int localnodeIdint = int.parse(localNodeIdC[m], radix: 16);
+        int nodeIdint = int.parse(nodeIdC[m], radix: 16);
+        int idealMidNodeIdint = (localnodeIdint + 8) % 16;
+
+        if (((localnodeIdint - preNodeIdint + 16) % 16) > ((nodeIdint - preNodeIdint + 16) % 16))
+        {
+
+          if (mRtt.containsKey(localRT[2][m]!.hashID) && (localRT[2][m] != localRT[1][m] || localRT[2][m] != localRT[0][m]))
+          {
+            mRtt.remove(localRT[2][m]!.hashID); // this is done so that if node ID is not present anywhere in RT then it should also not be present in mRTT table.
+          }
+          localRT[2][m] = nodeID; //replacing pre-decessor nodeID
+
+
+        }
+        else if (((sucNodeIdint - localnodeIdint + 16) % 16) >((nodeIdint - localnodeIdint + 16) % 16))
+        {
+
+          if (mRtt.containsKey(localRT[0][m]) && (localRT[0][m]!.hashID != localRT[1][m]!.hashID || localRT[0][m]!.hashID != localRT[2][m]!.hashID))
+          {
+            mRtt.remove(localRT[0][m]);
+          }
+
+          localRT[0][m] = nodeID; //replacing successor node id
+
+
+        } else if (min(((idealMidNodeIdint - midNodeIdint + 16) % 16),((midNodeIdint - idealMidNodeIdint + 16) % 16)) > min(((idealMidNodeIdint - nodeIdint + 16) % 16),((nodeIdint - idealMidNodeIdint + 16) % 16)))
+        {
+          if (mRtt.containsKey(localRT[1][m]!.hashID) &&  (localRT[1][m] != localRT[0][m] || localRT[1][m] != localRT[2][m]))
+          {
+            mRtt.remove(localRT[1][m]!.hashID);
+          }
+
+
+          localRT[1][m] = nodeID; // replacing middle node id
+
+        } else if (nodeIdint == preNodeIdint && mRtt[nodeID]! > rtt)
+        {
+          if (mRtt.containsKey(localRT[2][m]!.hashID) && (localRT[2][m] != localRT[1][m] || localRT[2][m] != localRT[0][m]))
+          {
+            mRtt.remove(localRT[2][m]!.hashID);
+          }
+
+
+          //Next 3 conditions are checking rtt if nodeID nibble matches which any of pre,success,mid nodeID.
+
+
+          localRT[2][m] = nodeID; // NodeID having less rtt is kept in the routing table.
+
+        } else if (nodeIdint == midNodeIdint && mRtt[nodeID]! > rtt)
+        {
+
+          if (mRtt.containsKey(localRT[1][m]!.hashID) && (localRT[1][m] != localRT[0][m] || localRT[1][m] != localRT[2][m]))
+          {
+            mRtt.remove(localRT[1][m]!.hashID);
+          }
+          localRT[1][m] = nodeID;
+        } else if (nodeIdint == sucNodeIdint && mRtt[nodeID]! > rtt)
+        {
+
+          if (mRtt.containsKey(localRT[0][m]!.hashID) && (localRT[0][m] != localRT[1][m] || localRT[0][m] != localRT[2][m]))
+          {
+            mRtt.remove(localRT[0][m]!.hashID);
+          }
+          localRT[0][m] = nodeID;
+        }
+      }
+    }
+    else if (mRtt.containsKey(nodeID)) {
+      mRtt.remove(nodeID);
+    }
   }
 
+//this is update id function
 
-///
-/// This function was made first to update object of NodeID for simplified implementation and testing.
-    /// It was later modified to function updateRtTable which is implemented above.It will be removed later.
-    void updateNodeID(NodeID nodeID, Duration rtt,List<List<NodeID?>> localRT) {
-
-        //check if node is present in putonHold, if present them remove from there.
-
-        if (onHoldNodes != null) {
-            if (onHoldNodes!.containsKey(nodeID)) {
-                onHoldNodes!.remove(nodeID);
-            }
-        }
-        mRtt[nodeID.hashID] = rtt;
-        List<String>? nodeIdC = nodeID.hashID.split('');
-        String? localNodeId = localIdb!.nodeid.hashID;
-        List<String> localNodeIdC = localNodeId.split('');
-
-        int m = -1; // initialising variable for index for finding first mis-match....
-        for (int i = 0; i < 40; i++) {
-            if (nodeIdC[i] != localNodeIdC[i]) {
-                m = i;
-                i = 40; // to exit the loop after getting index of first mismatch
-            }
-        }
-        if (nodeIdC[m] != localNodeIdC[m])
-        {
-            //
-            if (localRT[0][m]==null && localRT[1][m] == null && localRT[2][m] == null)
-            {
-              localRT[2][m] = nodeID; // If routing table is null in the column then copy the nodeID in all 3 rows of column.
-              localRT[1][m] = nodeID;
-              localRT[0][m] = nodeID;
-            }
-            // If routing table is not null, then we take node id of pre, succ and mid nodes.Then splitting the string node id into string of characters to compare.
-            else
-            {
-                String? preNodeId = localRT[2][m]?.hashID;
-                String? midNodeId = localRT[1][m]?.hashID;
-                String? sucNodeId = localRT[0][m]?.hashID;
-
-                List<String>? preNodeIdC = preNodeId!.split('');
-                List<String>? midNodeIdC = midNodeId!.split('');
-                List<String>? sucNodeIdC = sucNodeId!.split('');
-
-                int preNodeIdint = int.parse(preNodeIdC[m],radix: 16); // coverting hexadecimal value into int for comparison
-                int midNodeIdint = int.parse(midNodeIdC[m], radix: 16);
-                int sucNodeIdint = int.parse(sucNodeIdC[m], radix: 16);
-                int localnodeIdint = int.parse(localNodeIdC[m], radix: 16);
-                int nodeIdint = int.parse(nodeIdC[m], radix: 16);
-                int idealMidNodeIdint = (localnodeIdint + 8) % 16;
-
-                if (((localnodeIdint - preNodeIdint + 16) % 16) > ((nodeIdint - preNodeIdint + 16) % 16))
-                {
-
-                    if (mRtt.containsKey(localRT[2][m]!.hashID) && (localRT[2][m] != localRT[1][m] || localRT[2][m] != localRT[0][m]))
-                    {
-                        mRtt.remove(localRT[2][m]!.hashID); // this is done so that if node ID is not present anywhere in RT then it should also not be present in mRTT table.
-                    }
-                    localRT[2][m] = nodeID; //replacing pre-decessor nodeID
-
-
-                }
-                else if (((sucNodeIdint - localnodeIdint + 16) % 16) >((nodeIdint - localnodeIdint + 16) % 16))
-                {
-
-                    if (mRtt.containsKey(localRT[0][m]) && (localRT[0][m]!.hashID != localRT[1][m]!.hashID || localRT[0][m]!.hashID != localRT[2][m]!.hashID))
-                    {
-                        mRtt.remove(localRT[0][m]);
-                    }
-
-                    localRT[0][m] = nodeID; //replacing successor node id
-
-
-                } else if (min(((idealMidNodeIdint - midNodeIdint + 16) % 16),((midNodeIdint - idealMidNodeIdint + 16) % 16)) > min(((idealMidNodeIdint - nodeIdint + 16) % 16),((nodeIdint - idealMidNodeIdint + 16) % 16)))
-                {
-                    if (mRtt.containsKey(localRT[1][m]!.hashID) &&  (localRT[1][m] != localRT[0][m] || localRT[1][m] != localRT[2][m]))
-                    {
-                        mRtt.remove(localRT[1][m]!.hashID);
-                    }
-
-
-                    localRT[1][m] = nodeID; // replacing middle node id
-
-                } else if (nodeIdint == preNodeIdint && mRtt[nodeID]! > rtt)
-                {
-                    if (mRtt.containsKey(localRT[2][m]!.hashID) && (localRT[2][m] != localRT[1][m] || localRT[2][m] != localRT[0][m]))
-                    {
-                        mRtt.remove(localRT[2][m]!.hashID);
-                    }
-
-
-                    //Next 3 conditions are checking rtt if nodeID nibble matches which any of pre,success,mid nodeID.
-
-
-                    localRT[2][m] = nodeID; // NodeID having less rtt is kept in the routing table.
-
-                } else if (nodeIdint == midNodeIdint && mRtt[nodeID]! > rtt)
-                {
-
-                    if (mRtt.containsKey(localRT[1][m]!.hashID) && (localRT[1][m] != localRT[0][m] || localRT[1][m] != localRT[2][m]))
-                    {
-                        mRtt.remove(localRT[1][m]!.hashID);
-                    }
-                    localRT[1][m] = nodeID;
-                } else if (nodeIdint == sucNodeIdint && mRtt[nodeID]! > rtt)
-                {
-
-                    if (mRtt.containsKey(localRT[0][m]!.hashID) && (localRT[0][m] != localRT[1][m] || localRT[0][m] != localRT[2][m]))
-                    {
-                        mRtt.remove(localRT[0][m]!.hashID);
-                    }
-                    localRT[0][m] = nodeID;
-                }
-            }
-        }
-        else if (mRtt.containsKey(nodeID)) {
-            mRtt.remove(nodeID);
-        }
-    }
-
-    //this is update id function
-
-  // void updateNodeIDtest(NodeID nodeID, Duration rtt) {
-  //
-  //   //check if node is present in putonHold, if present them remove from there.
-  //
-  //   if (onHoldNodes != null) {
-  //     if (onHoldNodes!.containsKey(nodeID)) {
-  //       onHoldNodes!.remove(nodeID);
-  //     }
-  //   }
-  //   mRtt[nodeID.hashID] = rtt;
-  //   List<String>? nodeIdC = nodeID.hashID.split('');
-  //   String? localNodeId = localIdb!.nodeid.hashID;
-  //   List<String> localNodeIdC = localNodeId.split('');
-  //
-  //   int m = -1; // initialising variable for index for finding first mis-match....
-  //   for (int i = 0; i < 40; i++) {
-  //     if (nodeIdC[i] != localNodeIdC[i]) {
-  //       m = i;
-  //       i = 40; // to exit the loop after getting index of first mismatch
-  //     }
-  //   }
-  //   if (nodeIdC[m] != localNodeIdC[m])
-  //   {
-  //     //
-  //     if (RoutingTable[0][m]==null && RoutingTable[1][m] == null && RoutingTable[2][m] == null)
-  //     {
-  //       RoutingTable[2][m] = nodeID; // If routing table is null in the column then copy the nodeID in all 3 rows of column.
-  //       RoutingTable[1][m] = nodeID;
-  //       RoutingTable[0][m] = nodeID;
-  //     }
-  //     // If routing table is not null, then we take node id of pre, succ and mid nodes.Then splitting the string node id into string of characters to compare.
-  //     else
-  //     {
-  //       String? preNodeId = RoutingTable[2][m]?.hashID;
-  //       String? midNodeId = RoutingTable[1][m]?.hashID;
-  //       String? sucNodeId = RoutingTable[0][m]?.hashID;
-  //
-  //       List<String>? preNodeIdC = preNodeId!.split('');
-  //       List<String>? midNodeIdC = midNodeId!.split('');
-  //       List<String>? sucNodeIdC = sucNodeId!.split('');
-  //
-  //       int preNodeIdint = int.parse(preNodeIdC[m],radix: 16); // coverting hexadecimal value into int for comparison
-  //       int midNodeIdint = int.parse(midNodeIdC[m], radix: 16);
-  //       int sucNodeIdint = int.parse(sucNodeIdC[m], radix: 16);
-  //       int localnodeIdint = int.parse(localNodeIdC[m], radix: 16);
-  //       int nodeIdint = int.parse(nodeIdC[m], radix: 16);
-  //       int idealMidNodeIdint = (localnodeIdint + 8)%16;
-  //
-  //       if (((localnodeIdint - preNodeIdint + 16) % 16) > ((nodeIdint - preNodeIdint + 16) % 16))
-  //       {
-  //
-  //         if (mRtt.containsKey(RoutingTable[2][m]!.hashID) && (RoutingTable[2][m] != RoutingTable[1][m] || RoutingTable[2][m] != RoutingTable[0][m]))
-  //         {
-  //           mRtt.remove(RoutingTable[2][m]!.hashID); // this is done so that if node ID is not present anywhere in RT then it should also not be present in mRTT table.
-  //         }
-  //         RoutingTable[2][m] = nodeID; //replacing pre-decessor nodeID
-  //
-  //
-  //       }
-  //       else if (((sucNodeIdint - localnodeIdint + 16) % 16) >((nodeIdint - localnodeIdint + 16) % 16))
-  //       {
-  //
-  //         if (mRtt.containsKey(RoutingTable[0][m]) && (RoutingTable[0][m]!.hashID != RoutingTable[1][m]!.hashID || RoutingTable[0][m]!.hashID != RoutingTable[2][m]!.hashID))
-  //         {
-  //           mRtt.remove(RoutingTable[0][m]);
-  //         }
-  //
-  //         RoutingTable[0][m] = nodeID; //replacing successor node id
-  //
-  //
-  //       } else if (min(((idealMidNodeIdint - midNodeIdint + 16) % 16),((midNodeIdint - idealMidNodeIdint + 16) % 16)) > min(((idealMidNodeIdint - nodeIdint + 16) % 16),((nodeIdint - idealMidNodeIdint + 16) % 16)))
-  //       {
-  //         if (mRtt.containsKey(RoutingTable[1][m]!.hashID) &&  (RoutingTable[1][m] != RoutingTable[0][m] || RoutingTable[1][m] != RoutingTable[2][m]))
-  //         {
-  //           mRtt.remove(RoutingTable[1][m]!.hashID);
-  //         }
-  //
-  //
-  //         RoutingTable[1][m] = nodeID; // replacing middle node id
-  //
-  //       } else if (nodeIdint == preNodeIdint && mRtt[nodeID]! > rtt)
-  //       {
-  //         if (mRtt.containsKey(RoutingTable[2][m]!.hashID) && (RoutingTable[2][m] != RoutingTable[1][m] || RoutingTable[2][m] != RoutingTable[0][m]))
-  //         {
-  //           mRtt.remove(RoutingTable[2][m]!.hashID);
-  //         }
-  //
-  //
-  //         //Next 3 conditions are checking rtt if nodeID nibble matches which any of pre,success,mid nodeID.
-  //
-  //
-  //         RoutingTable[2][m] = nodeID; // NodeID having less rtt is kept in the routing table.
-  //
-  //       } else if (nodeIdint == midNodeIdint && mRtt[nodeID]! > rtt)
-  //       {
-  //
-  //         if (mRtt.containsKey(RoutingTable[1][m]!.hashID) && (RoutingTable[1][m] != RoutingTable[0][m] || RoutingTable[1][m] != RoutingTable[2][m]))
-  //         {
-  //           mRtt.remove(RoutingTable[1][m]!.hashID);
-  //         }
-  //         RoutingTable[1][m] = nodeID;
-  //       } else if (nodeIdint == sucNodeIdint && mRtt[nodeID]! > rtt)
-  //       {
-  //
-  //         if (mRtt.containsKey(RoutingTable[0][m]!.hashID) && (RoutingTable[0][m] != RoutingTable[1][m] || RoutingTable[0][m] != RoutingTable[2][m]))
-  //         {
-  //           mRtt.remove(RoutingTable[0][m]!.hashID);
-  //         }
-  //         RoutingTable[0][m] = nodeID;
-  //       }
-  //     }
-  //   }
-  //   else if (mRtt.containsKey(nodeID)) {
-  //     mRtt.remove(nodeID);
-  //   }
-  // }
+// void updateNodeIDtest(NodeID nodeID, Duration rtt) {
+//
+//   //check if node is present in putonHold, if present them remove from there.
+//
+//   if (onHoldNodes != null) {
+//     if (onHoldNodes!.containsKey(nodeID)) {
+//       onHoldNodes!.remove(nodeID);
+//     }
+//   }
+//   mRtt[nodeID.hashID] = rtt;
+//   List<String>? nodeIdC = nodeID.hashID.split('');
+//   String? localNodeId = localIdb!.nodeid.hashID;
+//   List<String> localNodeIdC = localNodeId.split('');
+//
+//   int m = -1; // initialising variable for index for finding first mis-match....
+//   for (int i = 0; i < 40; i++) {
+//     if (nodeIdC[i] != localNodeIdC[i]) {
+//       m = i;
+//       i = 40; // to exit the loop after getting index of first mismatch
+//     }
+//   }
+//   if (nodeIdC[m] != localNodeIdC[m])
+//   {
+//     //
+//     if (RoutingTable[0][m]==null && RoutingTable[1][m] == null && RoutingTable[2][m] == null)
+//     {
+//       RoutingTable[2][m] = nodeID; // If routing table is null in the column then copy the nodeID in all 3 rows of column.
+//       RoutingTable[1][m] = nodeID;
+//       RoutingTable[0][m] = nodeID;
+//     }
+//     // If routing table is not null, then we take node id of pre, succ and mid nodes.Then splitting the string node id into string of characters to compare.
+//     else
+//     {
+//       String? preNodeId = RoutingTable[2][m]?.hashID;
+//       String? midNodeId = RoutingTable[1][m]?.hashID;
+//       String? sucNodeId = RoutingTable[0][m]?.hashID;
+//
+//       List<String>? preNodeIdC = preNodeId!.split('');
+//       List<String>? midNodeIdC = midNodeId!.split('');
+//       List<String>? sucNodeIdC = sucNodeId!.split('');
+//
+//       int preNodeIdint = int.parse(preNodeIdC[m],radix: 16); // coverting hexadecimal value into int for comparison
+//       int midNodeIdint = int.parse(midNodeIdC[m], radix: 16);
+//       int sucNodeIdint = int.parse(sucNodeIdC[m], radix: 16);
+//       int localnodeIdint = int.parse(localNodeIdC[m], radix: 16);
+//       int nodeIdint = int.parse(nodeIdC[m], radix: 16);
+//       int idealMidNodeIdint = (localnodeIdint + 8)%16;
+//
+//       if (((localnodeIdint - preNodeIdint + 16) % 16) > ((nodeIdint - preNodeIdint + 16) % 16))
+//       {
+//
+//         if (mRtt.containsKey(RoutingTable[2][m]!.hashID) && (RoutingTable[2][m] != RoutingTable[1][m] || RoutingTable[2][m] != RoutingTable[0][m]))
+//         {
+//           mRtt.remove(RoutingTable[2][m]!.hashID); // this is done so that if node ID is not present anywhere in RT then it should also not be present in mRTT table.
+//         }
+//         RoutingTable[2][m] = nodeID; //replacing pre-decessor nodeID
+//
+//
+//       }
+//       else if (((sucNodeIdint - localnodeIdint + 16) % 16) >((nodeIdint - localnodeIdint + 16) % 16))
+//       {
+//
+//         if (mRtt.containsKey(RoutingTable[0][m]) && (RoutingTable[0][m]!.hashID != RoutingTable[1][m]!.hashID || RoutingTable[0][m]!.hashID != RoutingTable[2][m]!.hashID))
+//         {
+//           mRtt.remove(RoutingTable[0][m]);
+//         }
+//
+//         RoutingTable[0][m] = nodeID; //replacing successor node id
+//
+//
+//       } else if (min(((idealMidNodeIdint - midNodeIdint + 16) % 16),((midNodeIdint - idealMidNodeIdint + 16) % 16)) > min(((idealMidNodeIdint - nodeIdint + 16) % 16),((nodeIdint - idealMidNodeIdint + 16) % 16)))
+//       {
+//         if (mRtt.containsKey(RoutingTable[1][m]!.hashID) &&  (RoutingTable[1][m] != RoutingTable[0][m] || RoutingTable[1][m] != RoutingTable[2][m]))
+//         {
+//           mRtt.remove(RoutingTable[1][m]!.hashID);
+//         }
+//
+//
+//         RoutingTable[1][m] = nodeID; // replacing middle node id
+//
+//       } else if (nodeIdint == preNodeIdint && mRtt[nodeID]! > rtt)
+//       {
+//         if (mRtt.containsKey(RoutingTable[2][m]!.hashID) && (RoutingTable[2][m] != RoutingTable[1][m] || RoutingTable[2][m] != RoutingTable[0][m]))
+//         {
+//           mRtt.remove(RoutingTable[2][m]!.hashID);
+//         }
+//
+//
+//         //Next 3 conditions are checking rtt if nodeID nibble matches which any of pre,success,mid nodeID.
+//
+//
+//         RoutingTable[2][m] = nodeID; // NodeID having less rtt is kept in the routing table.
+//
+//       } else if (nodeIdint == midNodeIdint && mRtt[nodeID]! > rtt)
+//       {
+//
+//         if (mRtt.containsKey(RoutingTable[1][m]!.hashID) && (RoutingTable[1][m] != RoutingTable[0][m] || RoutingTable[1][m] != RoutingTable[2][m]))
+//         {
+//           mRtt.remove(RoutingTable[1][m]!.hashID);
+//         }
+//         RoutingTable[1][m] = nodeID;
+//       } else if (nodeIdint == sucNodeIdint && mRtt[nodeID]! > rtt)
+//       {
+//
+//         if (mRtt.containsKey(RoutingTable[0][m]!.hashID) && (RoutingTable[0][m] != RoutingTable[1][m] || RoutingTable[0][m] != RoutingTable[2][m]))
+//         {
+//           mRtt.remove(RoutingTable[0][m]!.hashID);
+//         }
+//         RoutingTable[0][m] = nodeID;
+//       }
+//     }
+//   }
+//   else if (mRtt.containsKey(nodeID)) {
+//     mRtt.remove(nodeID);
+//   }
+// }
 
 }
