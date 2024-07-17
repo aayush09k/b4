@@ -26,6 +26,7 @@ import 'package:crypto/crypto.dart';
 
 
 
+const bool kDebugMode = true; // Set to true for development, false for production
 
 String mserverurl = "http://ictwiki.iitk.ac.in:8080/b4server";   // server url of b4 auth server
 
@@ -101,12 +102,13 @@ class AuthManager {
         final x509cert = x509.X509Utils.generateSelfSignedCertificate(privateKey, csr, 365);
 
         if (kDebugMode) {
-            //print('\nPrivate Key Pem :\n$privateKeyPem');
-            //print('\nPublic Key Pem :\n$publicKeyPem');
-            //print('\nUser Certificate:\n$x509cert');
-
-
+          debugPrint('\nPrivate Key Pem for debug :\n$privateKeyPem');
+          //debugPrint('\nPublic Key Pem :\n$publicKeyPem');
+          debugPrint('\nUser Certificate for debug :\n$x509cert');
         }
+
+
+
 
 
         generatedCertificate = CertificateData(
@@ -137,17 +139,17 @@ class AuthManager {
             (serverSignedCertificate, parent: serverCertificate);
             if (certificateServerSignatureVerification) {
                 if (kDebugMode) {
-                    print('Certificate signature is valid.');
+                    debugPrint('Certificate signature is valid.');
                 }
             } else {
                 if (kDebugMode) {
-                    print('Certificate signature is NOT valid.');
+                  debugPrint('Certificate signature is NOT valid.');
                 }
             }
             return certificateServerSignatureVerification;
         } catch (e) {
             if (kDebugMode) {
-                //print('Error during certificate signature verification: $e');
+              debugPrint('Error during certificate signature verification: $e');
             }
             return false;
         }
@@ -208,7 +210,9 @@ class AuthManager {
         }
       } catch (e) {
         // Handle JSON parsing errors or signature verification errors
-        print("Error checking message: $e");
+        if (kDebugMode) {
+          debugPrint("Error checking message: $e");
+        }
         return null;
       }
     }
@@ -232,33 +236,41 @@ class AuthManager {
 
             if (creationDateTime != null && expiryDateTime != null) {
                 // Print creation and expiry date times
-                print('Certificate Creation Date and Time: $creationDateTime');
-                print('Certificate Expiry Date and Time: $expiryDateTime');
+                if (kDebugMode) {
+                  debugPrint('Certificate Creation Date and Time: $creationDateTime');
+                }
+                if (kDebugMode) {
+                  debugPrint('Certificate Expiry Date and Time: $expiryDateTime');
+                }
 
                 // Check if the current date and time are within the validity period
                 final currentDate = DateTime.now();
                 final isValid = currentDate.isAfter(creationDateTime) && currentDate.isBefore(expiryDateTime);
 
                 // Print whether the certificate is valid or not
-                //print('Is Certificate Valid: $isValid');
+                if (kDebugMode) {
+                  debugPrint('Is Certificate Valid: $isValid');
+                }
 
                 if (isValid) {
                     // Calculate and print the remaining validity duration in days
                     final remainingDays = max(0, expiryDateTime.difference(currentDate).inDays);
-                    print('Remaining Validity Duration: $remainingDays days');
+                    if (kDebugMode) {
+                      debugPrint('Remaining Validity Duration: $remainingDays days');
+                    }
                 }
 
                 return isValid;
             }
 
             if (kDebugMode) {
-                print('Error during validity check: Invalid decryptedValues.');
+              debugPrint('Error during validity check: Invalid decryptedValues.');
             }
             return false;
         } catch (e) {
 
             if (kDebugMode) {
-                print('Error during validity check: $e');
+              debugPrint('Error during validity check: $e');
             }
             return false;
         }
@@ -281,15 +293,23 @@ class AuthManager {
         String MSrequrl = "$mserverurl/ProcessRequest?req=checkkeystore&emailid=$email";
         String emailVerificationResponse=await x509.HttpUtils.postForString(MSrequrl);
         emailVerificationResponse=emailVerificationResponse.trim();
-        //print('Response from server is : $emailVerificationResponse');
+        if (kDebugMode) {
+          debugPrint('Response from server is : $emailVerificationResponse');
+        }
         if ((emailVerificationResponse.compareTo("14"))==0) {
-            // print('Your email id exist on server do you want to download your certificate');
+            if (kDebugMode) {
+              debugPrint('Your email id exist on server do you want to download your certificate');
+            }
         }
         else if ((emailVerificationResponse.compareTo("15"))==0) {
-            // print('Your email id DOES NOT exist on server do you want to create new certificate');
+            if (kDebugMode) {
+              debugPrint('Your email id DOES NOT exist on server do you want to create new certificate');
+            }
         }
         else {
-            print('error in email verification');
+            if (kDebugMode) {
+              debugPrint('error in email verification');
+            }
         }
         return emailVerificationResponse;
     }
@@ -350,7 +370,9 @@ class AuthManager {
         }
         int? len=deviceId?.length;
         deviceId=deviceId?.substring(1,len!-1);
-        print('Device ID: $deviceId');
+        if (kDebugMode) {
+          debugPrint('Device ID: $deviceId');
+        }
 
         return deviceId;
     }
@@ -366,7 +388,9 @@ class AuthManager {
        // String? nodeId = await nodeIdFuture;
       // In test code the node id has been passed , but actually this node id will be read by auth storage and then
       // passed to this function.
-        print(" the value of stored node id called to sent is: $nodeId");
+        if (kDebugMode) {
+          debugPrint("the node id is: $nodeId");
+        }
 
 
 /// this device id has been hard coded for testing purpose only
@@ -374,7 +398,9 @@ class AuthManager {
         /// but the  function mentioned below works when we build the app on flutter.
         const deviceId = 'D6C62E4E-4FB3-4D42-9182-34A99D20FB91';
         //final  deviceId = await getDeviceId();
-        // print(" the value of device is $deviceId");
+        if (kDebugMode) {
+          debugPrint("the device id is $deviceId");
+        }
 
         var selfSignedCertificateStr = Uri.encodeComponent(selfSignedCertificate);
 Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCertificateStr };
@@ -391,19 +417,25 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
         ASN1Sequence sequence = asn1Parser.nextObject() as ASN1Sequence;
         ASN1Object object = ASN1Object.fromBytes(sequence.encodedBytes);
         final serverSignedCertificatePem = x509.X509Utils.encodeASN1ObjectToPem(object,'-----BEGIN CERTIFICATE-----', '-----END CERTIFICATE-----');
-        print('server signed cert received : $serverSignedCertificatePem');
+        if (kDebugMode) {
+          debugPrint('server signed cert received : $serverSignedCertificatePem');
+        }
         final serverSignedCertificateFromAuthServer = x509.X509Utils.x509CertificateFromPem(serverSignedCertificatePem) ;
-        print('SUBJECT: ${serverSignedCertificateFromAuthServer.tbsCertificate?.subject}');
-        print('ISSUER: ${serverSignedCertificateFromAuthServer.tbsCertificate?.issuer}');
-        //print('VERSION: ${serverSignedCertificateFromAuthServer.tbsCertificate?.version}');
-        //print('SERIAL NUMBER: ${serverSignedCertificateFromAuthServer.tbsCertificate?.serialNumber}');
-        //print('VALID FROM: ${serverSignedCertificateFromAuthServer.tbsCertificate?.validity.notBefore}');
-        print('VALID UNTIL: ${serverSignedCertificateFromAuthServer.tbsCertificate?.validity.notAfter}');
-        //print('SIGNATURE ALGORITHM: ${serverSignedCertificateFromAuthServer.tbsCertificate?.signatureAlgorithm}');
-        print('PUBLIC KEY ALGORITHM: ${serverSignedCertificateFromAuthServer.tbsCertificate?.subjectPublicKeyInfo.algorithmReadableName}');
-        //print('PUBLIC KEY SHA 256 VALUE: ${serverSignedCertificateFromAuthServer.tbsCertificate?.subjectPublicKeyInfo.sha256Thumbprint}');
+        if (kDebugMode) {
+          debugPrint('SUBJECT: ${serverSignedCertificateFromAuthServer.tbsCertificate?.subject}');
+          debugPrint('ISSUER: ${serverSignedCertificateFromAuthServer.tbsCertificate?.issuer}');
+          //debugPrint('VERSION: ${serverSignedCertificateFromAuthServer.tbsCertificate?.version}');
+          debugPrint('SERIAL NUMBER: ${serverSignedCertificateFromAuthServer.tbsCertificate?.serialNumber}');
+          //debugPrint('VALID FROM: ${serverSignedCertificateFromAuthServer.tbsCertificate?.validity.notBefore}');
+          debugPrint('VALID UNTIL: ${serverSignedCertificateFromAuthServer.tbsCertificate?.validity.notAfter}');
+          //debugPrint('SIGNATURE ALGORITHM: ${serverSignedCertificateFromAuthServer.tbsCertificate?.signatureAlgorithm}');
+          debugPrint('PUBLIC KEY ALGORITHM: ${serverSignedCertificateFromAuthServer.tbsCertificate?.subjectPublicKeyInfo.algorithmReadableName}');
+          //debugPrint('PUBLIC KEY SHA 256 VALUE: ${serverSignedCertificateFromAuthServer.tbsCertificate?.subjectPublicKeyInfo.sha256Thumbprint}');
 
-        //print('server signed cert received in x509 format is: $serverSignedCertificateFromAuthServer');
+          //debugPrint('server signed cert received in x509 format is: $serverSignedCertificateFromAuthServer');
+        }
+
+        // In production code you need to comment the line below as it is just for testing purpose.
         File('C:\\Users\\HP\\Desktop\\b4testdata\\serverSignedCertificateFromAuthServer.pem').writeAsStringSync(serverSignedCertificatePem);
 
 
@@ -412,17 +444,24 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
         ASN1Sequence sequenceServer = asn1ParserServer.nextObject() as ASN1Sequence;
         ASN1Object objectServer = ASN1Object.fromBytes(sequenceServer.encodedBytes);
         final serverCertificatePem = x509.X509Utils.encodeASN1ObjectToPem(objectServer,'-----BEGIN CERTIFICATE-----', '-----END CERTIFICATE-----');
-        print('server cert received : $serverCertificatePem');
+        if (kDebugMode) {
+          debugPrint('server cert received : $serverCertificatePem');
+        }
         final serverCertificateFromAuthServer = x509.X509Utils.x509CertificateFromPem(serverCertificatePem) ;
-        print('SUBJECT: ${serverCertificateFromAuthServer.tbsCertificate?.subject}');
-        print('ISSUER: ${serverCertificateFromAuthServer.tbsCertificate?.issuer}');
-        //print('VERSION: ${serverCertificateFromAuthServer.tbsCertificate?.version}');
-        //print('SERIAL NUMBER: ${serverCertificateFromAuthServer.tbsCertificate?.serialNumber}');
-        //print('VALID FROM: ${serverCertificateFromAuthServer.tbsCertificate?.validity.notBefore}');
-        print('VALID UNTIL: ${serverCertificateFromAuthServer.tbsCertificate?.validity.notAfter}');
-        //print('SIGNATURE ALGORITHM: ${serverCertificateFromAuthServer.tbsCertificate?.signatureAlgorithm}');
-        print('PUBLIC KEY ALGORITHM: ${serverCertificateFromAuthServer.tbsCertificate?.subjectPublicKeyInfo.algorithmReadableName}');
-        //print('PUBLIC KEY SHA 256 VALUE: ${serverCertificateFromAuthServer.tbsCertificate?.subjectPublicKeyInfo.sha256Thumbprint}');
+        if (kDebugMode) {
+          debugPrint('SUBJECT: ${serverCertificateFromAuthServer.tbsCertificate?.subject}');
+          debugPrint('ISSUER: ${serverCertificateFromAuthServer.tbsCertificate?.issuer}');
+          debugPrint('VERSION: ${serverCertificateFromAuthServer.tbsCertificate?.version}');
+          debugPrint('SERIAL NUMBER: ${serverCertificateFromAuthServer.tbsCertificate?.serialNumber}');
+          //debugPrint('VALID FROM: ${serverCertificateFromAuthServer.tbsCertificate?.validity.notBefore}');
+          debugPrint('VALID UNTIL: ${serverCertificateFromAuthServer.tbsCertificate?.validity.notAfter}');
+          //debugPrint('SIGNATURE ALGORITHM: ${serverCertificateFromAuthServer.tbsCertificate?.signatureAlgorithm}');
+          debugPrint('PUBLIC KEY ALGORITHM: ${serverCertificateFromAuthServer.tbsCertificate?.subjectPublicKeyInfo.algorithmReadableName}');
+          //debugPrint('PUBLIC KEY SHA 256 VALUE: ${serverCertificateFromAuthServer.tbsCertificate?.subjectPublicKeyInfo.sha256Thumbprint}');
+
+        }
+
+        // In production code you need to comment the line below as it is just for testing purpose.
         File('C:\\Users\\HP\\Desktop\\b4testdata\\b4AuthServerCertificate.pem').writeAsStringSync(serverCertificatePem);
 
         return {'signedCertificate':serverSignedCertificatePem, 'serverCertificate':serverCertificatePem};
@@ -439,13 +478,15 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
      Future<String> extractPublicKeyFromCertificate(String certificatePemFile) async {
        x509.X509CertificateData serverSignedCertContent = x509.X509Utils.x509CertificateFromPem(certificatePemFile);
        //List<String?>? allAttributes = serverSignedCertContent.tbsCertificate?.subject.entries.map((entry) => entry.value).toList();
-      //String? userId = allAttributes?.elementAt(6);
+      //String? userId = allAttributes?.elementAt(5);
        //print('User email : $userId');
        final publicKeyBytesString = serverSignedCertContent.tbsCertificate?.subjectPublicKeyInfo.bytes;
        Uint8List bytes = x509.HexUtils.decode(publicKeyBytesString!);
        ECPublicKey publicKeyExtracted = x509.CryptoUtils.ecPublicKeyFromDerBytes(bytes);
        final extractedPublicKeyPem = x509.CryptoUtils.encodeEcPublicKeyToPem(publicKeyExtracted);
-       //print('extracted pub key of the user is : $extractedPublicKeyPem');
+       if (kDebugMode) {
+         debugPrint('extracted pub key of the user is : $extractedPublicKeyPem');
+       }
        return extractedPublicKeyPem;
      }
 
@@ -461,7 +502,9 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
         keyBytes[i] = random.nextInt(256);
       }
       final randomNumber = base64Encode(keyBytes);
-      // print('random number string is : $randomNumber');
+      if (kDebugMode) {
+        debugPrint('random number string is : $randomNumber');
+      }
       return randomNumber;
     }
 
@@ -484,7 +527,9 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
       xorBytes[i] = randomNumBytes1[i] ^ randomNumBytes2[i];
     }
     final randomKey = crypto_utils.CryptoUtils.getHash(xorBytes);
-    //print('generated random key by XOR and Hashing: $randomKey');
+    if (kDebugMode) {
+      debugPrint('generated random key by XOR and Hashing: $randomKey');
+    }
    // final randomKeyBytes = base64.decode(xorBytesHash);
     //final randomKeyString = base64.encode(randomKeyBytes);
     //print('random key string base 64: $randomKeyString');
@@ -508,7 +553,9 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
       final encrypter = Encrypter(AES(key, mode: AESMode.gcm )); // AES encryption with the key
       final encrypted = encrypter.encrypt(data, iv: initVector);
       final encryptedDataString = encrypted.base64;
-      //print('encrypted data is : $encryptedDataString');
+      if (kDebugMode) {
+        debugPrint('data encrypted with random key  is : $encryptedDataString');
+      }
       return encryptedDataString;
     }
 
@@ -528,7 +575,9 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
       final encrypter = Encrypter(AES(key,  mode: AESMode.gcm )); // AES encryption with the key
       final encrypted = Encrypted.fromBase64(encryptedData);
       final decryptedData = encrypter.decrypt(encrypted, iv: initVector);
-      //print('decrypted data is : $decryptedData');
+      if (kDebugMode) {
+        debugPrint('data decrypted with random key is : $decryptedData');
+      }
       return decryptedData;
     }
 
@@ -551,7 +600,9 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
       final encrypter = Encrypter(AES(key, mode: AESMode.gcm));
       final encrypted = encrypter.encrypt(data, iv: iv);
       final encryptedData = encrypted.base64;
-      print('encrypted data is : $encryptedData');
+      if (kDebugMode) {
+        debugPrint('data encrypted with 8 character key is : $encryptedData');
+      }
       return encryptedData;
     }
 
@@ -565,7 +616,7 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
       }
       final keyBytes = sha256.convert(utf8.encode(userKey)).bytes;
       //print('Key bytes: ${keyBytes.toList()}'); // Log key bytes for debugging
-      final concatenatedKey = userKey + userKey+userKey;
+      //final concatenatedKey = userKey + userKey+userKey;
       //final key = Key.fromBase64(concatenatedKey); // Use the first 16 bytes for AES-128 key
       final key = Key(Uint8List.fromList(keyBytes.sublist(0, 16)));
       final iv = IV.fromBase64(userKey); // Use a 16-byte IV for AES-GCM
@@ -576,10 +627,14 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
       try {
         final encrypted = Encrypted.fromBase64(encryptedData);
         final decryptedData = encrypter.decrypt(encrypted, iv: iv);
-        print('decrypted data is : $decryptedData');
+        if (kDebugMode) {
+          debugPrint('data decrypted with 8 character key is : $decryptedData');
+        }
         return decryptedData;
       } on InvalidCipherTextException catch (e) {
-        print('Decryption failed: $e');
+        if (kDebugMode) {
+          debugPrint('Decryption failed: $e');
+        }
         return null; // Or throw a custom exception
       }
     }
@@ -600,13 +655,17 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
       final sharedSecretString = sharedSecret.toString();
       final sharedSecretBytes = utf8.encode(sharedSecretString);
       final commonSecret = crypto_utils.CryptoUtils.getHash(sharedSecretBytes);
-      //print('commonSecret : $commonSecret');
+      if (kDebugMode) {
+        debugPrint('commonSecret calculated before sending : $commonSecret');
+      }
       final key = Key.fromBase16(commonSecret);
       final initVector = IV.fromBase16(commonSecret); // Initialization vector
       final encrypter = Encrypter(AES(key, mode: AESMode.gcm )); // AES encryption with the key
       final encrypted = encrypter.encrypt(data, iv: initVector);
       final encryptedDataWithEccString = encrypted.base64;
-      //print('encrypted data is : $encryptedDataWithEccString');
+      if (kDebugMode) {
+        debugPrint('data encrypted by common secret is : $encryptedDataWithEccString');
+      }
       return encryptedDataWithEccString;
     }
 
@@ -624,13 +683,17 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
       final sharedSecretRemoteString = sharedSecretRemote.toString();
       final sharedSecret2Bytes = utf8.encode(sharedSecretRemoteString);
       final commonSecretRemote = crypto_utils.CryptoUtils.getHash(sharedSecret2Bytes);
-     // print('commonSecretRemote: $commonSecretRemote');
+      if (kDebugMode) {
+        debugPrint('commonSecret calculated before receiving: $commonSecretRemote');
+      }
       final key = Key.fromBase16(commonSecretRemote);
       final initVector = IV.fromBase16(commonSecretRemote); // Initialization vector
       final encrypter = Encrypter(AES(key,  mode: AESMode.gcm )); // AES encryption with the key
       final encrypted = Encrypted.fromBase64(encryptedData);
       final decryptedDataWithEcc = encrypter.decrypt(encrypted, iv: initVector);
-      //print('decrypted data is : $decryptedDataWithEcc');
+      if (kDebugMode) {
+        debugPrint('data decrypted with common secret is : $decryptedDataWithEcc');
+      }
       return decryptedDataWithEcc;
     }
 
@@ -665,21 +728,31 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
     Future<bool> isRevoked(String certificatePemFile) async{
       x509.X509CertificateData certificateDetail = x509.X509Utils.x509CertificateFromPem(certificatePemFile);
       final certificateSerialNumber = certificateDetail.tbsCertificate?.serialNumber;
-      print('Certificate Serial Number is : $certificateSerialNumber');
+      if (kDebugMode) {
+        debugPrint('Certificate Serial Number is : $certificateSerialNumber');
+      }
       String MSrequrl = "$mserverurl/ProcessRequest?req=checkcrl&certsrno=$certificateSerialNumber";
       String revocationResponse=await x509.HttpUtils.postForString(MSrequrl);
       revocationResponse=revocationResponse.trim();
-      print('Response from server is : $revocationResponse');
+      if (kDebugMode) {
+        debugPrint('Response from server is : $revocationResponse');
+      }
       if ((revocationResponse.compareTo("24"))==0) {
-         print('Revoked');
+         if (kDebugMode) {
+           debugPrint('Revoked');
+         }
          return true; // Certificate is revoked
       }
       else if ((revocationResponse.compareTo("25"))==0) {
-        print(' NOT Revoked');
+        if (kDebugMode) {
+          debugPrint(' NOT Revoked');
+        }
         return false; // Certificate is not revoked
       }
       else {
-        print('error in revocation check');
+        if (kDebugMode) {
+          debugPrint('error in revocation check');
+        }
         return false;
       }
 
@@ -979,13 +1052,13 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
 }*/
 
 ///////////The parameters below are for testing purpose only////////////////////
-String dn1country = " ";
-String dn2organization = " ";
-String dn3commonName = " ";
-String dn4surname = " ";
-String dn5stateOrProvinceName = " ";
+//String dn1country = " ";
+//String dn2organization = " ";
+//String dn3commonName = " ";
+//String dn4surname = " ";
+//String dn5stateOrProvinceName = " ";
 //String dn6givenName = " ";
-String dn7userID = " ";
+//String dn7userID = " ";
 
 /*Future<String?> getNodeId() async {
             LocalNodeID localnd = LocalNodeID();
