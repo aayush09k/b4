@@ -1,9 +1,19 @@
-/* Squadron Leader Tarun Chaudhary    */
-// this code has to run on a node that is behind NAT and want to use TURN Server
+// DATED 19 AUG 24
+
 
 import 'dart:async'; // Provides Timer and Future functionalities
 import 'dart:io'; // Provides RawDatagramSocket and InternetAddress
 import 'dart:convert'; // For encoding and decoding UTF-8 strings
+
+// Flag to check if the application is running in debug mode
+const bool isDebugMode = false; // Hardcoded to false for production
+
+// Custom debug print function
+void debugPrint(String message) {
+  if (isDebugMode) {
+    print(message);
+  }
+}
 
 class TurnClient {
   late InternetAddress _turnServerAddress; // IP address of the TURN server
@@ -19,10 +29,10 @@ class TurnClient {
   // Connects the client to the TURN server
   Future<void> connect() async {
     try {
-      print('TURN client connecting...');
+      debugPrint('TURN client connecting...');
       // Bind the client socket to any available IPv4 address and port
       _socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
-      print('Client socket bound to port: ${_socket.port}');
+      debugPrint('Client socket bound to port: ${_socket.port}');
 
       // Listen for responses from the TURN server
       _socket.listen((RawSocketEvent event) {
@@ -30,14 +40,14 @@ class TurnClient {
           Datagram? datagram = _socket.receive();
           if (datagram != null) {
             // Print received response from the TURN server
-            print('Received response from TURN server: ${String.fromCharCodes(datagram.data)}');
+            debugPrint('Received response from TURN server: ${String.fromCharCodes(datagram.data)}');
             // Process the response as needed
           }
         }
       });
     } catch (e) {
       // Print any errors that occur during connection
-      print('Error connecting to TURN server: $e');
+      debugPrint('Error connecting to TURN server: $e');
     }
   }
 
@@ -46,10 +56,10 @@ class TurnClient {
     try {
       // Send data to the TURN server using the client socket
       _socket.send(data, _turnServerAddress, _turnServerPort);
-      print('Sent data to TURN server');
+      debugPrint('Sent data to TURN server');
     } catch (e) {
       // Print any errors that occur while sending data
-      print('Error sending data: $e');
+      debugPrint('Error sending data: $e');
     }
   }
 
@@ -60,10 +70,10 @@ class TurnClient {
       List<int> forwardMessage = createForwardMessage(destinationAddress, destinationPort, message);
       // Send the forward message to the TURN server
       _socket.send(forwardMessage, _turnServerAddress, _turnServerPort);
-      print('Forwarded message to destination via TURN server');
+      debugPrint('Forwarded message to destination via TURN server');
     } catch (e) {
       // Print any errors that occur while forwarding data
-      print('Error forwarding data: $e');
+      debugPrint('Error forwarding data: $e');
     }
   }
 
@@ -71,7 +81,7 @@ class TurnClient {
   void disconnect() {
     // Close the socket
     _socket.close();
-    print('Disconnected from TURN server');
+    debugPrint('Disconnected from TURN server');
   }
 }
 
@@ -130,7 +140,7 @@ List<int> generateTurnAllocateRequest() {
 List<int> createForwardMessage(String destinationAddress, int destinationPort, String message) {
   // Format the message according to the TURN server requirements
   String formattedMessage = 'SEND $destinationAddress $destinationPort $message';
-  print(message);
+  debugPrint(message);
   // Encode the message as UTF-8 and return it
   return utf8.encode(formattedMessage);
 }
