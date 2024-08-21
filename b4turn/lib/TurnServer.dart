@@ -1,26 +1,38 @@
-/*   Squadron Leader Tarun Chaudhary    */
+// DATED 19 AUG 24
 import 'dart:async'; // Used for Timer
 import 'dart:io'; // Provides RawDatagramSocket and InternetAddress
 import 'dart:convert'; // For UTF-8 encoding and decoding
 import 'dart:typed_data'; // For Uint8List
 
+// Flag to check if the application is running in debug mode
+const bool isDebugMode = false; // Hardcoded to false for production
+
+// Custom debug print function
+void debugPrint(String message) {
+  if (isDebugMode) {
+    print(message);
+  }
+}
+
 class TurnServer {
   // A map to keep track of all active allocations. The key is the client ID.
   final Map<String, AllocationEntry> _allocationTable = {};
+  // A map to keep track of permissions for each client. The key is the client ID.
+  final Map<String, List<String>> _permissionsTable = {};
 
   // Starts the TURN server
   void startTurnServer() async {
     try {
       // Bind the server to listen on any IPv4 address on port 3478
       var socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 3478);
-      print('TURN server listening on port 3478');
+      debugPrint('TURN server listening on port 3478');
 
       // Set up the server to listen for incoming datagrams
       socket.listen((RawSocketEvent event) {
         if (event == RawSocketEvent.read) {
           Datagram? datagram = socket.receive();
           if (datagram != null) {
-            print('Received datagram from ${datagram.address.address}:${datagram.port}');
+            debugPrint('Received datagram from ${datagram.address.address}:${datagram.port}');
             handleMessage(datagram, socket);
           }
         }
@@ -30,7 +42,7 @@ class TurnServer {
       printCurrentAllocations();
     } catch (e) {
       // Catch and print any errors that occur while starting the server
-      print('Error starting TURN server: $e');
+      debugPrint('Error starting TURN server: $e');
     }
   }
 
@@ -40,25 +52,28 @@ class TurnServer {
     String clientId = getClientId(datagram.address, datagram.port);
     List<int> requestData = datagram.data;
 
-    print('Received TURN request from $clientId');
-    print('Request Data: $requestData');
+    debugPrint('Received TURN request from $clientId');
+    debugPrint('Request Data: $requestData');
 
     // Check if the datagram is a TURN request
     if (isTurnRequest(datagram.data)) {
-      print('Valid TURN request from $clientId');
+      debugPrint('Valid TURN request from $clientId');
       // Check if an allocation already exists for the client
       if (!_allocationTable.containsKey(clientId)) {
         // If no allocation exists, authenticate and allocate resources
         authenticateAndAllocate(socket, clientId, datagram.address, datagram.port);
       } else {
-        print('Allocation already exists for $clientId');
+        debugPrint('Allocation already exists for $clientId');
       }
-    } else if (isForwardRequest(datagram.data)) {
-      // If it's a forward request, forward the data
-      forwardData(socket, clientId, String.fromCharCodes(datagram.data));
+    } else if (isSendIndication(datagram.data)) {
+      // If it's a SendIndication message, handle it
+      handleSendIndication(socket, clientId, datagram);
+    } else if (isCreatePermissionRequest(datagram.data)) {
+      // If it's a CreatePermission request, process it
+      handleCreatePermissionRequest(socket, clientId, datagram);
     } else {
-      // If the datagram is neither a TURN request nor a forward request
-      print('Received datagram is not a TURN request from $clientId');
+      // If the datagram is neither a recognized request nor a SendIndication or CreatePermission request
+      debugPrint('Received datagram is not a recognized request from $clientId');
     }
   }
 
@@ -68,11 +83,16 @@ class TurnServer {
     return packet.length > 1 && packet[0] == 0x00 && packet[1] == 0x03;
   }
 
-  // Checks if the packet is a data forwarding request
-  bool isForwardRequest(List<int> packet) {
-    // Forward requests start with the word "SEND"
-    String data = utf8.decode(packet);
-    return data.startsWith('SEND');
+  // Checks if the packet is a SendIndication message
+  bool isSendIndication(List<int> packet) {
+    // SendIndication message identified by specific byte values (example: 0x00 and 0x06)
+    return packet.length > 1 && packet[0] == 0x00 && packet[1] == 0x06;
+  }
+
+  // Checks if the packet is a CreatePermission request
+  bool isCreatePermissionRequest(List<int> packet) {
+    // CreatePermission request identified by specific byte values (example: 0x00 and 0x08)
+    return packet.length > 1 && packet[0] == 0x00 && packet[1] == 0x08;
   }
 
   // Constructs a unique client ID based on the sender's IP address and port
@@ -101,55 +121,101 @@ class TurnServer {
         timer: Timer(Duration(minutes: 10), () {
           // Remove allocation when the timer expires
           _allocationTable.remove(clientId);
-          print('Allocation closed for $clientId (timer expiry)');
+          _permissionsTable.remove(clientId);
+          debugPrint('Allocation closed for $clientId (timer expiry)');
         }),
       );
 
       // Send the relayed transport address back to the client
       socket.send(utf8.encode(relayedTransportAddress), clientAddress, clientPort);
-      print('Allocation created for $clientId');
+      debugPrint('Allocation created for $clientId');
 
       // Print current allocations after creating a new one
       printCurrentAllocations();
+    } //else {
+      //debugPrint('Authentication failed for $clientId');
+   // }
+  }
+
+  // Handles SendIndication messages
+  void handleSendIndication(RawDatagramSocket socket, String clientId, Datagram datagram) {
+    // Extract the application data and peer address from the request data
+    String peerAddress = extractPeerAddress(datagram.data);
+    String applicationData = extractApplicationData(datagram.data);
+
+    if (peerAddress.isNotEmpty && applicationData.isNotEmpty) {
+      // Forward the application data to the peer
+      forwardData(socket, clientId, peerAddress, applicationData);
     } else {
-      print('Authentication failed for $clientId');
+      debugPrint('Failed to extract peer address or application data from SendIndication for $clientId');
     }
   }
 
+  // Extracts the peer address from SendIndication request data
+  String extractPeerAddress(List<int> requestData) {
+    // Example extraction logic (replace with actual logic as per TURN protocol)
+    if (requestData.length > 8) {
+      return '${requestData[2]}.${requestData[3]}.${requestData[4]}.${requestData[5]}:${requestData[6] << 8 | requestData[7]}';
+    }
+    return '';
+  }
+
+  // Extracts the application data from SendIndication request data
+  String extractApplicationData(List<int> requestData) {
+    // Example extraction logic (replace with actual logic as per TURN protocol)
+    return utf8.decode(requestData.sublist(8));
+  }
+
+  // Handles CreatePermission requests
+  void handleCreatePermissionRequest(RawDatagramSocket socket, String clientId, Datagram datagram) {
+    // Extract the peer address from the request data
+    String peerAddress = extractPeerAddress(datagram.data);
+    if (peerAddress.isNotEmpty) {
+      _permissionsTable.putIfAbsent(clientId, () => []).add(peerAddress);
+      debugPrint('Permission granted for $clientId to communicate with $peerAddress');
+      sendCreatePermissionResponse(socket, datagram.address, datagram.port);
+    } else {
+      debugPrint('Failed to extract peer address from CreatePermission request for $clientId');
+    }
+  }
+
+  // Sends an acknowledgment response for CreatePermission requests
+  void sendCreatePermissionResponse(RawDatagramSocket socket, InternetAddress clientAddress, int clientPort) {
+    // Construct a response message (example format)
+    List<int> response = [0x01, 0x08]; // Example response type for CreatePermission acknowledgment
+    socket.send(Uint8List.fromList(response), clientAddress, clientPort);
+    debugPrint('CreatePermission response sent to ${clientAddress.address}:$clientPort');
+  }
+
   // Forwards data to the specified destination
-  void forwardData(RawDatagramSocket socket, String clientId, String data) {
+  void forwardData(RawDatagramSocket socket, String clientId, String peerAddress, String applicationData) {
     try {
-      // Parse the forwarded data
-      List<String> parts = data.split(' ');
-      if (parts.length < 4) {
-        print('Malformed data received from $clientId: $data');
-        return;
-      }
-
-      // Extract the destination address and port
-      String destinationAddress = parts[1].trim();
-      int destinationPort = int.parse(parts[2].trim());
-      // Extract the actual application data to be forwarded
-      String applicationData = parts.sublist(3).join(' ').trim();
-
       // Prepare the message to be forwarded
       String message = '$clientId: $applicationData';
       Uint8List messageBytes = utf8.encode(message);
-      // Send the message to the destination address and port
-      socket.send(messageBytes, InternetAddress(destinationAddress), destinationPort);
-      print('Forwarding data from $clientId to $destinationAddress:$destinationPort: $applicationData');
+
+      // Check if client is permitted to communicate with the destination
+      if (_permissionsTable[clientId]?.contains(peerAddress) ?? false) {
+        // Send the message to the destination address and port
+        socket.send(messageBytes, InternetAddress(peerAddress), 3478); // Example port number
+        debugPrint('Forwarding data from $clientId to $peerAddress: $applicationData');
+      } else
+
+      {
+        debugPrint('Permission denied for $clientId to communicate with $peerAddress');
+      }
     } catch (e) {
       // Catch and print any errors that occur during data forwarding
-      print('Error forwarding data from $clientId: $e');
+      debugPrint('Error forwarding data from $clientId: $e');
     }
   }
 
   // Prints the current allocations
   void printCurrentAllocations() {
-    print('Current Allocations:');
+    debugPrint('Current Allocations:');
     // Iterate through the allocation table and print details of each allocation
     _allocationTable.forEach((clientId, allocation) {
-      print('Client ID: $clientId, Allocation: serverReflexiveIp: ${allocation.serverReflexiveIp}, serverReflexivePort: ${allocation.serverReflexivePort}, relayedTransportAddress: ${allocation.relayedTransportAddress}');
+      debugPrint('Client ID: $clientId, Allocation: serverReflexiveIp: ${allocation.serverReflexiveIp}, serverReflexivePort: ${allocation.serverReflexivePort}, relayedTransportAddress: ${allocation.relayedTransportAddress}');
     });
   }
 }
