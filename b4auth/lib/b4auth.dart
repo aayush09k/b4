@@ -396,8 +396,8 @@ class AuthManager {
 /// this device id has been hard coded for testing purpose only
         /// because during testing we don't have access to physical hardware
         /// but the  function mentioned below works when we build the app on flutter.
-        const deviceId = 'D6C62E4E-4FB3-4D42-9182-34A99D20FB91';
-        //final  deviceId = await getDeviceId();
+        //const deviceId = 'D6C62E4E-4FB3-4D42-9182-34A99D20FB91';
+        final  deviceId = await getDeviceId();
         if (kDebugMode) {
           debugPrint("the device id is $deviceId");
         }
@@ -436,7 +436,7 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
         }
 
         // In production code you need to comment the line below as it is just for testing purpose.
-        File('C:\\Users\\HP\\Desktop\\b4testdata\\serverSignedCertificateFromAuthServer.pem').writeAsStringSync(serverSignedCertificatePem);
+      //  File('C:\\Users\\HP\\Desktop\\b4testdata\\serverSignedCertificateFromAuthServer.pem').writeAsStringSync(serverSignedCertificatePem);
 
 
         Uint8List decodedBytesServerCertificateBase64 = base64.decode(serverCertificateString);
@@ -462,7 +462,7 @@ Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCer
         }
 
         // In production code you need to comment the line below as it is just for testing purpose.
-        File('C:\\Users\\HP\\Desktop\\b4testdata\\b4AuthServerCertificate.pem').writeAsStringSync(serverCertificatePem);
+   //     File('C:\\Users\\HP\\Desktop\\b4testdata\\b4AuthServerCertificate.pem').writeAsStringSync(serverCertificatePem);
 
         return {'signedCertificate':serverSignedCertificatePem, 'serverCertificate':serverCertificatePem};
     }
