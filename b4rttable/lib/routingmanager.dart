@@ -36,11 +36,12 @@ class RoutingManager {
   RoutingManager._() {
     rtFilePath =
     "${filePath}rtTable.json"; // the path where routing table file will be stored as json.
+    // comment the code 
     _localNodeID = LocalNodeID();
     _localNodeID.nodeid.listeningPort = 8888;
     _localNodeID.nodeid.hashID = "72D67DFC3E4616381DACA70A90CDF3C59EA80D32";
 
-
+//flag for bootstrap
     if (flag == true) {
       // we have to get this from auth manager, for testing change this ib b4rtTable class also at line no. 30
       // Call the init() function when the instance is created
@@ -59,7 +60,7 @@ class RoutingManager {
       _localNodeID.nodeid.publicIpv6 = "";
       _localNodeID.nodeid.localIpv4 = "172.20.160.56";
     }
-
+//the above code  for setting the bootstrap node id
 
     init();
   }
