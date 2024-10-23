@@ -403,7 +403,7 @@ class AuthManager {
         }
 
         var selfSignedCertificateStr = Uri.encodeComponent(selfSignedCertificate);
-Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCertificateStr };
+        Map<String, dynamic> myData = { 'selfSignedCertificateStringByte': selfSignedCertificateStr };
         String jsonBody = json.encode(myData);
         String MSrequrl = "$mserverurl/otp_verification?req=otpverify&OTP=$otp&cert=$selfSignedCertificateStr&jsonbody=$jsonBody&deviceid=${deviceId}&nodeid=$nodeId";
         String serverSignedCertificateBase64Received = await x509.HttpUtils.postForString(MSrequrl);
