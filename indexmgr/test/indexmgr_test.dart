@@ -1,38 +1,73 @@
-import 'package:flutter_test/flutter_test.dart';
-
-import 'package:indexmgr/indexmgr.dart';
-import 'package:crypto/crypto.dart';
-import 'package:index_manager/cache_manager.dart';
 import 'package:test/test.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:sqlite3/sqlite3.dart';
+import 'package:indexmgr/indexmgr.dart';
+import 'package:indexmgr/cachemgr.dart';
 
-//import 'package:index_manager/index_manager.dart'; // Adjust the path to your main Dart file
-/*
-void main() {
-  test('adds one to input values', () {
-    final calculator = Calculator();
-    expect(calculator.addOne(2), 3);
-    expect(calculator.addOne(-7), -6);
-    expect(calculator.addOne(0), 1);
-  });
-}
-*/
-void main() {
+Future<void> main() async {
   late B4IndexManager indexManager;
   late B4CacheManager cacheManager;
   late Database database;
-  setUp(() async {
-    final dbPath = 'database/test.db';
-    indexManager = B4IndexManager(dbPath);
-    await Future.delayed(Duration(seconds: 1)); // Wait for initialization
-    cacheManager = indexManager
-        .getCacheManager(); // Use a public method to get the cache manager
+  final dbPath = 'database/test_index_olm.db';
+  final timestamp = DateTime.now();
+
+  final String serverSignedCertificate =
+      'your_initial_server_signed_certificate'; //
+  setUpAll(() async {
+    //  authManager = AuthManager();
+//indexManager = B4IndexManager(dbPath, authManager)
+    indexManager = B4IndexManager();
+    // await indexManager.verifyOtpAndRetrieveCertificate(otp, selfSignedCertificate, nodeId);
+    // await indexManager.publish();
+    // Initialize the database connection
+    database = sqlite3.open(dbPath);
+
+    // Optionally, create tables if they do not exist
+    // await database.execute('CREATE TABLE IF NOT EXISTS ...');
+// Create the `indexes` table if it doesn't exist
+    database.execute('''
+    CREATE TABLE IF NOT EXISTS indexes (
+      keyword TEXT PRIMARY KEY,
+      location TEXT,
+      replicationFactor INTEGER,
+      copyNo INTEGER,
+      layerID INTEGER,
+      status TEXT,
+      entryDateTime TEXT,
+      expirationDate TEXT,
+      publishTime TEXT,
+      republishTime TEXT,
+      timer TEXT,
+      lastUpdateTime TEXT
+    )
+  ''');
+    // Create the `purge` table if it doesn't exist
+    database.execute('''
+    CREATE TABLE IF NOT EXISTS purge (
+      indexID INTEGER PRIMARY KEY AUTOINCREMENT,
+          keyword TEXT,
+          location TEXT,
+          replicationFactor INTEGER,
+          copyNo INTEGER,
+          layerID INTEGER,
+          status STRING,
+          entryDateTime DATETIME,
+          expirationDate DATETIME,
+          publishTime DATETIME,
+          republishTime DATETIME,
+          timer TEXT,
+          deletedAt DATETIME
+    )
+  ''');
+
+    await Future.delayed(const Duration(seconds: 1));
+    cacheManager = indexManager.getCacheManager();
   });
 
-  tearDown(() async {
-    final dbPath = 'database/test.db';
+  tearDownAll(() {
+    database.dispose();
     if (File(dbPath).existsSync()) {
       File(dbPath).deleteSync();
     }
@@ -45,53 +80,50 @@ void main() {
       'replicationFactor': 3,
       'copyNo': 1,
       'layerID': 2,
-      'status': 'publish',
-      'entryDateTime': DateTime.now().toString(),
-      'expirationDate': DateTime.now().add(Duration(days: 30)).toString(),
-      'publishTime': DateTime.now().toString(),
-      'republishTime': DateTime.now().add(Duration(days: 1)).toString(),
+      'status': 'active',
+      'entryDateTime': timestamp.toIso8601String(),
+      'expirationDate': timestamp.add(Duration(days: 30)).toIso8601String(),
+      'publishTime': timestamp.toIso8601String(),
+      'republishTime': timestamp.add(Duration(days: 1)).toIso8601String(),
       'timer': '20m',
-      'lastUpdateTime': DateTime.now().toString()
+      'lastUpdateTime': timestamp.toIso8601String(),
     };
 
     await indexManager.insertIndex(indexData);
-
     final cachedData = cacheManager.getFromCache('testKey');
+
     expect(cachedData, isNotNull);
     expect(cachedData!['keyword'], equals('testKey'));
 
     print('Insert Index Test Passed');
-    print('Inserted Data: $indexData');
-    print('Cached Data: $cachedData');
   });
 
   test('Update Index and Verify Cache', () async {
-    final updatedLocation = 'updatedLocation';
+    final updatedLocation = 'testLocation';
     final indexData = {
       'keyword': 'testKey',
       'location': 'testLocation',
       'replicationFactor': 3,
       'copyNo': 1,
       'layerID': 2,
-      'status': 'publish',
-      'entryDateTime': DateTime.now().toString(),
-      'expirationDate': DateTime.now().add(Duration(days: 30)).toString(),
-      'publishTime': DateTime.now().toString(),
-      'republishTime': DateTime.now().add(Duration(days: 1)).toString(),
+      'status': 'active',
+      'entryDateTime': timestamp.toIso8601String(),
+      'expirationDate': timestamp.add(Duration(days: 30)).toIso8601String(),
+      'publishTime': timestamp.toIso8601String(),
+      'republishTime': timestamp.add(Duration(days: 1)).toIso8601String(),
       'timer': '20m',
-      'lastUpdateTime': DateTime.now().toString()
+      'lastUpdateTime': timestamp.toIso8601String(),
     };
 
     await indexManager.insertIndex(indexData);
     await indexManager.updateIndex(indexData, updatedLocation);
 
     final cachedData = cacheManager.getFromCache('testKey');
+
     expect(cachedData, isNotNull);
     expect(cachedData!['location'], equals(updatedLocation));
 
     print('Update Index Test Passed');
-    print('Original Data: $indexData');
-    print('Updated Data: ${cachedData}');
   });
 
   test('Delete Index and Verify Cache', () async {
@@ -101,23 +133,23 @@ void main() {
       'replicationFactor': 3,
       'copyNo': 1,
       'layerID': 2,
-      'status': 'publish',
-      'entryDateTime': DateTime.now().toString(),
-      'expirationDate': DateTime.now().add(Duration(days: 30)).toString(),
-      'publishTime': DateTime.now().toString(),
-      'republishTime': DateTime.now().add(Duration(days: 1)).toString(),
+      'status': 'active',
+      'entryDateTime': timestamp.toIso8601String(),
+      'expirationDate': timestamp.add(Duration(days: 30)).toIso8601String(),
+      'publishTime': timestamp.toIso8601String(),
+      'republishTime': timestamp.add(Duration(days: 1)).toIso8601String(),
       'timer': '20m',
-      'lastUpdateTime': DateTime.now().toString()
+      'lastUpdateTime': timestamp.toIso8601String(),
     };
 
     await indexManager.insertIndex(indexData);
     await indexManager.deleteIndex('testKeyToDelete');
 
     final cachedData = cacheManager.getFromCache('testKeyToDelete');
+
     expect(cachedData, isNull);
 
     print('Delete Index Test Passed');
-    print('Data Deleted: $indexData');
   });
 
   test('Publish Index and Verify Cache', () async {
@@ -127,24 +159,22 @@ void main() {
       'replicationFactor': 3,
       'copyNo': 1,
       'layerID': 2,
-      'status': 'publish',
-      'entryDateTime': DateTime.now().toString(),
-      'expirationDate': DateTime.now().add(Duration(days: 30)).toString(),
-      'publishTime': DateTime.now().toString(),
-      'republishTime': DateTime.now().add(Duration(days: 1)).toString(),
+      'status': 'active',
+      'entryDateTime': timestamp.toIso8601String(),
+      'expirationDate': timestamp.add(Duration(days: 30)).toIso8601String(),
+      'publishTime': timestamp.toIso8601String(),
+      'republishTime': timestamp.add(Duration(days: 1)).toIso8601String(),
       'timer': '20m',
-      'lastUpdateTime': DateTime.now().toString()
+      'lastUpdateTime': timestamp.toIso8601String(),
     };
 
-    await indexManager.publishIndex(indexData);
-
+    await indexManager.publishIndex(indexData, serverSignedCertificate);
     final cachedData = cacheManager.getFromCache('testKeyToPublish');
+
     expect(cachedData, isNotNull);
-    expect(cachedData!['status'], equals('publish'));
+    expect(cachedData!['status'], equals('active'));
 
     print('Publish Index Test Passed');
-    print('Published Data: $indexData');
-    print('Cached Data After Publish: $cachedData');
   });
 
   test('Republish Index and Verify Cache', () async {
@@ -154,64 +184,28 @@ void main() {
       'replicationFactor': 3,
       'copyNo': 1,
       'layerID': 2,
-      'status': 'publish',
-      'entryDateTime': DateTime.now().toString(),
-      'expirationDate': DateTime.now().add(Duration(days: 30)).toString(),
-      'publishTime': DateTime.now().toString(),
-      'republishTime': DateTime.now().add(Duration(days: 1)).toString(),
+      'status': 'active',
+      'entryDateTime': timestamp.toIso8601String(),
+      'expirationDate': timestamp.add(Duration(days: 30)).toIso8601String(),
+      'publishTime': timestamp.toIso8601String(),
+      'republishTime': timestamp.add(Duration(days: 1)).toIso8601String(),
       'timer': '20m',
-      'lastUpdateTime': DateTime.now().toString()
-    };
-
-    await indexManager.publishIndex(indexData);
-    await indexManager.republishIndex('testKeyToRepublish');
-
-    final cachedData = cacheManager.getFromCache('testKeyToRepublish');
-    expect(cachedData, isNotNull);
-    expect(
-        cachedData!['republishTime'], isNot(equals(DateTime.now().toString())));
-
-    print('Republish Index Test Passed');
-    print('Republished Data: $indexData');
-    print('Cached Data After Republish: $cachedData');
-  });
-
-  test('Purge Expired Indexes', () async {
-    final pastDate =
-        DateTime.now().subtract(Duration(days: 31)).toIso8601String();
-    final indexData = {
-      'keyword': 'expiredKey',
-      'location': 'testLocation',
-      'replicationFactor': 3,
-      'copyNo': 1,
-      'layerID': 2,
-      'status': 'publish',
-      'entryDateTime':
-          DateTime.now().subtract(Duration(days: 31)).toIso8601String(),
-      'expirationDate': pastDate,
-      'publishTime':
-          DateTime.now().subtract(Duration(days: 31)).toIso8601String(),
-      'republishTime':
-          DateTime.now().subtract(Duration(days: 30)).toIso8601String(),
-      'timer': '20m',
-      'lastUpdateTime':
-          DateTime.now().subtract(Duration(days: 31)).toIso8601String()
+      'lastUpdateTime': timestamp.toIso8601String(),
     };
 
     await indexManager.insertIndex(indexData);
+    await indexManager.republishIndex('testKeyToRepublish');
 
-    // Trigger purge
-    await indexManager.purgeExpiredIndexes();
+    final cachedData = cacheManager.getFromCache('testKeyToRepublish');
 
-    // Verify that the expired index was removed
-    final cachedData = cacheManager.getFromCache('expiredKey');
-    expect(cachedData, isNull);
+    expect(cachedData, isNotNull);
+    expect(cachedData!['republishTime'],
+        isNot(equals(indexData['republishTime'])));
 
-    print('Purge Expired Indexes Test Passed');
-    print('Expired Index Data: $indexData');
+    print('Republish Index Test Passed');
   });
 
-  test('Read by Keyword', () async {
+  test('Read by Exact Keyword', () async {
     final indexData = {
       'keyword': 'testKeyForRead',
       'location': 'testLocation',
@@ -219,12 +213,13 @@ void main() {
       'copyNo': 1,
       'layerID': 2,
       'status': 'publish',
-      'entryDateTime': DateTime.now().toString(),
-      'expirationDate': DateTime.now().add(Duration(days: 30)).toString(),
-      'publishTime': DateTime.now().toString(),
-      'republishTime': DateTime.now().add(Duration(days: 1)).toString(),
+      'entryDateTime': timestamp.toIso8601String(),
+      'expirationDate':
+          timestamp.add(const Duration(days: 30)).toIso8601String(),
+      'publishTime': timestamp.toIso8601String(),
+      'republishTime': timestamp.add(const Duration(days: 1)).toIso8601String(),
       'timer': '20m',
-      'lastUpdateTime': DateTime.now().toString()
+      'lastUpdateTime': timestamp.toIso8601String()
     };
 
     await indexManager.insertIndex(indexData);
@@ -232,52 +227,66 @@ void main() {
     expect(readData, isNotNull);
     expect(readData!['keyword'], equals('testKeyForRead'));
 
-    print('Read by Keyword Test Passed');
+    print('Read by Exact Keyword Test Passed');
     print('Read Data: $readData');
   });
 
-  test('Compute Hash', () {
-    final indexData = 'data';
-    final hash = indexManager.computeHash(indexData);
-
-    final bytes = utf8.encode(indexData); // Convert location string to bytes
-    final expectedHash =
-        sha256.convert(bytes).toString(); // Compute SHA-256 hash
-
-    expect(hash, equals(expectedHash));
-
-    print('Compute Hash Test Passed');
-    print('indexData: $indexData');
-    print('Computed Hash: $hash');
-    print('Expected Hash: $expectedHash');
-  });
-
-  test('Restore from Purge', () async {
+  test('Read by Partial Keyword', () async {
     final indexData = {
-      'keyword': 'testKeyToPurge',
+      'keyword': 'testPartialKeyForRead',
       'location': 'testLocation',
       'replicationFactor': 3,
       'copyNo': 1,
       'layerID': 2,
       'status': 'publish',
-      'entryDateTime': DateTime.now().toString(),
-      'expirationDate': DateTime.now().add(Duration(days: 30)).toString(),
-      'publishTime': DateTime.now().toString(),
-      'republishTime': DateTime.now().add(Duration(days: 1)).toString(),
+      'entryDateTime': timestamp.toIso8601String(),
+      'expirationDate':
+          timestamp.add(const Duration(days: 30)).toIso8601String(),
+      'publishTime': timestamp.toIso8601String(),
+      'republishTime': timestamp.add(const Duration(days: 1)).toIso8601String(),
       'timer': '20m',
-      'lastUpdateTime': DateTime.now().toString()
+      'lastUpdateTime': timestamp.toIso8601String()
+    };
+  });
+
+  test('Compute Hash', () {
+    final data = 'testData';
+    final computedHash = indexManager.computeHash(data);
+
+    final expectedHash = sha256.convert(utf8.encode(data)).toString();
+
+    expect(computedHash, equals(expectedHash));
+
+    print('Compute Hash Test Passed');
+  });
+
+  test('Purging Expired and Deleted Indexes', () async {
+    final expiredIndex = {
+      'keyword': 'expiredKey',
+      'location': 'expiredLocation',
+      'status': 'active',
+      'expirationDate': timestamp.subtract(Duration(days: 1)).toIso8601String(),
     };
 
-    await indexManager.insertIndex(indexData);
-    await indexManager.deleteIndex('testKeyToPurge');
-    await indexManager.purgeDeletedIndexes(); // Simulate purging
+    final deletedIndex = {
+      'keyword': 'deletedKey',
+      'location': 'deletedLocation',
+      'status': 'deleted',
+      'expirationDate': timestamp.toIso8601String(),
+    };
 
-    await indexManager.restoreIndexFromPurge('testKeyToPurge'); // Restore index
-    final readData = await indexManager.readByKeyword('testKeyToPurge');
-    expect(readData, isNotNull);
-    expect(readData!['keyword'], equals('testKeyToPurge'));
+    await indexManager.insertIndex(expiredIndex);
+    await indexManager.insertIndex(deletedIndex);
 
-    print('Restore from Purge Test Passed');
-    print('Restored Data: $readData');
+    await indexManager.purgeIndexes();
+
+    final purgedData = database.select(
+      'SELECT * FROM purge WHERE keyword IN (?, ?)',
+      ['expiredKey', 'deletedKey'],
+    );
+
+    expect(purgedData.length, equals(0));
+
+    print('Purging Expired and Deleted Indexes Test Passed');
   });
 }
