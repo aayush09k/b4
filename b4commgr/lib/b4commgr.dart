@@ -1,6 +1,3 @@
-
-
-/*
 import 'dart:async';
 import 'dart:io';
 import 'stungetip.dart';
@@ -13,8 +10,7 @@ class CommunicationManager {
     // For each other nodeID,
 // a separate connection instance is to be created, as connection is bound to nodeID of other node.
     // Private static instance of the buffer
-    static final CommunicationManager _instance = CommunicationManager
-            ._internal();
+    static final CommunicationManager _instance = CommunicationManager._internal();
 
     // Private constructor
     CommunicationManager._internal();
@@ -42,24 +38,26 @@ class CommunicationManager {
 
 
         // Check if a connection already exists
-        /*if (_connectionsWebrtc.containsKey(remoteNodeID)) {
-          var iceCandiDateJsonString=_connectionsWebrtc[remoteNodeID]!.getIceCandidates();
-          var offer=_connectionsWebrtc[remoteNodeID]!.createOffer();
-          Map<dynamic,dynamic> proposal={
-            'iceCandiDateJson':iceCandiDateJsonString,
-             'oFFer':offer,
-          };
-          sendMessage('35.185.142.164',22355, 'TP',jsonEncode(proposal) , remoteNodeID);
+        if (_connectionsWebrtc.containsKey(remoteNodeID)) {
+            var iceCandiDateJsonString=_connectionsWebrtc[remoteNodeID]!.getIceCandidates();
+            var offer=_connectionsWebrtc[remoteNodeID]!.createOffer();
+            Map<dynamic,dynamic> proposal= {
+'iceCandiDateJson':
+                iceCandiDateJsonString,
+'oFFer':
+                offer,
+            };
+            sendMessage('35.185.142.164',22355, 'TP',jsonEncode(proposal), remoteNodeID);
 
         } else {
-          // Create a new connection if it does not exist
-          _connectionsWebrtc[remoteNodeID] = WebRTCManager();
-          _connectionsWebrtc[remoteNodeID]!.initiatingWebrtc();
-          _connectionsWebrtc[remoteNodeID]!.PeerConnection(configuration);
-          var iceCandiDateJsonString=_connectionsWebrtc[remoteNodeID]!.getIceCandidates();
-          var offer=_connectionsWebrtc[remoteNodeID]!.createOffer();
-          print(offer);
-        }*/
+            // Create a new connection if it does not exist
+            _connectionsWebrtc[remoteNodeID] = WebRTCManager();
+            _connectionsWebrtc[remoteNodeID]!.initiatingWebrtc();
+            _connectionsWebrtc[remoteNodeID]!.PeerConnection(configuration);
+            var iceCandiDateJsonString=_connectionsWebrtc[remoteNodeID]!.getIceCandidates();
+            var offer=_connectionsWebrtc[remoteNodeID]!.createOffer();
+            print(offer);
+        }
 
     }
 
@@ -174,11 +172,11 @@ class CommunicationManager {
 
 
         case 1: // only listen for the connection.
-        print("case 1");
+            print("case 1");
             await _createInstanceCorrespondingToNodeId(listeningPort,address);
             print("case 1");
         case 2: // Here we do both listen for the connection. relay registration.
-        print("case 2");
+            print("case 2");
             await _createInstanceCorrespondingToNodeId(listeningPort,address);
             await communicate(
                 communicatorIp, communicatorPort, 'MP', null, remoteNodeID);
@@ -234,4 +232,4 @@ class CommunicationManager {
         }
         catch (e) {}
     }
-}*/
+}
