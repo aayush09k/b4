@@ -13,8 +13,7 @@ class CommunicationManager {
     // For each other nodeID,
 // a separate connection instance is to be created, as connection is bound to nodeID of other node.
     // Private static instance of the buffer
-    static final CommunicationManager _instance = CommunicationManager
-            ._internal();
+    static final CommunicationManager _instance = CommunicationManager._internal();
 
     // Private constructor
     CommunicationManager._internal();
@@ -42,24 +41,26 @@ class CommunicationManager {
 
 
         // Check if a connection already exists
-        /*if (_connectionsWebrtc.containsKey(remoteNodeID)) {
-          var iceCandiDateJsonString=_connectionsWebrtc[remoteNodeID]!.getIceCandidates();
-          var offer=_connectionsWebrtc[remoteNodeID]!.createOffer();
-          Map<dynamic,dynamic> proposal={
-            'iceCandiDateJson':iceCandiDateJsonString,
-             'oFFer':offer,
-          };
-          sendMessage('35.185.142.164',22355, 'TP',jsonEncode(proposal) , remoteNodeID);
+        if (_connectionsWebrtc.containsKey(remoteNodeID)) {
+            var iceCandiDateJsonString=_connectionsWebrtc[remoteNodeID]!.getIceCandidates();
+            var offer=_connectionsWebrtc[remoteNodeID]!.createOffer();
+            Map<dynamic,dynamic> proposal= {
+'iceCandiDateJson':
+                iceCandiDateJsonString,
+'oFFer':
+                offer,
+            };
+            sendMessage('35.185.142.164',22355, 'TP',jsonEncode(proposal), remoteNodeID);
 
         } else {
-          // Create a new connection if it does not exist
-          _connectionsWebrtc[remoteNodeID] = WebRTCManager();
-          _connectionsWebrtc[remoteNodeID]!.initiatingWebrtc();
-          _connectionsWebrtc[remoteNodeID]!.PeerConnection(configuration);
-          var iceCandiDateJsonString=_connectionsWebrtc[remoteNodeID]!.getIceCandidates();
-          var offer=_connectionsWebrtc[remoteNodeID]!.createOffer();
-          print(offer);
-        }*/
+            // Create a new connection if it does not exist
+            _connectionsWebrtc[remoteNodeID] = WebRTCManager();
+            _connectionsWebrtc[remoteNodeID]!.initiatingWebrtc();
+            _connectionsWebrtc[remoteNodeID]!.PeerConnection(configuration);
+            var iceCandiDateJsonString=_connectionsWebrtc[remoteNodeID]!.getIceCandidates();
+            var offer=_connectionsWebrtc[remoteNodeID]!.createOffer();
+            print(offer);
+        }
 
     }
 
@@ -163,35 +164,40 @@ class CommunicationManager {
     // According to the information gathered it will start Listening for connection or
     // else it will be connected to provided  braHasPaTi node.
     Future<void> activateNode(communicatorIp, communicatorPort, listeningPort,
-                              natStatus, remoteNodeID) async {
+                              natStatus, remoteNodeID, address) async {
         switch (natStatus) {
         case 0:
-            await _createInstanceCorrespondingToNodeId(listeningPort);
+            print("case 0");
+            await _createInstanceCorrespondingToNodeId(listeningPort,address);
             await communicate(
                 communicatorIp, communicatorPort, 'MP', null, remoteNodeID);
+            print("case 0");
 
 
         case 1: // only listen for the connection.
-            await _createInstanceCorrespondingToNodeId(listeningPort);
+            print("case 1");
+            await _createInstanceCorrespondingToNodeId(listeningPort,address);
+            print("case 1");
         case 2: // Here we do both listen for the connection. relay registration.
-
-            await _createInstanceCorrespondingToNodeId(listeningPort);
+            print("case 2");
+            await _createInstanceCorrespondingToNodeId(listeningPort,address);
             await communicate(
                 communicatorIp, communicatorPort, 'MP', null, remoteNodeID);
+            print("case 2");
 
 
         default:
             print('natStatus is not defined');
         }
     }
-
-
-    Future _createInstanceCorrespondingToNodeId(listeningPort) async {
+    Future _createInstanceCorrespondingToNodeId(listeningPort,address) async {
+        print("Entered in _createInstanceCorrespondingToNodeId");
         B4connection b4connection = B4connection();
-        await b4connection.startNodeLiseNing(listeningPort);
+        await b4connection.startNodeLiseNing(listeningPort,address);
 
         b4connection.receiveSocketAndCorrespondingNodeID((nodeId, socket,
         active) async {
+            print("Entered in receiveSocketAndCorrespondingNodeID");
             if (active) {
                 if (nodeId == null) {}
                 else {
