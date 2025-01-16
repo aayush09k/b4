@@ -1,20 +1,26 @@
+// Importing core libraries
 import 'dart:async';
 import 'dart:convert';
-import 'package:b4rttable/b4rttable.dart';
 import 'dart:io';
+
+// Importing libraries from external packages
+import 'package:basic_utils/basic_utils.dart';
+import 'package:path/path.dart' as p;
+
+// Importing libraries from our packages
 import 'package:nodeid/nodeid.dart';
-import 'package:b4rttable/config.dart';
 import 'package:b4commgr/b4commgr.dart';
+import 'package:b4rttable/b4rttable.dart';
 import 'package:b4utils/bufferdata.dart';
 import 'package:b4utils/connectivity_monitor.dart';
-import 'package:basic_utils/basic_utils.dart';
+import 'package:b4rttable/config.dart';
 
 class RoutingManager {
-  String filePath = AppConfig.filepath; // Get file path from AppConfig.
+  String? filePath; // Get file path from AppConfig.
   String? receiveMessage;
   String? rtFilePath; //
   int? natStatus;
-  int layers = AppConfig.numberOfLayers;
+  int? layers;
   late LocalNodeID _localNodeID;
   Map<String, B4RoutingTable> routingTables = {};
 
@@ -29,53 +35,44 @@ class RoutingManager {
   Map<String, B4RoutingTable> neighbourTables = {};
   Map<String, B4RoutingTable> latLongTables = {};
   CommunicationManager manager = CommunicationManager();
-  DataBuffer dataBuffer = DataBuffer();
   ConnectivityMonitor monitor = ConnectivityMonitor();
+  DataBuffer dataBuffer = DataBuffer();
+
   bool flag = false;
 
-  RoutingManager._() {
-    rtFilePath =
-    "${filePath}rtTable.json"; // the path where routing table file will be stored as json.
+  RoutingManager._internal(String filePath,int layers,int port, String nodeId,dynamic nodeIdSign, dynamic nodeIdPubK, dynamic publicIpv4, dynamic publicIpv6, dynamic localIpv4, Map bsNode) {
+    rtFilePath = "${filePath}rtTable.json"; // the path where routing table file will be stored as json.
     // comment the code 
     _localNodeID = LocalNodeID();
-    _localNodeID.nodeid.listeningPort = 8888;
-    _localNodeID.nodeid.hashID = "72D67DFC3E4616381DACA70A90CDF3C59EA80D32";
-
+    _localNodeID.nodeid.listeningPort = port;
+    _localNodeID.nodeid.hashID = nodeId;
+    layers=layers;
 //flag for bootstrap
     if (flag == true) {
       // we have to get this from auth manager, for testing change this ib b4rtTable class also at line no. 30
       // Call the init() function when the instance is created
-      _localNodeID.nodeid.sign = ECSignature(BigInt.parse(
-          "65470513412405851950885404129427616067309932491674362141979488612896203164025"),
-          BigInt.parse(
-              "35241799610163012077198311829834117378791561246876962545184629718444186922890"));
-      _localNodeID.nodeid.publicKeyPem =
-      "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEr8xH1as9ZYF2t+Bc6iQVBNtB4WxK\nUBlQ5sX9oBpTSrTdS39R2c8W4r/Wq/fXNHk+df5uig06vSozEnADHgY8xQ==\n-----END PUBLIC KEY-----";
-      _localNodeID.nodeid.pubKey =
-          CryptoUtils.ecPublicKeyFromPem(_localNodeID.nodeid.publicKeyPem);
-
-
-      _localNodeID.nodeid.publicIpv4 = "103.246.106.197";
+      _localNodeID.nodeid.sign =nodeIdSign;
+      _localNodeID.nodeid.publicKeyPem ="-----BEGIN PUBLIC KEY-----\n${nodeIdPubK}\n-----END PUBLIC KEY-----";
+      _localNodeID.nodeid.publicIpv4 = publicIpv4;
       _localNodeID.nodeid.natStatus = 1;
-      _localNodeID.nodeid.publicIpv6 = "";
-      _localNodeID.nodeid.localIpv4 = "172.20.160.56";
+      _localNodeID.nodeid.publicIpv6 = publicIpv6;
+      _localNodeID.nodeid.localIpv4 =  localIpv4;
     }
 //the above code  for setting the bootstrap node id
-
-    init();
+    init(rtFilePath!, layers, bsNode);
   }
 
   LocalNodeID get localNodeID => _localNodeID;
-
+  static RoutingManager? _instance;
   // Getter to access the singleton instance
-  static RoutingManager get instance {
-    _instance ??= RoutingManager._();
-    return _instance!;
+factory RoutingManager(String filePath,int layers,int port, String nodeId, dynamic nodeIdSign, dynamic nodeIdPubK, dynamic publicIpv4, dynamic publicIpv6, dynamic localIpv4, Map bsNode) {
+  _instance ??= RoutingManager._internal(filePath, layers, port, nodeId, nodeIdSign, nodeIdPubK, publicIpv4, publicIpv6, localIpv4, bsNode);
+  return _instance!;
   }
 
-  static RoutingManager? _instance;
 
-  Future<void> init() async {
+
+  Future<void> init(String filePath, int layers, Map bsNode) async {
     // Check if the file exists;
     NodeID? bootStrapNodeID;
 
@@ -92,41 +89,30 @@ class RoutingManager {
     // Skip as flag=true for botsTrapNode.
     if (flag == false) {
       bootStrapNodeID = NodeID.createFromTable(
-        "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEr8xH1as9ZYF2t+Bc6iQVBNtB4WxK\nUBlQ5sX9oBpTSrTdS39R2c8W4r/Wq/fXNHk+df5uig06vSozEnADHgY8xQ==\n-----END PUBLIC KEY-----",
-        // Assuming this is how you reconstruct pubKey
-        ECSignature(BigInt.parse(
-            "65470513412405851950885404129427616067309932491674362141979488612896203164025"),
-            BigInt.parse(
-                "35241799610163012077198311829834117378791561246876962545184629718444186922890")),
-        "62D67DFC3E4616381DACA70A90CDF3C59EA80D32",
-        // Assuming this is how you reconstruct sign
-        CryptoUtils.ecPublicKeyFromPem(
-            "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEr8xH1as9ZYF2t+Bc6iQVBNtB4WxK\nUBlQ5sX9oBpTSrTdS39R2c8W4r/Wq/fXNHk+df5uig06vSozEnADHgY8xQ==\n-----END PUBLIC KEY-----"),
-        "172.17.80.80", //localIPV4
-        "172.17.80.80",//publicIPV4
-        null.toString(),
-        1,
-        null,
-        null,
-        null,
-        null.toString(),
-        null,
-        8888,
-      );
+      bsNode['bSPublicKeyPem'],
+      bsNode['bSNodeIdSign'],
+      bsNode['bSHash'],
+      bsNode['bSPub'],
+      bsNode['bSIP4'],
+      bsNode['bSPublicIpv4'],
+      bsNode['bSPublicIpv6'],
+      bsNode['bSnatStatus'],
+      bsNode['bSPort'],
+      bsNode['bSpublicIpv4Port'],
+      bsNode['bSpublicIpv6Port'],
+      bsNode['bSCommunicatorIP'],
+      bsNode['bSCommunicatorPort'],
+      bsNode['bSListeningPort']);
     }
-
 
     if (flag == true) {
-      manager.activateNode(
-          null, null, localNodeID.nodeid.listeningPort, 1, null);
+      manager.activateNode(null, null, localNodeID.nodeid.listeningPort, 1, null,null);
     }
-
 
     // un comment this line for normal nodes.This line will remain comment for bootstrap.
     if (flag == false) {
-      await geTinFormation();
-      await manager.activateNode(bootStrapNodeID!.publicIpv4,bootStrapNodeID.listeningPort,localNodeID.nodeid.listeningPort, natStatus,
-          bootStrapNodeID.hashID); // hard code boots
+
+      await manager.activateNode(bootStrapNodeID!.publicIpv4,bootStrapNodeID.listeningPort,localNodeID.nodeid.listeningPort, natStatus, bootStrapNodeID.hashID,null); // hard code boots
       await Future.delayed(const Duration(seconds: 3));
       await sendMessageRM(
           'RM',
@@ -141,7 +127,6 @@ class RoutingManager {
           "0",
           'Y');
     }
-
 
     checkForMessagesCMExecution();
     Timer.periodic(const Duration(minutes: 5),
@@ -164,16 +149,6 @@ class RoutingManager {
       return innerList.map((nodeID) {
         if (nodeID != null) {
           return {
-
-            // old code, for nodeID
-            // 'hashID': nodeID.hashID,
-            // 'publicKey': nodeID.pubKey.toString(),
-            // 'sign': {
-            //   'r': nodeID.sign.r.toString(),
-            //   's': nodeID.sign.s.toString()
-            // },
-            // 'publicKeyPem': nodeID.publicKeyPem.toString(),
-
             'hashID': nodeID.hashID,
             'publicKey': {'x': CryptoUtils
                 .ecPublicKeyFromPem(nodeID.publicKeyPem.toString())
@@ -299,29 +274,6 @@ class RoutingManager {
   }
 
 
-  Future<void> geTinFormation() async {
-    natStatus = await manager.getNetworkInformation("stun.l.google.com", 19302);
-
-    String? iPl;
-    String? iP4;
-    String? iP6;
-    if (manager.stunClient.getLocalIPv4() != null) {
-      iPl = manager.stunClient.getLocalIPv4()!.address;
-    }
-
-    if (manager.stunClient.getPublicIPv4() != null) {
-      iP4 = manager.stunClient.getPublicIPv4()!.address;
-    }
-
-    if (manager.stunClient.getPublicIPv6() != null) {
-      iP6 = manager.stunClient.getPublicIPv6()!.address;
-    }
-
-    localNodeID.nodeid.localIpv4 = iPl;
-    localNodeID.nodeid.publicIpv6 = iP4;
-    localNodeID.nodeid.publicIpv4 = iP6;
-    localNodeID.nodeid.natStatus = natStatus;
-  }
 
   Future<void> sendMessageRM(String rM,
       String reLay,
@@ -616,4 +568,65 @@ class RoutingManager {
     }
     return flag;
   }
+
+  Future<void> createRoutingTableAtPath(String path,int layers, dynamic nodeId) async {
+    try {
+      // Ensure the directory exists
+      final directory = Directory(p.dirname(path));
+      // Get the parent directory of the given path
+      if (!directory.existsSync()) {
+        directory.createSync(
+            recursive: true); // Create the directory if it doesn't exist
+        print("Directory created: ${directory.path}");
+      }
+
+      // Create the routing table
+      //
+      //B4RoutingTable newRoutingTable = B4RoutingTable(localNodeID);
+      for (int i = 0; i <= layers; i++) {
+        //print("$i ......");
+        routingTables[i.toString()] = B4RoutingTable(localNodeID);
+      }
+      print(routingTables);
+
+      // Assuming nodeId is part of the localNodeID and can be accessed as _localNodeID.nodeid.hashID
+      //  String nodeId = _localNodeID.nodeid.hashID;
+
+      // Create a 3x40 matrix (for example purposes, we'll populate it with dummy values)
+      List<List<int>> matrix =
+      List.generate(3, (i) => List.generate(40, (j) => i * j));
+
+    //  List<String> head = globals.nodeId.toString().split('');
+      List<String> head = nodeId.toString().split('');
+
+      // Create a JSON object that includes the nodeId and matrix
+      Map<String, dynamic> routingTableJson = {
+        'header': head, // Add nodeId as the header
+        'routingTable': matrix, // Add the 3x40 matrix
+      };
+
+      // Convert the routing table to JSON
+      String jsonContent = jsonEncode(routingTableJson);
+
+      // Ensure the file path ends with 'rtTable.json'
+      String filePathWithJsonExtension =
+      path.endsWith('rtTable.json') ? path : '$path\\rtTable.json';
+
+      // Write the routing table to the file
+      File file = File(filePathWithJsonExtension);
+      await file.writeAsString(jsonContent);
+
+      print("Routing table created at: $filePathWithJsonExtension");
+
+      // Optionally add it to the in-memory routing tables map
+      String key = p.basenameWithoutExtension(
+          filePathWithJsonExtension); // Use the file name as the key
+      routingTables[key] = routingTables as B4RoutingTable;
+    } catch (e) {
+      print("Error creating routing table at path $path: $e");
+    }
+  }
+
+
+
 }

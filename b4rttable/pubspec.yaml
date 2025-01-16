@@ -11,14 +11,17 @@ dependencies:
   flutter:
     sdk: flutter
   latlong2: ^0.9.0
-  geolocator: ^11.0.0
-  flutter_webrtc: ^0.10.4
+  geolocator: ^12.0.0
+  flutter_webrtc: ^0.12.5+hotfix.2
+  dart_webrtc: ^1.4.10
+
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
-
+  flutter_lints: ^5.0.0
+  basic_utils: ^5.7.0
+  path: ^1.9.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -30,11 +33,14 @@ dev_dependencies:
     path: ../b4commgr
   b4utils:
     path: ../b4utils
-
+  b4connection:
+    path: ../b4connection
+  #indexmgr:
+  #  path: ../b4packages/indexmgr
 
 # The following section is specific to Flutter packages.
 flutter:
-
+  uses-material-design: true
   # To add assets to your package, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
