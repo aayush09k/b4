@@ -5,21 +5,29 @@ version: 1.0.0
 
 environment:
   sdk: ^3.3.1
+  flutter: ">=2.12.0"
 
 # Add regular dependencies here.
 dependencies:
-  # path: ^1.8.0
+  flutter:
+    sdk: flutter
+  flutter_webrtc: ^0.12.5+hotfix.2
+#  path: ^1.8.0
   async: ^2.8.1
   udp: ^5.0.3
-  web_socket_channel: ^2.4.4
+  web_socket_channel: ^3.0.1
+  #flutter_webrtc: ^0.11.6+hotfix.1
 
 
 dev_dependencies:
-  lints: ^3.0.0
+  flutter_test:
+    sdk: flutter
+  #flutter_lints: ^5.0.0
+  lints: ^5.1.1
   test: ^1.24.0
-  flutter_webrtc: ^0.10.4
-  sdp_transform: ^0.3.2
 
+  sdp_transform: ^0.3.2
+  dart_webrtc: ^1.4.10
  # local libraries
   b4connection:
     path: ../b4connection
