@@ -9,9 +9,12 @@ import 'dart:typed_data';
 //import 'package:http/http.dart' as http;
 
 // Importing libraries from our packages
-import 'package:b4commgr/webrtcmanager.dart';
+//import 'package:b4commgr/webrtcmanager.dart';
+//import '../../b4connection/lib/B4connection.dart';
 import 'stungetip.dart';
 import 'package:b4connection/B4connection.dart';
+
+import 'webrtcmanager.dart';
 
 
 
@@ -241,24 +244,24 @@ class CommunicationManager {
     Future<List<List<dynamic>>> getNetworkInfo() async {
       List<List<dynamic>> activeIPs = [];
       try {
-        ProcessResult result = await Process.run(
-          'powershell',
-          [
-            '-Command',
-            r'(Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null }).InterfaceAlias'
-          ],
-        );
+   //     ProcessResult result = await Process.run(
+   //       'powershell',
+   //       [
+   //         '-Command',
+   //         r'(Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null }).InterfaceAlias'
+    //      ],
+    //    );
 
-        if (result.exitCode == 0) {
+   //     if (result.exitCode == 0) {
 
-          String output = result.stdout.trim();
-          if (output.isNotEmpty) {
-            String activeInterfaceName = output;
+   //       String output = result.stdout.trim();
+     //     if (output.isNotEmpty) {
+     //       String activeInterfaceName = output;
 
 
 
             for (var interface in await NetworkInterface.list()) {
-              if (interface.name == activeInterfaceName) {
+         //     if (interface.name == activeInterfaceName) {
                 for (var address in interface.addresses) {
                   String ip = address.address;
                   String ipType =
@@ -281,15 +284,15 @@ class CommunicationManager {
 
 
                 }
-                break;
-              }
+           //     break;
+             // }
             }
-          } else {
-            print('No active interface found.');
-          }
-        } else {
-          print('Failed to determine the active interface.');
-        }
+       //   } else {
+        //    print('No active interface found.');
+        //  }
+    //    } else {
+    //      print('Failed to determine the active interface.');
+     //   }
       } catch (e) {
         print('Error: $e');
       }

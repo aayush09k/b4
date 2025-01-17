@@ -1,6 +1,9 @@
 
-import 'package:b4rttable/routingmanager.dart';
-import 'package:b4commgr/b4commgr.dart';
+//import 'package:b4rttable/routingmanager.dart';
+//import 'package:b4commgr/b4commgr.dart';
+
+import '../lib/b4commgr.dart';
+
 void main () async {
 
   final stunServer1 = 'stun.l.google.com';
@@ -11,7 +14,7 @@ CommunicationManager bcom=CommunicationManager();
 //String publicIP = await bcom.getPublicIP('stun.l.google.com', 19302);
 //print('Public IP: $publicIP');
 //await bcom.printNetworkInterfaces();
-  /*
+
   await bcom.determineNATType();
 
   List<List<dynamic>> activeIPs = await bcom.getNetworkInfo();
@@ -21,11 +24,11 @@ CommunicationManager bcom=CommunicationManager();
   } else {
     print('All IPs of active interface:');
     for (var ipInfo in activeIPs) {
-      print('Type: ${ipInfo[0]}, Address: ${ipInfo[1]}, Private: ${ipInfo[2]}');
-      print('Public IP: ${ipInfo[3]},Public Port: ${ipInfo[4]} NATed: ${ipInfo[5]}, NAT Type: ${ipInfo[6]}');
+      print('Type: ${ipInfo[0]}, Address: ${ipInfo[1]}, Private: ${ipInfo[2]},Public IP: ${ipInfo[3]},Public Port: ${ipInfo[4]} NATed: ${ipInfo[5]}, NAT Type: ${ipInfo[6]}');
+      //print('Public IP: ${ipInfo[3]},Public Port: ${ipInfo[4]} NATed: ${ipInfo[5]}, NAT Type: ${ipInfo[6]}');
     }
   }
-*/
+/*
     bcom.getNetworkAddress();
     String? publicIP = await bcom.getPublicIP1(stunServer1 , 19302);
     print('Public IP: $publicIP');
@@ -45,6 +48,6 @@ CommunicationManager bcom=CommunicationManager();
 
      bcom.getStunPublicIPAddresses(stunServer1);
 
-    
+    */
 
 }
