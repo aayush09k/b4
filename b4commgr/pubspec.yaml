@@ -11,7 +11,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_webrtc: ^0.12.5+hotfix.2
+  flutter_webrtc: ^0.12.6
 #  path: ^1.8.0
   async: ^2.8.1
   udp: ^5.0.3
