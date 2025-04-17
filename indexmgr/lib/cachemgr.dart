@@ -121,9 +121,10 @@
 //   }
 // }
 
-// code as on 21/11/24
+// code as on 21/11/24 and amended on 10/12/2024
 import 'dart:convert';
 import 'package:sqlite3/sqlite3.dart';
+// import 'package:logging/logging.dart';
 
 class B4CacheManager {
   final Database _database;
@@ -167,18 +168,58 @@ class B4CacheManager {
 
   Map<String, Map<String, dynamic>> get cache => _cache;
 
-  void addToCache(
-      String keyword, Map<String, dynamic> data, String expirationDate) {
-    if (_cache.length >= maxCacheSize) {
-      _evictOldestCacheEntry();
-    }
-    _cache[keyword] = data;
+  Database get database => _database;
 
-    _database.execute(
-      'INSERT OR REPLACE INTO cache (keyword, data, expirationDate) VALUES (?, ?, ?)',
-      [keyword, json.encode(data), expirationDate],
-    );
+  bool addToCache(
+      String keyword, Map<String, dynamic> data, String expirationDate) {
+    try {
+      // Check if the cache is full and evict the oldest entry if necessary
+      if (_cache.length >= maxCacheSize) {
+        _evictOldestCacheEntry();
+      }
+
+      // Add the entry to the cache
+      _cache[keyword] = data;
+
+      // Insert into the database
+      _database.execute(
+        'INSERT OR REPLACE INTO cache (keyword, data, expirationDate) VALUES (?, ?, ?)',
+        [keyword, json.encode(data), expirationDate],
+      );
+
+      return true; // Return true to indicate success
+    } catch (e) {
+      print('Failed to add entry to cache: $e');
+      return false; // Return false to indicate failure
+    }
   }
+
+// as on 10/12/2024
+  // void addToCache(
+  //     String keyword, Map<String, dynamic> data, String expirationDate) {
+  //   if (_cache.length >= maxCacheSize) {
+  //     _evictOldestCacheEntry();
+  //   }
+  //   _cache[keyword] = data;
+
+  //   _database.execute(
+  //     'INSERT OR REPLACE INTO cache (keyword, data, expirationDate) VALUES (?, ?, ?)',
+  //     [keyword, json.encode(data), expirationDate],
+  //   );
+  // }
+
+  // void addToCache(
+  //     String keyword, Map<String, dynamic> data, String expirationDate) {
+  //   if (_cache.length >= maxCacheSize) {
+  //     _evictOldestCacheEntry();
+  //   }
+  //   _cache[keyword] = data;
+
+  //   _database.execute(
+  //     'INSERT OR REPLACE INTO cache (keyword, data, expirationDate) VALUES (?, ?, ?)',
+  //     [keyword, json.encode(data), expirationDate],
+  //   );
+  // }
 
   Map<String, dynamic>? getFromCache(String keyword) {
     return _cache[keyword];
