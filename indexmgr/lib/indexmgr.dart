@@ -1,10 +1,12 @@
-import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:logging/logging.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'cachemgr.dart'; // Import the Cache Manager
+import 'dart:async';
+import 'dart:convert';
+// import 'package:uuid/uuid.dart';
+// import 'package:index_mgr/index_mgr.dart';
 
 // Initialize Logger
 final Logger _logger = Logger('B4IndexManager');
@@ -19,15 +21,22 @@ void _initializeLogging() {
 class B4IndexManager {
   late final Database _database;
   late final B4CacheManager _cacheManager;
-  final String dbPath;
+  // late String dbPath;
+  // String generateUUIDIndexID() {
+  //   var uuid = Uuid();
+  //   return uuid.v4(); // Generates a unique UUID
+  // }
 
   int maxCacheSize = 10; // Default max cache size
   // Add a getter to access _cacheManager in tests
   B4CacheManager getCacheManager() => _cacheManager;
 
-  B4IndexManager({this.dbPath = 'database/index_olm.db'}) {
+  //  B4IndexManager({this.dbPath = 'database/index_olm.db'}) {
+  //// only db path , no parameter required
+  ///
+  B4IndexManager(String dbPath) {
     _initializeLogging(); // Initialize logging
-    _initializeDatabase().then((_) {
+    _initializeDatabase(dbPath).then((_) {
       _cacheManager = B4CacheManager(_database,
           maxCacheSize: maxCacheSize); // Initialize the cache manager
       schedulePurgeTask();
@@ -36,8 +45,10 @@ class B4IndexManager {
     });
   }
 
+  Database get database => _database;
+
   // Initialization of the database
-  Future<void> _initializeDatabase() async {
+  Future<void> _initializeDatabase(String dbPath) async {
     try {
       final directory = Directory('database');
       if (!directory.existsSync()) {
@@ -55,14 +66,12 @@ class B4IndexManager {
           replicationFactor INTEGER,
           copyNo INTEGER,
           layerID INTEGER,
-          status STRING,
+          status TEXT,
           entryDateTime DATETIME,
           expirationDate DATETIME,
           publishTime DATETIME,
           republishTime DATETIME,
-          timer TEXT DEFAULT '20m',
           lastUpdateTime DATETIME
-         
         )
       ''');
       _database.execute('''
@@ -73,18 +82,17 @@ class B4IndexManager {
           replicationFactor INTEGER,
           copyNo INTEGER,
           layerID INTEGER,
-          status STRING,
+          status TEXT,
           entryDateTime DATETIME,
           expirationDate DATETIME,
           publishTime DATETIME,
           republishTime DATETIME,
-          timer TEXT,
           deletedAt DATETIME
         )
       ''');
       _database.execute('''
         CREATE TABLE IF NOT EXISTS cache (
-          keyword TEXT PRIMARY KEY,
+          keyword TEXT,
           data TEXT,
           expirationDate DATETIME
         )
@@ -100,119 +108,168 @@ class B4IndexManager {
 
   DateTime stringToDate(String dateStr) => DateTime.parse(dateStr);
 
-  Future<void> insertIndex(Map<String, dynamic> indexData) async {
-    try {
-      // Extract the fields sent from OLM
-      final String keyword = indexData['keyword'];
-      final String location = indexData['location'];
-      final int copyNo = indexData['copyNo'] ?? 0;
-      // final int totCopies = indexData['totCopies'] ?? 1;//
-      //still in question how it is related to the code??
-      // may be to calculate the total copies number
-
-      // Set defaults for fixed fields
-      final int replicationFactor = 2; // Set replication factor to 2
-      final int layerID = 1; // Set layer ID to 1
-      final String status = 'active'; // Status is initially 'active'
-
-      // Get the current date and time
-      final DateTime now = getDateTime();
-      final String nowStr = dateToString(now);
-
-      // Use passed in publishTime or the current time
-      final String publishTime = indexData['publishTime'] ?? nowStr;
-      final String lastUpdateTime = indexData['lastUpdateTime'] ?? nowStr;
-
-      // Calculate expiration date (30 days from entry or last update time)
-      final DateTime expirationDate = indexData['lastUpdateTime'] == null
-          ? stringToDate(indexData['entryDateTime']).add(Duration(days: 30))
-          : stringToDate(indexData['lastUpdateTime']).add(Duration(days: 30));
-
-      // Calculate republish time (e.g., 20 minutes after publish time)
-      final DateTime republishTime = stringToDate(publishTime).add(
-        Duration(
-            minutes: int.parse(
-                indexData['timer']?.replaceAll(RegExp(r'[^0-9]'), '') ?? '20')),
-      );
-
-      // Insert or replace into the database
-      _database.execute(
-        'INSERT OR REPLACE INTO indexes (indexID, keyword, location, replicationFactor, copyNo, layerID, status, '
-        'entryDateTime, expirationDate, publishTime, republishTime, timer, lastUpdateTime) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [
-          indexData['indexID'], // Pass the index_id here
-          keyword,
-          location,
-          replicationFactor, // Fixed replication factor
-          copyNo,
-          layerID, // Fixed layer ID
-          status, // Active status
-          nowStr,
-          dateToString(expirationDate),
-          publishTime,
-          dateToString(republishTime),
-          indexData['timer'] ?? '20m',
-          lastUpdateTime,
-        ],
-      );
-
-      // Add to cache using Cache Manager
-      _cacheManager.addToCache(
-          indexData['keyword'], indexData, dateToString(expirationDate));
-
-      _logger.info(
-          'Index entry inserted or updated successfully: ${indexData['keyword']}');
-    } catch (e) {
-      _logger.severe('SQLite Exception during insert: $e');
-    }
+  /// Compute the first hash (hash1) from a location
+  String computeHash1(String location) {
+    return sha256.convert(utf8.encode(location)).toString();
   }
 
-  // Future<void> insertIndex(Map<String, dynamic> indexData) async {
+  /// Compute the second hash (hash2) by appending copyNo to hash1
+  String computeHash2(String hash1, int copyNo) {
+    String combined = '$hash1-copy$copyNo';
+    return sha256.convert(utf8.encode(combined)).toString();
+  }
+
+  // final uuid = Uuid();
+  String truncateMilliseconds(String datetime) {
+    return datetime.split('.').first.replaceFirst('T', ' ');
+  }
+
+  Future<Map<String, dynamic>> processAndInsertIndex(
+      Map<String, dynamic> minimalData) async {
+    try {
+      // Add missing fields
+      minimalData['copyNo'] = 1;
+      minimalData['status'] = 'active';
+      minimalData['entryDateTime'] = truncateMilliseconds(
+          minimalData['entryDateTime'] ?? DateTime.now().toIso8601String());
+      minimalData['publishTime'] = truncateMilliseconds(
+          minimalData['publishTime'] ?? DateTime.now().toIso8601String());
+      minimalData['lastUpdateTime'] = truncateMilliseconds(
+          minimalData['lastUpdateTime'] ?? DateTime.now().toIso8601String());
+
+      // Calculate expirationDate and republishTime
+      final DateTime publishTime = DateTime.parse(minimalData['publishTime']);
+      final DateTime expirationDate = publishTime.add(Duration(days: 30));
+      final DateTime republishTime =
+          publishTime.add(const Duration(minutes: 20));
+
+      // Set the values in minimalData after truncating milliseconds
+      minimalData['expirationDate'] =
+          truncateMilliseconds(expirationDate.toIso8601String());
+      minimalData['republishTime'] =
+          truncateMilliseconds(republishTime.toIso8601String());
+
+      // Debugging: Print values before inserting
+      print('Inserting into indexes: $minimalData');
+
+      // Insert into IndexManager database
+      _database.execute('''
+      INSERT INTO indexes (keyword, location, replicationFactor, copyNo, layerID, status, entryDateTime, expirationDate, publishTime, republishTime, lastUpdateTime)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', [
+        minimalData['keyword'],
+        minimalData['location'],
+        minimalData['replicationFactor'],
+        minimalData['copyNo'],
+        minimalData['layerID'],
+        minimalData['status'],
+        minimalData['entryDateTime'],
+        minimalData['expirationDate'],
+        minimalData['publishTime'],
+        minimalData['republishTime'],
+        minimalData['lastUpdateTime']
+      ]);
+
+      // Add to cache and check for success
+      bool cacheSuccess = _cacheManager.addToCache(
+          minimalData['keyword'], minimalData, minimalData['expirationDate']);
+
+      if (!cacheSuccess) {
+        print('Failed to add to cache for keyword: ${minimalData['keyword']}');
+      }
+
+      return minimalData;
+      // Return the inserted data
+    } catch (e, stackTrace) {
+      // Log the error for debugging
+      print('Error inserting into indexes: $e');
+      print('Stack trace: $stackTrace');
+      throw e; // Rethrow the error for further handling
+    }
+  }
+  // Future<Map<String, dynamic>> processAndInsertIndex(
+  //     Map<String, dynamic> minimalData) async {
   //   try {
-  //     final DateTime now = getDateTime();
-  //     final String nowStr = dateToString(now);
+  //     // Add missing fields
+  //     minimalData['copyNo'] = 1;
+  //     minimalData['status'] = 'active';
+  //     minimalData['entryDateTime'] = truncateMilliseconds(
+  //         minimalData['entryDateTime'] ?? DateTime.now().toIso8601String());
+  //     minimalData['publishTime'] = truncateMilliseconds(
+  //         minimalData['publishTime'] ?? DateTime.now().toIso8601String());
+  //     minimalData['lastUpdateTime'] = truncateMilliseconds(
+  //         minimalData['lastUpdateTime'] ?? DateTime.now().toIso8601String());
 
-  //     final String publishTime = indexData['publishTime'] ?? nowStr;
-  //     final String lastUpdateTime = indexData['lastUpdateTime'] ?? nowStr;
+  //     // Calculate expirationDate and republishTime
+  //     final DateTime publishTime = DateTime.parse(minimalData['publishTime']);
+  //     final DateTime expirationDate = publishTime.add(Duration(days: 30));
+  //     final DateTime republishTime =
+  //         publishTime.add(const Duration(minutes: 20));
 
-  //     final DateTime expirationDate = indexData['lastUpdateTime'] == null
-  //         ? stringToDate(indexData['entryDateTime']).add(Duration(days: 30))
-  //         : stringToDate(indexData['lastUpdateTime']).add(Duration(days: 30));
+  //     // Set the values in minimalData after truncating milliseconds
+  //     minimalData['expirationDate'] =
+  //         truncateMilliseconds(expirationDate.toIso8601String());
+  //     minimalData['republishTime'] =
+  //         truncateMilliseconds(republishTime.toIso8601String());
 
-  //     final DateTime republishTime = stringToDate(publishTime).add(
-  //       Duration(
-  //           minutes: int.parse(
-  //               indexData['timer']?.replaceAll(RegExp(r'[^0-9]'), '') ?? '20')),
-  //     );
+  //     // Debugging: Print values and types before inserting
+  //     print('Inserting into indexes:');
+  //     print(
+  //         'indexID: ${minimalData['indexID']} (type: ${minimalData['indexID'].runtimeType})');
+  //     print(
+  //         'keyword: ${minimalData['keyword']} (type: ${minimalData['keyword'].runtimeType})');
+  //     print(
+  //         'location: ${minimalData['location']} (type: ${minimalData['location'].runtimeType})');
+  //     print(
+  //         'replicationFactor: ${minimalData['replicationFactor']} (type: ${minimalData['replicationFactor'].runtimeType})');
+  //     print(
+  //         'copyNo: ${minimalData['copyNo']} (type: ${minimalData['copyNo'].runtimeType})');
+  //     print(
+  //         'layerID: ${minimalData['layerID']} (type: ${minimalData['layerID'].runtimeType})');
+  //     print(
+  //         'status: ${minimalData['status']} (type: ${minimalData['status'].runtimeType})');
+  //     print(
+  //         'entryDateTime: ${minimalData['entryDateTime']} (type: ${minimalData['entryDateTime'].runtimeType})');
+  //     print(
+  //         'expirationDate: ${minimalData['expirationDate']} (type: ${minimalData['expirationDate'].runtimeType})');
+  //     print(
+  //         'publishTime: ${minimalData['publishTime']} (type: ${minimalData['publishTime'].runtimeType})');
+  //     print(
+  //         'republishTime: ${minimalData['republishTime']} (type: ${minimalData['republishTime'].runtimeType})');
+  //     print(
+  //         'lastUpdateTime: ${minimalData['lastUpdateTime']} (type: ${minimalData['lastUpdateTime'].runtimeType})');
 
-  //     final int replicationFactor = 2; // Set replication factor to 2
+  //     // Insert into IndexManager database
+  //     _database.execute('''
+  //   INSERT INTO indexes ( keyword, location, replicationFactor, copyNo, layerID, status, entryDateTime, expirationDate, publishTime, republishTime, lastUpdateTime)
+  //   VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  //   ''', [
+  //       minimalData['keyword'],
+  //       minimalData['location'],
+  //       minimalData['replicationFactor'],
+  //       minimalData['copyNo'],
+  //       minimalData['layerID'],
+  //       minimalData['status'],
+  //       minimalData['entryDateTime'],
+  //       minimalData['expirationDate'],
+  //       minimalData['publishTime'],
+  //       minimalData['republishTime'],
+  //       minimalData['lastUpdateTime']
+  //     ]);
 
-  //     _database.execute(
-  //       'INSERT OR REPLACE INTO indexes (keyword, location, replicationFactor, copyNo, layerID, status, '
-  //       'entryDateTime, expirationDate, publishTime, republishTime, timer, lastUpdateTime) '
-  //       'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-  //       [
-  //         indexData['keyword'],
-  //         indexData['location'],
-  //         replicationFactor, // Set replication factor to 2
-  //         indexData['copyNo'],
-  //         indexData['layerID'],
-  //         'active', // Status is set to "active" initially
-  //         nowStr,
-  //         dateToString(expirationDate),
-  //         publishTime,
-  //         dateToString(republishTime),
-  //         indexData['timer'] ?? '20m',
-  //         lastUpdateTime,
-  //       ],
-  //     );
+  //     // Add to cache and check for success
+  //     bool cacheSuccess = _cacheManager.addToCache(
+  //         minimalData['keyword'], minimalData, minimalData['expirationDate']);
 
-  //     // Add to cache using Cache Manager
-  //     _cacheManager.addToCache(
-  //         indexData['keyword'], indexData, dateToString(expirationDate));
+  //     if (!cacheSuccess) {
+  //       _logger.severe(
+  //           'Failed to add to cache for keyword: ${minimalData['keyword']}');
+  //     }
+
+  //     return minimalData; // Return the inserted data
   //   } catch (e) {
-  //     _logger.severe('SQLite Exception during insert: $e');
+  //     _logger.severe('Error inserting index: $e');
+  //     rethrow; // Rethrow the error for further handling
   //   }
   // }
 
@@ -290,53 +347,107 @@ class B4IndexManager {
     return null;
   }
 
-  Future<void> updateIndex(
-      Map<String, dynamic> indexData, String updatedLocation) async {
+  Future<void> updateIndex(String keyword, String updatedLocation) async {
     try {
-      final DateTime expirationDate = indexData['lastUpdateTime'] == null
-          ? stringToDate(
-                  indexData['entryDateTime'] ?? DateTime.now().toString())
-              .add(Duration(days: 30))
-          : add24Hours(stringToDate(
-              indexData['lastUpdateTime'] ?? DateTime.now().toString()));
-
-      final DateTime republishTime = add12Months(stringToDate(
-              indexData['publishTime'] ?? DateTime.now().toString()))
-          .add(Duration(
-              minutes: int.parse(
-                  indexData['timer']?.replaceAll(RegExp(r'[^0-9]'), '') ??
-                      '20')));
-
-      final DateTime lastUpdateTime = DateTime.now();
-
-      _database.execute(
-        'UPDATE indexes SET location = ?, expirationDate = ?, republishTime = ?, lastUpdateTime = ? WHERE keyword = ?',
-        [
-          updatedLocation,
-          dateToString(expirationDate),
-          dateToString(republishTime),
-          dateToString(lastUpdateTime),
-          'active', // Update status to "active"
-          indexData['keyword']
-        ],
+      // Find the existing entry based on the keyword
+      final result = _database.select(
+        'SELECT * FROM indexes WHERE keyword = ?',
+        [keyword],
       );
 
-      // Update cache using Cache Manager
-      _cacheManager.updateCache(
-          indexData['keyword'],
+      if (result.isNotEmpty) {
+        // // Retrieve the existing entry
+        // final existingEntry = result.first;
+
+        // Get the current time for lastUpdateTime
+        final DateTime lastUpdateTime = DateTime.now();
+
+        // Set the expirationDate to 30 days from now
+        final DateTime expirationDate = DateTime.now().add(Duration(days: 30));
+
+        // Use DateTime.parse() to handle publishTime and add 20 minutes to it
+        final DateTime publishTime = DateTime.now(); // Set to current time
+        final DateTime republishTime = publishTime.add(Duration(minutes: 20));
+
+        // Update the database with the new location, expirationDate, republishTime, lastUpdateTime, and status
+        _database.execute(
+          'UPDATE indexes SET location = ?, expirationDate = ?, republishTime = ?, lastUpdateTime = ?, status = ? WHERE keyword = ?',
+          [
+            updatedLocation,
+            expirationDate.toIso8601String(),
+            republishTime.toIso8601String(),
+            lastUpdateTime.toIso8601String(),
+            'active', // Update status to "active"
+            keyword,
+          ],
+        );
+
+        // Update cache using Cache Manager
+        _cacheManager.updateCache(
+          keyword,
           {
-            ...indexData,
             'location': updatedLocation,
-            'expirationDate': dateToString(expirationDate),
-            'republishTime': dateToString(republishTime),
-            'lastUpdateTime': dateToString(lastUpdateTime),
+            'expirationDate': expirationDate.toIso8601String(),
+            'republishTime': republishTime.toIso8601String(),
+            'lastUpdateTime': lastUpdateTime.toIso8601String(),
             'status': 'active', // Update status to "active"
           },
-          dateToString(expirationDate));
+          expirationDate.toIso8601String(),
+        );
+      } else {
+        _logger.warning('No entry found for keyword: $keyword');
+      }
     } catch (e) {
       _logger.severe('SQLite Exception during update: $e');
     }
   }
+
+  // Future<void> updateIndex(
+  //     Map<String, dynamic> indexData, String updatedLocation) async {
+  //   try {
+  //     final DateTime expirationDate = indexData['lastUpdateTime'] == null
+  //         ? stringToDate(
+  //                 indexData['entryDateTime'] ?? DateTime.now().toString())
+  //             .add(Duration(days: 30))
+  //         : add24Hours(stringToDate(
+  //             indexData['lastUpdateTime'] ?? DateTime.now().toString()));
+
+  //     // Use DateTime.parse() to handle publishTime and add 20 minutes to it
+  //     final DateTime publishTime =
+  //         DateTime.parse(indexData['publishTime'] ?? DateTime.now().toString());
+  //     final DateTime republishTime =
+  //         publishTime.add(const Duration(minutes: 20));
+
+  //     final DateTime lastUpdateTime = DateTime.now();
+
+  //     _database.execute(
+  //       'UPDATE indexes SET location = ?, expirationDate = ?, republishTime = ?, lastUpdateTime = ?, status = ? WHERE keyword = ?',
+  //       [
+  //         updatedLocation,
+  //         dateToString(expirationDate),
+  //         dateToString(republishTime),
+  //         dateToString(lastUpdateTime),
+  //         'active', // Update status to "active"
+  //         indexData['keyword']
+  //       ],
+  //     );
+
+  //     // Update cache using Cache Manager
+  //     _cacheManager.updateCache(
+  //         indexData['keyword'],
+  //         {
+  //           ...indexData,
+  //           'location': updatedLocation,
+  //           'expirationDate': dateToString(expirationDate),
+  //           'republishTime': dateToString(republishTime),
+  //           'lastUpdateTime': dateToString(lastUpdateTime),
+  //           'status': 'active', // Update status to "active"
+  //         },
+  //         dateToString(expirationDate));
+  //   } catch (e) {
+  //     _logger.severe('SQLite Exception during update: $e');
+  //   }
+  // }
 
   Future<void> deleteIndex(String keyword) async {
     try {
@@ -357,13 +468,12 @@ class B4IndexManager {
           'expirationDate': row['expirationDate'],
           'publishTime': row['publishTime'],
           'republishTime': row['republishTime'],
-          'timer': row['timer'],
           'deletedAt': dateToString(now),
         };
 
         _database.execute(
-          'INSERT INTO purge (keyword, location, replicationFactor, copyNo, layerID, status, entryDateTime, expirationDate, publishTime, republishTime, timer, deletedAt) '
-          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO purge (keyword, location, replicationFactor, copyNo, layerID, status, entryDateTime, expirationDate, publishTime, republishTime, deletedAt) '
+          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
             purgeData['keyword'],
             purgeData['location'],
@@ -375,7 +485,6 @@ class B4IndexManager {
             purgeData['expirationDate'],
             purgeData['publishTime'],
             purgeData['republishTime'],
-            purgeData['timer'],
             purgeData['deletedAt']
           ],
         );
@@ -408,8 +517,8 @@ class B4IndexManager {
         dateTime.second);
   }
 
-  Future<void> publishIndex(
-      Map<String, dynamic> indexData, String serverSignedCertificate) async {
+  Future<void> publishIndex(Map<String, dynamic> indexData,
+      String serverSignedCertificate, payload) async {
     try {
       final DateTime now = getDateTime();
       final String nowStr = dateToString(now);
@@ -417,18 +526,15 @@ class B4IndexManager {
       final DateTime expirationDate = now.add(Duration(days: 30));
       final String hash = computeHash(indexData['location']);
 
-      final DateTime republishTime = now.add(
-        Duration(
-          minutes: int.parse(
-            indexData['timer']?.replaceAll(RegExp(r'[^0-9]'), '') ?? '20',
-          ),
-        ),
+      // Calculate republishTime as 20 minutes added to publishTime
+      final DateTime republishTime = DateTime.parse(publishTime).add(
+        const Duration(minutes: 20),
       );
 
       // Insert the index data into the database
       _database.execute(
-        'INSERT INTO indexes (keyword, location, replicationFactor, copyNo, layerID, status, entryDateTime, expirationDate, publishTime, republishTime, timer, lastUpdateTime) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO indexes (keyword, location, replicationFactor, copyNo, layerID, status, entryDateTime, expirationDate, publishTime, republishTime, lastUpdateTime) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           indexData['keyword'],
           hash, // Store the hash of the location
@@ -440,7 +546,7 @@ class B4IndexManager {
           dateToString(expirationDate),
           publishTime,
           dateToString(republishTime),
-          indexData['timer'] ?? '20m',
+
           nowStr,
           //serverSignedCertificate, // Insert the server-signed certificate
         ],
@@ -481,11 +587,7 @@ class B4IndexManager {
       if (indexResult.isNotEmpty) {
         final row = indexResult.first;
 
-        final DateTime republishTime = now.add(
-          Duration(
-              minutes: int.parse(
-                  row['timer']?.replaceAll(RegExp(r'[^0-9]'), '') ?? '20')),
-        );
+        final DateTime republishTime = now.add(Duration(minutes: 20));
 
         _database.execute(
           'UPDATE indexes SET republishTime = ?, expirationDate = ? WHERE keyword = ?',
@@ -509,7 +611,6 @@ class B4IndexManager {
           'expirationDate': dateToString(newExpirationDate),
           'publishTime': row['publishTime'],
           'republishTime': dateToString(republishTime),
-          'timer': row['timer'],
           'lastUpdateTime': nowStr,
         };
 
@@ -537,6 +638,43 @@ class B4IndexManager {
     _database.dispose(); // Ensure the database connection is closed
   }
 
+// Helper function to move an index to the purge table
+  Future<void> _moveToPurgeTable(
+      Map<String, dynamic> index, String status) async {
+    final DateTime now = DateTime.now();
+    try {
+      _database.execute(
+        'INSERT INTO purge (keyword, location, replicationFactor, copyNo, layerID, status, entryDateTime, expirationDate, publishTime, republishTime, deletedAt) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          index['keyword'],
+          index['location'],
+          index['replicationFactor'],
+          index['copyNo'],
+          index['layerID'],
+          status,
+          index['entryDateTime'],
+          index['expirationDate'],
+          index['publishTime'],
+          index['republishTime'],
+          dateToString(now),
+        ],
+      );
+    } catch (e) {
+      _logger.severe('Failed to move index to purge table. Error: $e');
+    }
+  }
+
+// Helper function to delete an index from the indexes table
+  Future<void> _deleteFromIndexes(String keyword) async {
+    try {
+      _database.execute('DELETE FROM indexes WHERE keyword = ?', [keyword]);
+    } catch (e) {
+      _logger
+          .severe('Failed to delete index with keyword "$keyword". Error: $e');
+    }
+  }
+
 // Function to handle purging of expired and deleted indexes
   Future<void> _purgeIndexes() async {
     final DateTime now = DateTime.now();
@@ -549,29 +687,11 @@ class B4IndexManager {
       );
 
       for (final index in expiredIndexes) {
-        // Insert expired indexes into the purge table
-        _database.execute(
-          'INSERT INTO purge (keyword, location, replicationFactor, copyNo, layerID, status, entryDateTime, expirationDate, publishTime, republishTime, timer, deletedAt) '
-          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [
-            index['keyword'],
-            index['location'],
-            index['replicationFactor'],
-            index['copyNo'],
-            index['layerID'],
-            'deleted', // Mark as deleted
-            index['entryDateTime'],
-            index['expirationDate'],
-            index['publishTime'],
-            index['republishTime'],
-            index['timer'],
-            dateToString(now), // Log the purge timestamp
-          ],
-        );
+        // Move expired index to purge table
+        await _moveToPurgeTable(index, 'deleted');
 
-        // Remove expired indexes from the main indexes table
-        _database.execute(
-            'DELETE FROM indexes WHERE keyword = ?', [index['keyword']]);
+        // Remove expired index from the main indexes table
+        await _deleteFromIndexes(index['keyword']);
       }
 
       // Step 2: Handle explicitly deleted indexes
@@ -581,37 +701,52 @@ class B4IndexManager {
       );
 
       for (final index in deletedIndexes) {
-        // Insert deleted indexes into the purge table
-        _database.execute(
-          'INSERT INTO purge (keyword, location, replicationFactor, copyNo, layerID, status, entryDateTime, expirationDate, publishTime, republishTime, timer, deletedAt) '
-          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [
-            index['keyword'],
-            index['location'],
-            index['replicationFactor'],
-            index['copyNo'],
-            index['layerID'],
-            'deleted', // Keep as deleted
-            index['entryDateTime'],
-            index['expirationDate'],
-            index['publishTime'],
-            index['republishTime'],
-            index['timer'],
-            dateToString(now), // Log the purge timestamp
-          ],
-        );
+        // Move deleted index to purge table
+        await _moveToPurgeTable(index, 'deleted');
 
-        // Remove deleted indexes from the main indexes table
-        _database.execute(
-            'DELETE FROM indexes WHERE keyword = ?', [index['keyword']]);
+        // Remove deleted index from the main indexes table
+        await _deleteFromIndexes(index['keyword']);
       }
 
-      // Step 3: Remove expired entries from the cache
+      // Step 3: Remove entries older than 30 days from the purge table
+      await _removeOldPurgeEntries();
+
+      // Step 4: Remove expired entries from the cache
       _cacheManager.removeExpiredCacheEntries(now);
 
       _logger.info('Purged expired and deleted indexes successfully.');
     } catch (e) {
       _logger.severe('Failed to purge indexes. Error: $e');
+    }
+  }
+
+// Function to remove old entries from the purge table (older than 30 days)
+  Future<void> _removeOldPurgeEntries() async {
+    final DateTime now = DateTime.now();
+    final DateTime threshold = now.subtract(Duration(days: 30));
+
+    try {
+      // Step 1: Count the entries that will be deleted
+      final deletedCountResult = await _database.select(
+        'SELECT COUNT(*) FROM purge WHERE deletedAt < ?',
+        [dateToString(threshold)],
+      );
+
+      final deletedCount = deletedCountResult.isNotEmpty
+          ? deletedCountResult[0]['COUNT(*)'] as int
+          : 0;
+
+      // Step 2: Perform the delete operation
+      _database.execute(
+        'DELETE FROM purge WHERE deletedAt < ?',
+        [dateToString(threshold)],
+      );
+
+      // Step 3: Log the count of deleted entries
+      _logger.info('Removed $deletedCount old entries from the purge table.');
+    } catch (e) {
+      _logger.severe(
+          'Failed to remove old entries from the purge table. Error: $e');
     }
   }
 
@@ -626,6 +761,128 @@ class B4IndexManager {
       await _purgeIndexes(); // Periodically purge indexes
     });
   }
+
+// // Function to handle purging of expired and deleted indexes
+//   Future<void> _purgeIndexes() async {
+//     final DateTime now = DateTime.now();
+
+//     try {
+//       // Step 1: Fetch and move expired indexes to the purge table
+//       final expiredIndexes = await _database.select(
+//         'SELECT * FROM indexes WHERE expirationDate < ?',
+//         [now.toIso8601String()],
+//       );
+
+//       for (final index in expiredIndexes) {
+//         // Insert expired indexes into the purge table
+//         _database.execute(
+//           'INSERT INTO purge (keyword, location, replicationFactor, copyNo, layerID, status, entryDateTime, expirationDate, publishTime, republishTime, deletedAt) '
+//           'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)',
+//           [
+//             index['keyword'],
+//             index['location'],
+//             index['replicationFactor'],
+//             index['copyNo'],
+//             index['layerID'],
+//             'deleted', // Mark as deleted
+//             index['entryDateTime'],
+//             index['expirationDate'],
+//             index['publishTime'],
+//             index['republishTime'],
+
+//             dateToString(now), // Log the purge timestamp
+//           ],
+//         );
+
+//         // Remove expired indexes from the main indexes table
+//         _database.execute(
+//             'DELETE FROM indexes WHERE keyword = ?', [index['keyword']]);
+//       }
+
+//       // Step 2: Handle explicitly deleted indexes
+//       final deletedIndexes = await _database.select(
+//         'SELECT * FROM indexes WHERE status = ?',
+//         ['deleted'],
+//       );
+
+//       for (final index in deletedIndexes) {
+//         // Insert deleted indexes into the purge table
+//         _database.execute(
+//           'INSERT INTO purge (keyword, location, replicationFactor, copyNo, layerID, status, entryDateTime, expirationDate, publishTime, republishTime, deletedAt) '
+//           'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+//           [
+//             index['keyword'],
+//             index['location'],
+//             index['replicationFactor'],
+//             index['copyNo'],
+//             index['layerID'],
+//             'deleted', // Keep as deleted
+//             index['entryDateTime'],
+//             index['expirationDate'],
+//             index['publishTime'],
+//             index['republishTime'],
+
+//             dateToString(now), // Log the purge timestamp
+//           ],
+//         );
+
+//         // Remove deleted indexes from the main indexes table
+//         _database.execute(
+//             'DELETE FROM indexes WHERE keyword = ?', [index['keyword']]);
+//       }
+
+//       // Step 3: Remove entries older than 30 days from the purge table
+//       await _removeOldPurgeEntries();
+
+//       // Step 4: Remove expired entries from the cache
+//       _cacheManager.removeExpiredCacheEntries(now);
+
+//       _logger.info('Purged expired and deleted indexes successfully.');
+//     } catch (e) {
+//       _logger.severe('Failed to purge indexes. Error: $e');
+//     }
+//   }
+
+//   Future<void> _removeOldPurgeEntries() async {
+//     final DateTime now = DateTime.now();
+//     final DateTime threshold = now.subtract(Duration(days: 30));
+
+//     try {
+//       // Step 1: Count the entries that will be deleted
+//       final deletedCountResult = await _database.select(
+//         'SELECT COUNT(*) FROM purge WHERE deletedAt < ?',
+//         [dateToString(threshold)],
+//       );
+
+//       final deletedCount = deletedCountResult.isNotEmpty
+//           ? deletedCountResult[0]['COUNT(*)'] as int
+//           : 0;
+
+//       // Step 2: Perform the delete operation
+//       _database.execute(
+//         'DELETE FROM purge WHERE deletedAt < ?',
+//         [dateToString(threshold)],
+//       );
+
+//       // Step 3: Log the count of deleted entries
+//       _logger.info('Removed $deletedCount old entries from the purge table.');
+//     } catch (e) {
+//       _logger.severe(
+//           'Failed to remove old entries from the purge table. Error: $e');
+//     }
+//   }
+
+// // Public method to trigger purging manually
+//   Future<void> purgeIndexes() async {
+//     await _purgeIndexes();
+//   }
+
+// // Scheduling the periodic purge task
+//   void schedulePurgeTask() {
+//     Timer.periodic(Duration(minutes: 20), (timer) async {
+//       await _purgeIndexes(); // Periodically purge indexes
+//     });
+//   }
 
 // Function to restore an index from the purge table
   Future<void> restoreIndexFromPurge(String keyword) async {
@@ -649,14 +906,14 @@ class B4IndexManager {
           'expirationDate': row['expirationDate'],
           'publishTime': row['publishTime'],
           'republishTime': row['republishTime'],
-          'timer': row['timer'],
+
           'lastUpdateTime': dateToString(now), // Update timestamp
         };
 
         // Insert restored data back into the indexes table
         _database.execute(
-          'INSERT INTO indexes (keyword, location, replicationFactor, copyNo, layerID, status, entryDateTime, expirationDate, publishTime, republishTime, timer, lastUpdateTime) '
-          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO indexes (keyword, location, replicationFactor, copyNo, layerID, status, entryDateTime, expirationDate, publishTime, republishTime, lastUpdateTime) '
+          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?)',
           [
             restoredData['keyword'],
             restoredData['location'],
@@ -668,7 +925,6 @@ class B4IndexManager {
             restoredData['expirationDate'],
             restoredData['publishTime'],
             restoredData['republishTime'],
-            restoredData['timer'],
             restoredData['lastUpdateTime'],
           ],
         );
