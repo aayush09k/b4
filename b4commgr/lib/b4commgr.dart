@@ -1,5 +1,7 @@
 // Importing core libraries
 import 'dart:async';
+import 'dart:collection';
+// import 'dart:core';
 import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -9,21 +11,28 @@ import 'dart:typed_data';
 //import 'package:http/http.dart' as http;
 
 // Importing libraries from our packages
-//import 'package:b4commgr/webrtcmanager.dart';
-//import '../../b4connection/lib/B4connection.dart';
-import 'stungetip.dart';
-import 'package:b4connection/B4connection.dart';
+//import 'package:b4connection/B4connection.dart';
+import 'package:b4commgr/udpPkg.dart';
+import 'package:b4rttable/routingmanager.dart';
+import 'package:b4rttable/b4rttable.dart';
+import 'package:nodeid/src/nodeid_base.dart';
+import 'endPointAddress.dart';
+import 'networkInformation.dart';
 
-import 'webrtcmanager.dart';
-
-
+// A Queue to act as the RM buffer
+Queue<List> rmBufferQueue = Queue<List>();
+// A Queue to act as the IM buffer
+Queue<List> imBufferQueue = Queue<List>();
+// A Queue to act as the CM Internal buffer
+Queue<List> cmInternalBufferQueue = Queue<List>();
 
 // A class for node to node communication.
 class CommunicationManager {
 
-    // For each other nodeID,
-// a separate connection instance is to be created, as connection is bound to nodeID of other node.
-    // Private static instance of the buffer
+    // For each of the other nodeIDs,
+    // a separate connection instance is to be created, as connections are bound to nodeIDs of the other nodes.
+
+    // Private static instance of the CommunicationManager
     static final CommunicationManager _instance = CommunicationManager._internal();
 
     // Private constructor
@@ -33,967 +42,504 @@ class CommunicationManager {
     factory CommunicationManager() {
         return _instance;
     }
+    Socket? _socket;
+    bool useProxy = false;
+    Socket? _localSocket;
 
-    StunClient stunClient = StunClient();
-    String? _publicIPv6;
-    final Map<String, B4connection> _connections = {};
-
-    final Map<String, WebRTCManager> _connectionsWebrtc = {};
-    Socket? socket;
-    Socket? nodeSocket;
-
-    Future startStreaming(remoteNodeID) async {
-         Map<String, dynamic> configuration = {
-           "iceServers":
-           [
-             {"url": "stun:stun.l.google.com:19302"},
-           ]
-         };
+    int BaselayerID=0;
+    int Proxy4layerID=6;
+    int Proxy6layerID=7;
+    int ProxyDual46layerID=8;
 
 
-        // Check if a connection already exists
-        if (_connectionsWebrtc.containsKey(remoteNodeID)) {
-            var iceCandiDateJsonString=_connectionsWebrtc[remoteNodeID]!.getIceCandidates();
-            var offer=_connectionsWebrtc[remoteNodeID]!.createOffer();
-            Map<dynamic,dynamic> proposal= {
-                'iceCandiDateJson': iceCandiDateJsonString,
-                'oFFer': offer,
-            };
-         //   sendMessage('35.185.142.164',22355, 'TP',jsonEncode(proposal), remoteNodeID);
-            communicate('35.185.142.164',22355, 'TP',jsonEncode(proposal), remoteNodeID);
-        } else {
-            // Create a new connection if it does not exist
-            _connectionsWebrtc[remoteNodeID] = WebRTCManager();
-            _connectionsWebrtc[remoteNodeID]!.initiatingWebrtc();
-            _connectionsWebrtc[remoteNodeID]!.PeerConnection(configuration);
-            var iceCandiDateJsonString=_connectionsWebrtc[remoteNodeID]!.getIceCandidates();
-            var offer=_connectionsWebrtc[remoteNodeID]!.createOffer();
-            print(offer);
-        }
+    // get from config
+    String selfNodeHash="";
+    var ipType, ipAddr, pvtStat, publicIP, publicPort;
 
-    }
+    ProxyEndpointAddress proxy4add, proxy6add;
+    ICECandidates directadd;
 
-    // This function is used to communicate between two nodes in a end to end fashion.
-    Future communicate(ip, port, type, message, remoteNodeID) async {
-        // Check if a connection already exists
-        if (_connections.containsKey(remoteNodeID)) {
-            await _connections[remoteNodeID]!.sendMessage(
-                message, type, remoteNodeID);
-        } else {
-            // Create a new connection if it does not exist
-            _connections[remoteNodeID] = B4connection();
-            _connections[remoteNodeID]!.setMyNodeId(remoteNodeID);
-
-            await _connections[remoteNodeID]!.startConnection(
-                ip, port, type, remoteNodeID);
-
-            _connections[remoteNodeID]!.sendMessage(message, type, remoteNodeID);
-        }
+// Asynchronous function to get endpoint information list. It used stun server and stun port, bootstrapserver to create IPv4 and IPv6 UDP
+// stunServer is a DNS name. It can be resolved to both IPv4 and IPv6 depending on how the stunServer is configured.
+// We should try to use stunServer which has both IPv4 and IPv6 addresses.
+  //  NetworkDetails nd=NetworkDetails();
+    Future <void> socketMessage(String selfNodeHash, String bootstrapServer,String stunServer, int stunPort) async {
         try {
-            // Set the onClosed callback
-            _connections[remoteNodeID]!.onClosed = () {
-                _connections.remove(remoteNodeID);
-                print(
-                    "Connection for $remoteNodeID has been removed from manager due to closure.");
-            };
-        }
-        catch (e) {}
-    }
+        // Initialize an empty list to store information about active IPs
+        List<List<dynamic>> activeIPInfo = await NetworkDetails().getNetworkInfo(stunServer, stunPort);
+            // Iterate through each address in the active IP list
+            for(var lst1 in activeIPInfo) {
+                // Iterate through each address in the active IP list
+                for(var addr in lst1) {
+                    // get the collected data for each IP: [IP type, IP address, private status, public IP, public port]
+                    ipType = addr[0];
+                    ipAddr = addr[1];
+                    pvtStat = addr[2];
+                    publicIP = addr[3];
+                    publicPort = addr[4];
 
 
-    // Below function can be use to identify the network environment.
-    Future<int?> getNetworkInformation(stunIp, stunPort) async {
-        var natStatus = 5;
-        //Start connection with STUN server for all the network information.
-        // Try to connect to stun server by ipv4 and ipv6 both one by one.
+                    // If the IP address is private, try to get the public IP using the STUN server
+                    if (pvtStat.startsWith("Y")) {
+                        useProxy = true;
+                        late String pnode;
+                        // connect to bootstrap and get the list of proxy server (RT of proxy layer)
+                        // find the closest proxy server node. Recursively,
+                        // get the proxy server RT from current closest and find the closest Proxy server node in it.
+                        // Repeat the above process till we get the closest proxy server
+                        //bootstrapServer = proxy['ip'] + ':' + proxy['port'].toString();
+                        //pnode = proxy['ip'] + ':' + proxy['port'].toString();
+                        if (ipType == "IPv4") {
+                            pnode = findClosestProxyNodeRecursively(
+                                 bootstrapServer ,
+                                Proxy4layerID) as String;
+                        }
+                        if (ipType == "IPv6") {
+                            pnode = findClosestProxyNodeRecursively(
+                                 bootstrapServer,
+                                Proxy6layerID) as String;
+                        }
+                        // get the proxy server's ip address and port to be used in endpoint address of current node.
 
-        try {
-            await stunClient.initializeIpv4();
-            await stunClient.fetchPublicIPIpv4(stunIp, stunPort);
-            await stunClient
-            .closeIpv4(); //After getting information closed immediately.
-            stunClient.N = 2;
-            stunClient.resetIP();
-            // For current situation we do not need this.
-            // try {
-            //   await stunClient.initializeIpv6();
-            //   await stunClient.fetchPublicIPIpv6(stunIp, stunPort);
-            //   await stunClient
-            //       .closeIpv6(); //After getting information closed immediately.
-            // }
-            // catch (e) {
-            //   print(
-            //       'Node can not bind to both at a time . Node is not on dual network ');
-            //   stunClient.N = 2;
-            //   stunClient.resetIP();
-            // }
-        }
-        catch (e) {
-            print("Error with IPv4 STUN client: $e");
-            try {
-                //error connecting by ipv4 hence shift to ipv6.
-                await stunClient.initializeIpv6();
-                await stunClient.fetchPublicIPIpv6(stunIp, stunPort);
-                await stunClient
-                .closeIpv6(); //After getting information closed immediately.
-                //Below logic is implemented to making previous values of ip and port null.
-                stunClient.N = 0;
-                stunClient.resetIP();
-            }
-            catch (e) {
-                print("Error with IPv6 STUN client: $e");
-                stunClient.N = 3;
-                stunClient.resetIP();
-            }
-        }
-        await _getIpv6();
+                        // Find the index of the last colon
+                        int lastColonIndex = pnode.lastIndexOf(':');
+                        // String before the last colon
+                        String part1 = pnode.substring(0, lastColonIndex);
+                        // String after the last colon
+                        int part2 = pnode.substring(lastColonIndex + 1) as int;
+                        //get the ip address type
+                        String addtype = getAddressType(part1);
+                        // set endpoint address for self node
 
+                        // Create the TCP connection and set the proxy true with proxy ip and port.
+                        _socket = connect(part1, part2) as Socket?;
+                        // The proxy node, will enter the TCP socket pointer, the current nodes nodeID in the proxy forwarding table.
 
-        if (_publicIPv6 != null) {
-            natStatus = 2;
-        }
-        else {
-            switch (stunClient.NATcheckIpv4()) {
-            case true:
-            {
-                natStatus = 1;
-                break;
-            }
-            case false:
-            {
-                natStatus = 0;
-                break;
-            }
-            }
-        }
-        return natStatus;
-    }
+                        _socket!.listen(_messageHandler);
 
-
-    // According to the information gathered it will start Listening for connection or
-    // else it will be connected to provided  braHasPaTi node.
-    Future<void> activateNode(communicatorIp, communicatorPort, listeningPort,
-                              natStatus, remoteNodeID, address) async {
-        switch (natStatus) {
-        case 0:
-            print("case 0");
-            await _createInstanceCorrespondingToNodeId(listeningPort,address);
-            await communicate(
-                communicatorIp, communicatorPort, 'MP', null, remoteNodeID);
-            print("case 0");
-
-
-        case 1: // only listen for the connection.
-            print("case 1");
-            await _createInstanceCorrespondingToNodeId(listeningPort,address);
-            print("case 1");
-        case 2: // Here we do both listen for the connection. relay registration.
-            print("case 2");
-            await _createInstanceCorrespondingToNodeId(listeningPort,address);
-            await communicate(
-                communicatorIp, communicatorPort, 'MP', null, remoteNodeID);
-            print("case 2");
-
-
-        default:
-            print('natStatus is not defined');
-        }
-    }
-    Future _createInstanceCorrespondingToNodeId(listeningPort,address) async {
-        print("Entered in _createInstanceCorrespondingToNodeId");
-        B4connection b4connection = B4connection();
-     //   await b4connection.startNodeLiseNing(listeningPort,address);
-        await b4connection.startNodeLiseNing(listeningPort);
-
-        b4connection.receiveSocketAndCorrespondingNodeID((nodeId, socket,
-        active) async {
-            print("Entered in receiveSocketAndCorrespondingNodeID");
-            if (active) {
-                if (nodeId == null) {}
-                else {
-                    if (_connections.containsKey(nodeId)) {
-                        print('Instance corresponding to $nodeId is present.');
+                        // Ensure that a messageHandler is registered with TCP socket to received the incoming bytes and parse the received messages.
                     }
-                    else {
-                        // Whenever we receive socket from the any cNode we create a b4connection instance corresponding to that nodeID.
-                        // then we set _nodeIdSocket of created instance = socket received.
-                        // It is important because we use it to send message in that b4connection instance.
-                        _connections[nodeId] = B4connection();
-                        _connections[nodeId]!.setNodeSocket(socket);
+// TBD - 20250225-1914 : proxy forwarding table related protocol on a TCP server socket is to be created.
+                    // If the IP address is not private, treat it as a public IP
+
+                    else if (pvtStat.startsWith("N")) {
+                        // For IPv4 and IPv6, bind a UDP socket to determine the public port
+                        if (ipType == "IPv4") {
+                            String ipadd4 = InternetAddress.anyIPv4 as String;
+                            UDPSocket myServer = await UDPSocket.bind(
+                                InternetAddress.anyIPv4, 0);
+                            publicPort = myServer.rawSocket.port;
+                            _socket = await connect(ipadd4, publicPort);
+                            _socket!.listen(_messageHandler);
+                            //     myServer.handler((message){   });
+
+                        } else if (ipType == "IPv6") {
+                            String ipadd6 = InternetAddress.anyIPv6 as String;
+                            publicPort =
+                                (await UDPSocket.bind(
+                                    InternetAddress.anyIPv6, 0))
+                                    .rawSocket.port;
+                            _socket = await connect(ipadd6, publicPort);
+                            _socket!.listen(_messageHandler);
+                        }
                     }
                 }
+
+
+            }//for2
+
+        } catch (e) {
+            // Catch and print any errors that occur during execution
+            print('Error: $e');
+        }
+
+    }
+
+    // Utility function to find the closest node based on XOR distance
+    //closestNode = proxy['ip'] + ':' + proxy['port'].toString();
+    String findClosestFromPRT(List<Map<String, dynamic>> proxyRoutingTable) {
+        String closestNode = '';
+        int closestDistance = 160; // Max distance for 160-bit node ID
+
+        for (var proxy in proxyRoutingTable) {
+            String proxyNodeId = proxy['node_id']; // 160-bit hexadecimal node ID
+            int distance = calculateDistance(selfNodeHash, proxyNodeId);
+
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestNode = proxy['ip'] + ':' + proxy['port'].toString();
             }
-            else {
-                while (true) {
-                    if (_connections[nodeId] == null) {
-                        break;
-                    }
-                    _connections.remove(nodeId);
+        }
+
+        return closestNode;
+    }
+
+    // Function to calculate XOR distance between two node IDs
+    int calculateDistance(String nodeId, String proxyNodeId) {
+        // Convert hex node IDs to BigInt for comparison
+        BigInt nodeBigInt = BigInt.parse(nodeId, radix: 16);
+        BigInt proxyBigInt = BigInt.parse(proxyNodeId, radix: 16);
+        int dist=(nodeBigInt ^ proxyBigInt).toInt();
+        return dist; // XOR and convert to integer distance
+    }
+
+    // Main loop to iteratively find the closest node
+    //closestNode = proxy['ip'] + ':' + proxy['port'].toString();
+    Future<String> findClosestProxyNodeRecursively(String bootstrapServer, int Proxy4layerID) async {
+        // Start with the Bootstrap Server (BS) as the closest node
+        String closest = bootstrapServer;
+        String cnode = '';
+
+        do {
+            cnode = closest;
+            print('Current Node: $cnode');
+
+            // Get the routing table for the Proxy4LayerID from the current closest node
+            //List<Map<String, dynamic>> routingTable = await routingtable.getRT(Proxy4layerID, node);
+            List<Map<String, dynamic>> proxyRoutingTable = await RoutingManager.getRT(cnode, Proxy4layerID);
+            //getRT(Proxy4layerID, node);
+            // Find the closest node from the routing table
+            closest = findClosestFromPRT(proxyRoutingTable);
+            print('Closest Node: $closest');
+
+        } while (cnode != closest); // Repeat until convergence
+
+        print('Final Closest Node: $closest');
+        return closest;
+    }
+
+    // Connect to this proxy server and return the socket.
+    Future<Socket> connect(String proxyIP, int proxyPort) async {
+        return await Socket.connect(proxyIP, proxyPort);
+    }
+
+    // Message handler to process incoming messages from the proxy
+    void _messageHandler(List<int> data) {
+        String message = utf8.decode(data);
+
+        print("Received message from proxy: $message");
+
+        try {
+            var decodedMessage = jsonDecode(message);
+            if (decodedMessage is List) {
+                // get the destination hash from destination node
+                String dhash = decodedMessage[2].nodeID.nodeID;
+                print("Destination Module: $dhash");
+                //match the destination hash with self node hash
+                if (dhash == selfNodeHash) {
+                    //if destination hash matched with node
+                    //get the destination module
+                    String dmodule = decodedMessage[1] ?? 'Unknown Module';
                     print(
-                        "Connection for $nodeId has been removed from manager due to closure.");
+                        "Received a destination module name: ${decodedMessage[1]}");
+                    print("Destination Module: $dmodule");
+
+                    // Handle specific module actions
+                    if (dmodule == 'RM') {
+                        //put message to RM buffer
+                        rmBufferQueue.add(message as List);
+                    } else if (dmodule == 'IM') {
+                        //put message to IM buffer
+                        imBufferQueue.add(message as List);
+                    }
+                }else {
+                    //if destination hash not matched with node
+                    //get the next hop hash from rm for destination node
+                    List<Map<String, dynamic>> localRoutingTable = RoutingManager.getRT(selfNodeHash, BaselayerID);
+                    dynamic nexthop=B4RoutingTable().nextHop(dhash,localRoutingTable) ;
+                    //get the next hop hash
+                    dynamic nexthophash= nexthop.nodeID.nodeID;
+
+                    // set the next hop hash as destination hash in message
+                    decodedMessage[0].destinationNodeHash = nexthophash;
+                    //add the next hop hash as next destination hash in message
+
+                    //put this message to cm send buffer to sending to the next hop
+                    cmInternalBufferQueue.add(decodedMessage);
                 }
-            }
-        });
-    }
-
-
-
-
-
-
-    Future<List<List<dynamic>>> getNetworkInfo() async {
-      List<List<dynamic>> activeIPs = [];
-      try {
-   //     ProcessResult result = await Process.run(
-   //       'powershell',
-   //       [
-   //         '-Command',
-   //         r'(Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null }).InterfaceAlias'
-    //      ],
-    //    );
-
-   //     if (result.exitCode == 0) {
-
-   //       String output = result.stdout.trim();
-     //     if (output.isNotEmpty) {
-     //       String activeInterfaceName = output;
-
-
-
-            for (var interface in await NetworkInterface.list()) {
-         //     if (interface.name == activeInterfaceName) {
-                for (var address in interface.addresses) {
-                  String ip = address.address;
-                  String ipType =
-                  address.type == InternetAddressType.IPv6 ? "IPv6" : "IPv4";
-                  String isPrivate = isPrivateIP(ip) ? "Yes" : "No";
-                  Map< String , dynamic> public=await getPublicIP('stun.l.google.com', 19302);
-                  String? publicIP=public['publicIP'];
-                  int? publicPort=public['publicPort'];
-                  bool? behindNAT = publicIP != null ? await checkIfBehindNAT(publicIP) : null;
-                  String? natType = publicIP != null && behindNAT != null
-                      ? await determineNATType()
-                      : null;
-                  int? isBehindNAT=0;
-                  if(behindNAT==true){
-                    isBehindNAT=1;
-                  }
-
-                  // [type, address, private, publicIP,publicPort isBehindNAT, natType]
-                  activeIPs.add([ipType, ip, isPrivate, publicIP,publicPort, isBehindNAT, natType]);
-
-
-                }
-           //     break;
-             // }
-            }
-       //   } else {
-        //    print('No active interface found.');
-        //  }
-    //    } else {
-    //      print('Failed to determine the active interface.');
-     //   }
-      } catch (e) {
-        print('Error: $e');
-      }
-      return activeIPs;
-    }
-
-    Future<Map<String, dynamic>> getPublicIP(String stunServer, int stunPort) async {
-      final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
-
-      final transactionId = List<int>.generate(12, (i) => i);
-      final stunMessage = Uint8List.fromList([
-        0x00, 0x01,
-        0x00, 0x00,
-        0x21, 0x12, 0xA4, 0x42,
-        ...transactionId,
-      ]);
-
-      final stunServerAddress = (await InternetAddress.lookup(stunServer))
-          .where((addr) => addr.type == InternetAddressType.IPv4)
-          .toList();
-
-      if (stunServerAddress.isEmpty) {
-        print('Failed to resolve STUN server address.');
-        return {'publicIP': null, 'publicPort': null};
-      }
-
-      final stunServerIP = stunServerAddress.first;
-
-      socket.send(stunMessage, stunServerIP, stunPort);
-
-      String? publicIP;
-      int? publicPort;
-
-      await for (var event in socket) {
-        if (event == RawSocketEvent.read) {
-          final datagram = socket.receive();
-          if (datagram != null) {
-            final response = datagram.data;
-            if (response.length > 20) {
-              final addressFamily = response[25];
-              if (addressFamily == 0x01) { // IPv4
-                final magicCookie = [0x21, 0x12, 0xA4, 0x42];
-                publicPort = (response[26] << 8 | response[27]) ^
-                (magicCookie[0] << 8 | magicCookie[1]);
-                final ip = [
-                  response[28] ^ magicCookie[0],
-                  response[29] ^ magicCookie[1],
-                  response[30] ^ magicCookie[2],
-                  response[31] ^ magicCookie[3],
-                ].join('.');
-                publicIP = ip;
-
-              } else {
-                print('Received a non-IPv4 response.');
-              }
             } else {
-              print('Invalid STUN response.');
+                print("Message format is invalid: $message");
             }
-          }
-          break;
+        } catch (e) {
+            print("Error processing message: $e");
         }
-      }
-
-      socket.close();
-      return {
-        'publicIP': publicIP,
-        'publicPort': publicPort,
-      };
     }
 
-
-    Future<String> determineNATType() async {
-      try {
-        String natType = await _performNATTests();
-        return natType;
-      } catch (e) {
-        print("Error determining NAT Type: $e");
-      }
-      return "Null";
-    }
-
-    Future<String> _performNATTests() async {
-      String stunServer = 'stun.l.google.com';
-      int stunPort = 19302;
-
-      // Test I: Send request without changing IP or port
-      String mappedAddressTest1 = await _stunTest(stunServer, stunPort, changeIP: false, changePort: false);
-      if (mappedAddressTest1.isEmpty) {
-        return "No UDP connectivity";
-      }
-
-      // Parse the mapped address from Test I
-      var parts = mappedAddressTest1.split(':');
-      if (parts.length != 2) return "Invalid response in Test I";
-      String publicIP1 = parts[0];
-      int publicPort1 = int.parse(parts[1]);
-
-
-      List<NetworkInterface> interfaces = await NetworkInterface.list();
-      bool isNatted = true;
-
-      for (var interface in interfaces) {
-        for (var address in interface.addresses) {
-          if (address.address == publicIP1) {
-            isNatted = false;
-            break;
-          }
+    // Function to check if an IP address type
+    String getAddressType(String address) {
+      // Check if it's IPv4
+      if (isIPv4(address)) {
+            return 'IPv4';
         }
-      }
 
-      if (!isNatted) {
-        return "No NAT";
+      // Check if it's IPv6
+      else if (isIPv6(address)) {
+        // Check if the IPv6 is in the private range (ULA) or loopback
+            return 'IPv6';
       }
-
-      // Test II: Changing both IP and port
-      String test2Response = await _stunTest(stunServer, stunPort, changeIP: true, changePort: true);
-      if (test2Response.isNotEmpty) {
-        return "Full Cone NAT";
-      }
-
-      // Test III: Changing only the port
-      String test3Response = await _stunTest(stunServer, stunPort, changeIP: false, changePort: true);
-      if (test3Response.isNotEmpty) {
-        return "Restricted Cone NAT";
-      }
-
-      // Re-running Test I to check for Symmetric NAT
-      String mappedAddressTest1Again = await _stunTest(stunServer, stunPort, changeIP: false, changePort: false);
-      if (mappedAddressTest1Again != mappedAddressTest1) {
-        return "Symmetric NAT";
-      }
-
-      return "Port Restricted Cone NAT";
+      return 'Invalid address';
     }
+
+    // Check if the address is a valid IPv4
+    bool isIPv4(String address) {
+      final ipv4Regex = RegExp(r'^(\d{1,3}\.){3}\d{1,3}$');
+      return ipv4Regex.hasMatch(address);
+    }
+
+    // Check if the address is a valid IPv6
+    bool isIPv6(String address) {
+      final ipv6Regex = RegExp(r'^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$');
+      return ipv6Regex.hasMatch(address);
+    }
+    
+  /*
+                extra code
+                     EndpointAddress endpoint = pnode.endpointAddress;
+                    if (endpoint.publicipv6 != null && endpoint.publicipv6port != null) {
+                        print('IPv6 Address: ${endpoint.publicipv6}');
+                        ipv6add=endpoint.publicipv6;
+                        print('IPv6 Port: ${endpoint.publicipv6port}');
+                        ipv6port=endpoint.publicipv6port;
+                      } else if (endpoint.publicipv4 != null && endpoint.publicipv4port != null) {
+                        print('IPv4 Address: ${endpoint.publicipv4}');
+                        ipv4add=endpoint.publicipv4;
+                        print('IPv4 Port: ${endpoint.publicipv4port}');
+                        ipv4port=endpoint.publicipv4port;
+                      } else {
+                        print('IPv4 Address or Port not available.');
+                      }
+
+        // Determines the NAT type by performing multiple NAT tests using a STUN server
+    Future<String> determineNATType(String stunServer, int stunPort) async {
+        try {
+            // Perform NAT tests and determine the NAT type
+            String natType = await _performNATTests(stunServer, stunPort);
+            return natType;
+        } catch (e) {
+            // If an error occurs, print the error message
+            print("Error determining NAT Type: $e");
+        }
+        // Return 'Null' if any error occurs
+        return "Null";
+    }
+
+    // Performs various NAT tests to determine the NAT type using a STUN server
+    Future<String> _performNATTests(String stunServer, int stunPort) async {
+        // Test I: Send request without changing IP or port
+        String mappedAddressTest1 = await _stunTest(stunServer, stunPort, changeIP: false, changePort: false);
+        if (mappedAddressTest1.isEmpty) {
+            // If no address is mapped, return "No UDP connectivity"
+            return "No UDP connectivity";
+        }
+
+        // Parse the mapped address from Test I
+        var parts = mappedAddressTest1.split(':');
+
+        // Check if the response format is valid
+        if (parts.length != 2) return "Invalid response in Test I";
+        String publicIP1 = parts[0];
+        int publicPort1 = int.parse(parts[1]);
+
+        // List network interfaces and check if the device is behind NAT
+        List<NetworkInterface> interfaces = await NetworkInterface.list();
+        bool isNatted = true;
+
+        // Iterate over each network interface.
+        for (var interface in interfaces) {
+            // Iterate over each address of the current network interface.
+            for (var address in interface.addresses) {
+                // If the public IP matches an interface IP, it's not behind NAT
+                if (address.address == publicIP1) {
+                    isNatted = false;
+                    break;
+                }
+            }
+        }
+
+        // If not behind NAT, return "No NAT"
+        if (!isNatted) {
+            return "No NAT";
+        }
+
+        // Test II: Changing both IP and port
+        String test2Response = await _stunTest(stunServer, stunPort, changeIP: true, changePort: true);
+        // If the response is not empty, it indicates a Full Cone NAT. In this case, the NAT allows any external host to send data to the internal host.
+        if (test2Response.isNotEmpty) {
+            return "Full Cone NAT";
+        }
+
+        // Test III: Changing only the port
+        String test3Response = await _stunTest(stunServer, stunPort, changeIP: false, changePort: true);
+        // If the response is not empty, it indicates a Restricted Cone NAT. This type of NAT restricts incoming traffic to the internal host only from addresses that the internal host has previously sent data to.
+        if (test3Response.isNotEmpty) {
+            return "Restricted Cone NAT";
+        }
+
+        // Re-running Test I to check for Symmetric NAT
+        String mappedAddressTest1Again = await _stunTest(stunServer, stunPort, changeIP: false, changePort: false);
+        // If the mapped address changes between the first and second test, it indicates a Symmetric NAT. Symmetric NAT assigns a different public port for each external host.
+        if (mappedAddressTest1Again != mappedAddressTest1) {
+            return "Symmetric NAT";
+        }
+        // If none of the above conditions are met, it must be Port Restricted Cone NAT.
+        // This type of NAT behaves similarly to Restricted Cone NAT, but it also restricts incoming traffic based on both IP and port.
+        return "Port Restricted Cone NAT";
+    }
+    // Magic cookie for STUN requests
     final _magicCookie = [0x21, 0x12, 0xA4, 0x42];
 
+    // Performs a STUN test to get the public IP and port using stun server
     Future<String> _stunTest(String stunServer, int stunPort, {bool changeIP = false, bool changePort = false}) async {
-      final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
-
-      final transactionId = List<int>.generate(12, (i) => i);
-      final stunMessage = Uint8List.fromList([
-        0x00, 0x01,
-        0x00, 0x08,
-        ..._magicCookie,
-        ...transactionId,
-        0x00, 0x03,
-        0x00, 0x04,
-        0x00, 0x00, 0x00, (changeIP ? 0x04 : 0x00) | (changePort ? 0x02 : 0x00),
-      ]);
-
-      final stunServerAddress = (await InternetAddress.lookup(stunServer))
-          .where((addr) => addr.type == InternetAddressType.IPv4)
-          .toList();
-
-      if (stunServerAddress.isEmpty) {
-        print('Failed to resolve STUN server address.');
-        return '';
-      }
-
-      final stunServerIP = stunServerAddress.first;
-      socket.send(stunMessage, stunServerIP, stunPort);
-
-
-      String? publicIP;
-      int? publicPort;
-
-      await for (var event in socket) {
-        if (event == RawSocketEvent.read) {
-          final datagram = socket.receive();
-          if (datagram != null) {
-            final response = datagram.data;
-            if (response.length > 20) {
-              final addressFamily = response[25];
-              if (addressFamily == 0x01) { // IPv4
-                publicPort = (response[26] << 8 | response[27]) ^ (_magicCookie[0] << 8 | _magicCookie[1]);
-                final ip = [
-                  response[28] ^ _magicCookie[0],
-                  response[29] ^ _magicCookie[1],
-                  response[30] ^ _magicCookie[2],
-                  response[31] ^ _magicCookie[3],
-                ].join('.');
-                publicIP = ip;
-
-              } else {
-                print('Received a non-IPv4 response.');
-              }
-            }
-          }
-          break;
-        }
-      }
-
-      socket.close();
-      return publicIP != null && publicPort != null ? '$publicIP:$publicPort' : '';
-    }
-
-
-
-    Future<void> getNetworkAddress() async {
-      try {
-        var interfaces = await NetworkInterface.list(includeLinkLocal: true);
-   //     print('Available Network Interfaces:');
-        for (var interface in interfaces) {
-    //      print('== Interface: ${interface.name} ==');
-          for (var addr in interface.addresses) {
-            String type = addr.type == InternetAddressType.IPv4 ? 'IPv4' : 'IPv6';
-            bool isPrivate = isPrivateIP(addr.address);
-            print('$type Address: ${addr.address} (${isPrivate ? "Private" : "Public"})');
-          }
-        }
-      } catch (e) {
-        print('Error retrieving network interfaces: $e');
-      }
-    }
-
-    // Check if the given IP address is private (indicating NAT)
-    bool isPrivateIP(String ip) {
-      final privateRanges = [
-        '10.', '172.16.','172.17.','172.18.','172.19.','172.20.','172.21.','172.22.','172.23.','172.24.','172.25.','172.26.','172.27.','172.28.','172.29.','172.30.','172.31.', '192.168.', // Private IPv4 ranges
-        'fc00::', 'fd00::' // Private IPv6 ranges
-      ];
-
-      for (var range in privateRanges) {
-        if (ip.startsWith(range)) {
-          return true; // NAT detected (private IP)
-        }
-      }
-      return false; // Public IP
-    }
-
-    // Use Google STUN server to get the public IP address
-    Future<String?> getPublicIP1(String stunServer, int stunPort) async {
-      try {
-  //      print('Using STUN protocol to fetch public IP...');
-        var stunServerAddress = (await InternetAddress.lookup(stunServer))
-            .where((addr) => addr.type == InternetAddressType.IPv4)
-            .toList();
-
-        if (stunServerAddress.isEmpty) {
-          print('Failed to resolve STUN server address.');
-          return null;
-        }
-
+        // Bind socket to any IPv4 address and port
         final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
-  //      print('Using local port: ${socket.port} to communicate with $stunServer:$stunPort');
-
-        // STUN binding request
+        // Generate transaction ID and construct STUN request message
         final transactionId = List<int>.generate(12, (i) => i);
         final stunMessage = Uint8List.fromList([
-          0x00, 0x01, 0x00, 0x00,
-          0x21, 0x12, 0xA4, 0x42,
-          ...transactionId,
-        ]);
+         0x00, 0x01, // Message Type: Binding Request
+         0x00, 0x08, // Message length
+         ..._magicCookie, // Magic cookie
+         ...transactionId, // Transaction ID
+         0x00, 0x03, // Message Attributes
+         0x00, 0x04, // Change IP and/or port flags
+         0x00, 0x00, 0x00, (changeIP ? 0x04 : 0x00) | (changePort ? 0x02 : 0x00), // Flags to indicate if IP/Port should change
+                                               ]);
 
-        socket.send(stunMessage, stunServerAddress.first, stunPort);
-       // print('STUN request sent to ${stunServerAddress.first}:$stunPort.');
-
-        String? publicIP;
-
-        await for (var event in socket) {
-          if (event == RawSocketEvent.read) {
-            final datagram = socket.receive();
-            if (datagram != null) {
-              final response = datagram.data;
-              if (response.length >= 28) {
-                final addressFamily = response[25];
-                if (addressFamily == 0x01) {
-                  final ip = [
-                    response[28] ^ 0x21,
-                    response[29] ^ 0x12,
-                    response[30] ^ 0xA4,
-                    response[31] ^ 0x42
-                  ].join('.');
-                  publicIP = ip;
-        //          print('Public IP retrieved: $ip');
-                  break;
-                }
-              }
-            }
-          }
-        }
-
-        socket.close();
-        return publicIP;
-      } catch (e) {
-        print('Error retrieving public IP via STUN: $e');
-        return null;
-      }
-    }
-
-    // Check if the device is behind a NAT
-    Future<bool> checkIfBehindNAT(String publicIP) async {
-      List<NetworkInterface> interfaces = await NetworkInterface.list();
-
-      for (var interface in interfaces) {
-        for (var address in interface.addresses) {
-          if (!isPrivateIP(address.address) && address.address == publicIP) {
-            return false;
-          }
-        }
-      }
-      return true;
-    }
-
-
-    Future stunIpAddress4(String stunServer) async {
-      final stunServerAddress = (await InternetAddress.lookup(stunServer))
-          .where((addr) => addr.type == InternetAddressType.IPv4)
-          .toList();
-
-      if (stunServerAddress.isEmpty) {
-        print('Failed to resolve STUN server address.');
-        exit;
-        // return '';
-      }
-
-      //print(stunServerAddress);
-      final stunServerIP = stunServerAddress.first;
-      //  final stunServerIP4=stunServerIP.address;
-      print('${stunServerIP.type} Stun Address: ${stunServerIP.address}');
-
-      return stunServerIP;
-    }
-
-    Future stunIpAddress6(String stunServer) async {
-      final stunServerAddress = (await InternetAddress.lookup(stunServer))
-          .where((addr) => addr.type == InternetAddressType.IPv6)
-          .toList();
-
-      if (stunServerAddress.isEmpty) {
-        print('Failed to resolve STUN server address.');
-        exit;
-        // return '';
-      }
-      //  print(stunServerAddress);
-
-      final stunServerIP = stunServerAddress.first;
-      //  InternetAddress stunServerIP6=stunServerIP.address as InternetAddress;
-      print('${stunServerIP.type} Stun Address: ${stunServerIP.address}');
-      return stunServerIP;
-    }
-
-    //void setBootstrapNode(){}
-
-   // void getProxyLayerRT() {
-
-
-  //  }
-
-    sendMessage1(endpointaddress, message, nodeidobj){ // endpointaddress=bootstrap, message= "getRT,LayerId,"
-      //get the nexthop from RT
-      //
-
-    }
-
-    receiveMessage(){
-      //    received message with node id object
-      //parse the node id object get the required values like endpoint address
-      // parse the message
-      //generate responce
-     // send the responce to buffer
-
-    }
-
-
-
-
-/*
-    Future<void> getIps() async {
-        List<NetworkInterface> interfaces = await NetworkInterface.list( includeLoopback: false, includeLinkLocal: false);
-
-        for (var interface in interfaces) {
-          //print('Network Interface: ${interface.name}');
-            if (interface.addresses.isNotEmpty) {
-     //       print('== Interface: ${interface.name} ==');
-                for (var address in interface.addresses) {
-         //         print("Address type  $address");
-                  print(address.type);
-                    if (address.type == InternetAddressType.IPv6) {
-                      //     print('IPv6 Address: ${address.address}');
-                      String ip6 = address.address;
-                      String ip6Type = address.type == InternetAddressType.IPv6 ? "IPv6" : "IPv4";
-                      bool isPrivate = isPrivateIP(ip6);
-                      print('$ip6Type Address: $ip6 (${isPrivate ? "Private" : "Public"})');
-                    }
-                    if (address.type == InternetAddressType.IPv4) {
-                     //   print('IPv4 Address: ${address.address}');
-                        String ip4 = address.address;
-                        String ip4Type = address.type == InternetAddressType.IPv6 ? "IPv6" : "IPv4";
-                        bool isPrivate = isPrivateIP(ip4);
-                        print('$ip4Type Address: $ip4 (${isPrivate ? "Private" : "Public"})');
-                    }
-                }
-            }
-        }
-    }
-*/
-/*
-    bool isPrivateIP(String ip) {
-        final parts = ip.split('.');
-        if (parts.length != 4) return false;
-
-        final first = int.tryParse(parts[0]) ?? -1;
-        final second = int.tryParse(parts[1]) ?? -1;
-
-        if (first == 10) return true; // 10.0.0.0 - 10.255.255.255
-        if (first == 172 && second >= 16 && second <= 31) return true; // 172.16.0.0 - 172.31.255.255
-        if (first == 192 && second == 168) return true; // 192.168.0.0 - 192.168.255.255
-        if (ip == "127.0.0.1") return true;
-        return false;
-    }
-    */
-
-/*
-     Future<String> getPublicIP(String stunServer, int stunPort) async {
-        final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
- //       print('Using local port: ${socket.port} to communicate with $stunServer:$stunPort');
-
-        final transactionId = List<int>.generate(12, (i) => i);
-        final stunMessage = Uint8List.fromList([
-            0x00, 0x01,
-            0x00, 0x00,
-            0x21, 0x12, 0xA4, 0x42,
-            ...transactionId,
-         ]);
-
+        // Resolve the STUN server's address using the domain name (stunServer) and filter for IPv4 addresses.
         final stunServerAddress = (await InternetAddress.lookup(stunServer))
         .where((addr) => addr.type == InternetAddressType.IPv4)
         .toList();
-
+        // If no valid IPv4 address is found for the STUN server, print an error message and return an empty string.
         if (stunServerAddress.isEmpty) {
-          print('Failed to resolve STUN server address.');
-          return '';
+            // Return empty string if the STUN server can't be resolved
+            print('Failed to resolve STUN server address.');
+            return '';
         }
 
-
+        // Select the first resolved IPv4 address as the STUN server's IP address.
         final stunServerIP = stunServerAddress.first;
-
+        // Send the STUN request message to the STUN server using the selected IP and port.
         socket.send(stunMessage, stunServerIP, stunPort);
-  //      print('STUN request sent to $stunServerIP:$stunPort');
 
+        // Send the STUN request message to the STUN server using the selected IP and port.
         String? publicIP;
+        // Declare a variable to hold the public port returned by the STUN server.
+        int? publicPort;
 
+        // Wait for events from the socket (e.g., reading incoming data).
         await for (var event in socket) {
-          if (event == RawSocketEvent.read) {
-            final datagram = socket.receive();
-            if (datagram != null) {
-              final response = datagram.data;
-              if (response.length > 20) {
-                final addressFamily = response[25];
-                if (addressFamily == 0x01) { // IPv4
-                  final magicCookie = [0x21, 0x12, 0xA4, 0x42];
-                  final ip = [
-                    response[28] ^ magicCookie[0],
-                    response[29] ^ magicCookie[1],
-                    response[30] ^ magicCookie[2],
-                    response[31] ^ magicCookie[3],
-                  ].join('.');
-                  publicIP = ip;
-        //          print('Public IP: $ip');
-                } else {
-                  print('Received a non-IPv4 response.');
+            // Check if the event is a "read" event, which means we have received data.
+            if (event == RawSocketEvent.read) {
+                // Receive the incoming datagram (network packet).
+                final datagram = socket.receive();
+                // If a datagram is received (i.e., not null), process its data.
+                if (datagram != null) {
+                    // Extract the response data from the datagram.
+                    final response = datagram.data;
+                    // Ensure that the response data length is greater than 20 bytes (to ensure valid data).
+                    if (response.length > 20) {
+                        // Extract the address family from the response (byte 25).
+                        final addressFamily = response[25];
+                        // Check if the address family is IPv4 (0x01 indicates IPv4).
+                        if (addressFamily == 0x01) { // IPv4
+                            // Extract the public port from the response (bytes 26 and 27).
+                            // The port is XOR-ed with the magic cookie for additional obfuscation.
+                            publicPort = (response[26] << 8 | response[27]) ^ (_magicCookie[0] << 8 | _magicCookie[1]);
+                            // Parse the public IP address from bytes 28 to 31, XOR-ing with the magic cookie.
+                            // This is required because the STUN protocol obfuscates the IP address using the magic cookie.
+                            final ip = [
+                                response[28] ^ _magicCookie[0],
+                                response[29] ^ _magicCookie[1],
+                                response[30] ^ _magicCookie[2],
+                                response[31] ^ _magicCookie[3],
+                            ].join('.');
+                            // The final parsed public IP is stored in the `publicIP` variable.
+                            publicIP = ip;
+
+                        } else {
+                            // If the address family is not IPv4, print a message indicating that the response is not IPv4.
+                            print('Received a non-IPv4 response.');
+                        }
+                    }
                 }
-              } else {
-                print('Invalid STUN response.');
-              }
-              break;
+                // Break the loop after receiving the first valid response.
+                break;
             }
-          }
         }
-
+        // Close the socket after receiving the response
         socket.close();
-        return publicIP ?? '';
-  }
-
-
-    Future<String> getPublicIP6(String stunServer, int stunPort) async {
-      final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv6, 0);
-      //       print('Using local port: ${socket.port} to communicate with $stunServer:$stunPort');
-
-      final transactionId = List<int>.generate(12, (i) => i);
-      final stunMessage = Uint8List.fromList([
-        0x00, 0x01,
-        0x00, 0x00,
-        0x21, 0x12, 0xA4, 0x42,
-        ...transactionId,
-      ]);
-
-      final stunServerAddress6 = (await InternetAddress.lookup(stunServer))
-          .where((addr) => addr.type == InternetAddressType.IPv6)
-          .toList();
-
-      if (stunServerAddress6.isEmpty) {
-        print('Failed to resolve STUN server address.');
-        return '';
-      }
-
-
-      final stunServerIP = stunServerAddress6.first;
-
-      socket.send(stunMessage, stunServerIP, stunPort);
-      //      print('STUN request sent to $stunServerIP:$stunPort');
-
-      String? publicIP6;
-
-      await for (var event in socket) {
-        if (event == RawSocketEvent.read) {
-          final datagram = socket.receive();
-          if (datagram != null) {
-            final response = datagram.data;
-            if (response.length > 20) {
-              final addressFamily = response[25];
-              if (addressFamily == 0x01) { // IPv4
-                final magicCookie = [0x21, 0x12, 0xA4, 0x42];
-                final ip = [
-                  response[28] ^ magicCookie[0],
-                  response[29] ^ magicCookie[1],
-                  response[30] ^ magicCookie[2],
-                  response[31] ^ magicCookie[3],
-                ].join('.');
-                publicIP6 = ip;
-                //          print('Public IP: $ip');
-              } else {
-                print('Received a non-IPv6 response.');
-              }
-            } else {
-              print('Invalid STUN response.');
-            }
-            break;
-          }
-        }
-      }
-
-      socket.close();
-      return publicIP6 ?? '';
-    }
-*/
-    Future<void> getStunPublicIPAddresses(final stunServer) async {
-      // Public STUN server (supports both IPv4 and IPv6)
-
-     final stunServerIP4=stunIpAddress4(stunServer);
-     final stunServerIP6=stunIpAddress6(stunServer);
-    //  print(stunServerIP6.address);
-   //  final stunServer = 'stun.l.google.com';
-//     final stunPort = 19302;
- //       InternetAddress ipv4=InternetAddress("172.26.82.17");
-      // Create a UDP Datagram socket for both IPv4 and IPv6
-//      await _getPublicIP(stunServerIP4, stunPort, ipv4 ); // For IPv4
- //     await _getPublicIP(stunServer, stunPort, ipv4 ); // For IPv6
-   //   await _getPublicIP(stunServer, stunPort, InternetAddress.anyIPv6); // For IPv6
+        // Return the public IP and port
+        return publicIP != null && publicPort != null ? '$publicIP:$publicPort' : '';
     }
 
-/*
-
-
-  Future<void> _getPublicIP(final stunServer, int stunPort, InternetAddress bindAddress)  async {
-      try {
-        // Create a RawDatagramSocket (UDP socket) that binds to either IPv4 or IPv6 address
-        final socket = await RawDatagramSocket.bind(bindAddress, 0);
-        print('Socket bound to ${bindAddress.address}');
-
-        // Prepare the STUN binding request (simple request for getting the public IP address)
-        final request = _createStunBindingRequest();
-        print('create request to $request');
-
-      // Send the STUN binding request to the server
-        socket.send(request, InternetAddress(stunServer), stunPort);
-      //  socket.send(request, stunServer, stunPort);
-        print('Sent STUN binding request to $stunServer:$stunPort');
-
-        // Listen for the STUN response
-        socket.listen((RawSocketEvent event) async {
-          if (event == RawSocketEvent.read) {
-            final datagram = socket.receive();
-            if (datagram != null) {
-              final response = datagram.data;
-
-              // Parse the STUN response to extract the public IP address
-            //  final publicIP = _parseStunResponse(response);
-              final publicInfo = _parseStunResponse(response);
-             var _publicAddress = publicInfo['address'];
-             var  _publicPort = publicInfo['port'];
-              print("public ip  $_publicAddress");
-              print("public ip  $_publicPort");
-              if (_publicAddress != null) {
-                print('Public IP address (from $bindAddress): $_publicAddress');
-              } else {
-                print('Failed to parse STUN response');
-              }
-            }
-          }
-        });
-      } catch (e) {
-        print('Error while getting public IP: $e');
-      }
-    }
-
-
-
-
-
-  // Function to create a basic STUN Binding Request
-  Uint8List _createStunBindingRequest() {
-    final transactionId =
-    List<int>.generate(12, (index) => index); // Dummy transaction ID
-    final request = Uint8List(20); // Header is 20 bytes
-    final buffer = ByteData.sublistView(request);
-
-    buffer.setUint16(0, 0x0001); // Type: Binding request
-    buffer.setUint16(2, 0x0000); // Length: 0
-    buffer.setUint32(4, 0x2112A442); // Magic cookie
-    for (int i = 0; i < transactionId.length; i++) {
-      request[8 + i] = transactionId[i];
-    }
-
-    return request;
-  }
-  Map<String, dynamic> _parseStunResponse(Uint8List response) {
-    final buffer = ByteData.sublistView(response);
-    for (int i = 20; i < response.length - 4;) {
-      final attributeType = buffer.getUint16(i);
-      final attributeLength = buffer.getUint16(i + 2);
-      if (attributeType == 0x0001 || attributeType == 0x0020) {
-        final port = (attributeType == 0x0020)
-            ? buffer.getUint16(i + 6) ^ 0x2112
-            : buffer.getUint16(i + 6);
-        final addressBytes = response.sublist(i + 8, i + 8 + 4);
-        final address = (attributeType == 0x0020)
-            ? InternetAddress.fromRawAddress(Uint8List.fromList(
-            addressBytes.map((b) => b ^ 0x21).toList()))
-            .address
-            : InternetAddress.fromRawAddress(Uint8List.fromList(addressBytes))
-            .address;
-        return {'address': address, 'port': port};
-      }
-      i += 4 + attributeLength;
-    }
-
-    throw Exception(
-        'No MAPPED-ADDRESS or XOR-MAPPED-ADDRESS attribute in STUN response.');
-  }
-*/
-// Function to create a basic STUN Binding Request
- /* Uint8List _createStunBindingRequest() {
-    final request = Uint8List(20);
-
-    // STUN Message Type: Binding Request (0x0001)
-    request[0] = 0x00;
-    request[1] = 0x01;
-
-    // Transaction ID (random 12 bytes)
-    final transactionId = List<int>.generate(12, (index) => index);
-    for (int i = 0; i < 12; i++) {
-      request[4 + i] = transactionId[i];
-    }
-
-    return request;
-  }
-*/
-// Function to parse the STUN response and extract the mapped IP address
- /*  String? _parseStunResponse(Uint8List response) {
-    if (response.length < 20) {
-      print('Invalid STUN response (too short)');
-      return null;
-    }
-
-    // Check if the message is a valid Binding Response (0x0101)
-    if (response[0] == 0x01 && response[1] == 0x01) {
-      // Extract the mapped address (IPv4 or IPv6)
-    //  final addressFamily = response[3];
-      final addressFamily = response[25];// Should be either 0x01 (IPv4) or 0x02 (IPv6)
-      final startByte = 28;
-
-      // For IPv4, the mapped address will be in the next 4 bytes (total 8 bytes for address + port)
-      if (addressFamily == 0x01 && response.length >= startByte + 8) {
-        final mappedAddress = response.sublist(startByte, startByte + 4);
-        print(InternetAddress.fromRawAddress(mappedAddress).address);
-        return InternetAddress.fromRawAddress(mappedAddress).address;
-      }
-      // For IPv6, the mapped address will be in the next 16 bytes (total 20 bytes for address + port)
-      else if (addressFamily == 0x02 && response.length >= startByte + 20) {
-        final mappedAddress = response.sublist(startByte, startByte + 16);
-        print(InternetAddress.fromRawAddress(mappedAddress).address);
-        return InternetAddress.fromRawAddress(mappedAddress).address;
-      } else {
-        print('Invalid STUN response: unsupported address family or unexpected data length');
-        return null;
-      }
-    }
-
-    print('Invalid STUN response type');
-    return null;
-  }
-
-*/
-  Future<void> _getIpv6() async {
-        try {
-            if (stunClient.getPublicIPv6() != null) {
-                _publicIPv6 = stunClient.getPublicIPv6()!.address;
+// This function checks if the device is behind a NAT (Network Address Translation) based on its public IP address.
+    Future<bool> checkIfBehindNAT(String publicIP) async {
+        // Get a list of all network interfaces (e.g., Wi-Fi, Ethernet) on the device.
+        List<NetworkInterface> interfaces = await NetworkInterface.list();
+        // Loop through each network interface (e.g., Wi-Fi, Ethernet).
+        for (var interface in interfaces) {
+            // Loop through each address associated with this network interface (e.g., IP addresses).
+            for (var address in interface.addresses) {
+                // Check if the current address is not a private IP and matches the public IP.
+                // A private IP (like 192.168.x.x, 10.x.x.x, etc.) would indicate the device is behind NAT.
+                if (!isPrivateIP(address.address) && address.address == publicIP) {
+                    // If the public IP matches any of the device's interface IPs, return false (device is not behind NAT).
+                    return false;
+                }
             }
         }
-        catch (e) {}
+        // If no matching interface IP is found, return true (device is behind NAT).
+        return true;
     }
+
+
+
+
+    // Function returns the first IPv4 address found, which is the resolved address of the STUN server.
+    Future stunIpAddress4(String stunServer) async {
+        // Perform a DNS lookup to resolve the STUN server address for IPv4
+        final stunServerAddress = (await InternetAddress.lookup(stunServer))
+        .where((addr) => addr.type == InternetAddressType.IPv4)
+        .toList();
+        // Check if the STUN server address could not be resolved
+        if (stunServerAddress.isEmpty) {
+            print('Failed to resolve STUN server address.');
+            // Exit the function if the server address could not be resolved
+            exit;
+            // return '';
+        }
+
+        //print(stunServerAddress);
+        // Get the first IPv4 address (as there's usually only one)
+        final stunServerIP = stunServerAddress.first;
+        //  final stunServerIP4=stunServerIP.address;
+        // Print out the type and the resolved STUN server IP address
+        print('${stunServerIP.type} Stun Address: ${stunServerIP.address}');
+        // Return the resolved STUN server IP address
+        return stunServerIP;
+    }
+
+    // function returns the first IPv6 address found, which is the resolved address of the STUN server.
+    Future stunIpAddress6(String stunServer) async {
+        // Perform a DNS lookup to resolve the STUN server address for IPv6
+        final stunServerAddress = (await InternetAddress.lookup(stunServer))
+        .where((addr) => addr.type == InternetAddressType.IPv6)
+        .toList();
+        // Check if the STUN server address could not be resolved
+        if (stunServerAddress.isEmpty) {
+            print('Failed to resolve STUN server address.');
+            // Exit the function if the server address could not be resolved
+            exit;
+            // return '';
+        }
+        //  print(stunServerAddress);
+        // Get the first IPv6 address (as there's usually only one)
+        final stunServerIP = stunServerAddress.first;
+        //  InternetAddress stunServerIP6=stunServerIP.address as InternetAddress;
+        // Print out the type and the resolved STUN server IP address
+        print('${stunServerIP.type} Stun Address: ${stunServerIP.address}');
+        // Return the resolved STUN server IP address
+        return stunServerIP;
+    }
+*/
+
 }

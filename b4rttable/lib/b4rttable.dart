@@ -8,7 +8,8 @@ import 'dart:math';
 import 'package:nodeid/nodeid.dart';
 //import 'package:geolocator/geolocator.dart';
 
-
+:q
+::wq
 class B4RoutingTable {
   Map<NodeID, int>? onHoldNodes; //NodeId & attemptsCounter
   Map<String, Duration> mRtt = {};
@@ -167,8 +168,7 @@ class B4RoutingTable {
             for (int k = 0; k < 3; k++) {
               if (localRTtable[k][i] == node) {
                 if (k == 0) {
-                  localRTtable[k][i] = localRTtable[1][
-                  i]; //cyclically copies the previous node, where node id needs to be removed.
+                  localRTtable[k][i] = localRTtable[1][i]; //cyclically copies the previous node, where node id needs to be removed.
                 }
                 if (k == 1) {
                   localRTtable[k][i] = localRTtable[2][i];
