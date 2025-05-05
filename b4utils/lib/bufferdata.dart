@@ -16,7 +16,7 @@ class DataBuffer {
   final Queue<dynamic> _intemp = Queue<dynamic>();
   final Queue<dynamic> _outtemp = Queue<dynamic>();
   final Queue<Map<String, dynamic>> _rootNodeBuffer = Queue<Map<String, dynamic>>();
-  final Queue<Map<String, dynamic>> _connectPeerBuffer = Queue(); 
+  final Queue<Map<String, dynamic>> _connectPeerBuffer = Queue<Map<String,dynamic>>(); 
   final Queue<dynamic> _registerBuffer = Queue<dynamic>();
 
  
