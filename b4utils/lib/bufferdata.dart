@@ -12,14 +12,16 @@ class DataBuffer {
   factory DataBuffer() => _instance;
 
   // Private queues
-  
+
   final Queue<dynamic> _intemp = Queue<dynamic>();
   final Queue<dynamic> _outtemp = Queue<dynamic>();
-  final Queue<Map<String, dynamic>> _rootNodeBuffer = Queue<Map<String, dynamic>>();
-  final Queue<Map<String, dynamic>> _connectPeerBuffer = Queue<Map<String,dynamic>>(); 
+  final Queue<Map<String, dynamic>> _rootNodeBuffer =
+      Queue<Map<String, dynamic>>();
+  final Queue<Map<String, dynamic>> _connectPeerBuffer = Queue();
   final Queue<dynamic> _registerBuffer = Queue<dynamic>();
+  final Queue<dynamic> _imbuffer = Queue<dynamic>();
+  final Queue<dynamic> _rmbuffer = Queue<dynamic>();
 
- 
   // ==== Input Temporary Buffer ====
 
   void pushIntemp(dynamic data) => _intemp.addLast(data);
@@ -38,7 +40,8 @@ class DataBuffer {
 
   // ==== Root Node Buffer ====
 
-  void pushRootNode(Map<String, dynamic> nodeData) => _rootNodeBuffer.addLast (nodeData);
+  void pushRootNode(Map<String, dynamic> nodeData) =>
+      _rootNodeBuffer.addLast(nodeData);
 
   dynamic pullRootNode() =>
       _rootNodeBuffer.isNotEmpty ? _rootNodeBuffer.removeFirst() : null;
@@ -47,21 +50,33 @@ class DataBuffer {
 
   // ==== Peer Buffer ====
 
-  void pushToPeerBuffer(Map<String, dynamic> destinationNode, Map<String, dynamic> CreateMessage){
-    _connectPeerBuffer.add({"destination": destinationNode['hashID'], "message": CreateMessage});
+  void pushToPeerBuffer(Map<String, dynamic> CreateMessage) {
+    _connectPeerBuffer.add({
+      "destination": CreateMessage['destinationNode']['hashID'],
+      "message": CreateMessage
+    });
   }
 
-  dynamic pullFromPeerBuffer() => _connectPeerBuffer.isNotEmpty ? _connectPeerBuffer.removeFirst() : null;
- 
+  dynamic pullFromPeerBuffer() =>
+      _connectPeerBuffer.isNotEmpty ? _connectPeerBuffer.removeFirst() : null;
+
   bool isPeerBufferEmpty() => _connectPeerBuffer.isEmpty;
 
   // ==== Register Buffer ====
 
-  void pushToRegisterBuffer(dynamic data) => _registerBuffer.addLast(data);
+  void pushToRegisterBuffer(dynamic destination) => _registerBuffer.addLast(destination);
 
-  dynamic pullFromRegisterBuffer() => _registerBuffer.isNotEmpty ? _registerBuffer.removeFirst() : null;
+  dynamic pullFromRegisterBuffer() =>
+      _registerBuffer.isNotEmpty ? _registerBuffer.removeFirst() : null;
 
   bool isRegisterBufferEmpty() => _registerBuffer.isEmpty;
+
+  // ==== IM Buffer ====
+  void pushimbuffer(dynamic data) => _imbuffer.addLast(data);
+
+
+  // ==== RM Buffer ====
+  void pushrmbuffer(dynamic data) => _rmbuffer.addLast(data);
 
   // ==== Global Clear ====
 
@@ -74,7 +89,6 @@ class DataBuffer {
     _registerBuffer.clear();
   }
 }
-
 
 // void main() {
 //   // Access the singleton instance
