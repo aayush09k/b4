@@ -72,12 +72,14 @@ class DataBuffer {
   bool isRegisterBufferEmpty() => _registerBuffer.isEmpty;
 
   // ==== IM Buffer ====
-  void pushimbuffer(dynamic data) => _imbuffer.addLast(data);
-
+  void pushToIMBuffer(dynamic data) => _imbuffer.addLast(data);
+  dynamic pullFromIMBuffer() =>
+      _imbuffer.isNotEmpty ? _imbuffer.removeFirst() : null;
 
   // ==== RM Buffer ====
-  void pushrmbuffer(dynamic data) => _rmbuffer.addLast(data);
-
+  void pushToRMBuffer(dynamic data) => _rmbuffer.addLast(data);
+  dynamic pullFromRMBuffer() =>
+      _rmbuffer.isNotEmpty ? _rmbuffer.removeFirst() : null;
   // ==== Global Clear ====
 
   /// Clears all the buffers. Use with caution!
