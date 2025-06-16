@@ -56,8 +56,8 @@ class CommunicationManager {
     String selfNodeHash="";
     var ipType, ipAddr, pvtStat, publicIP, publicPort;
 
-    ProxyEndpointAddress proxy4add, proxy6add;
-    ICECandidates directadd;
+ //   ProxyEndpointAddress proxy4add, proxy6add;
+ //   ICECandidates directadd;
 
 // Asynchronous function to get endpoint information list. It used stun server and stun port, bootstrapserver to create IPv4 and IPv6 UDP
 // stunServer is a DNS name. It can be resolved to both IPv4 and IPv6 depending on how the stunServer is configured.

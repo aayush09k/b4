@@ -456,14 +456,14 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
   }
 
   void handleForMessages() {
-    dynamic messageFromCMBuffer = dataBuffer.pull();
+    dynamic messageFromCMBuffer = dataBuffer.pullFromRMBuffer();
     print(messageFromCMBuffer);
     if (messageFromCMBuffer != null) {
       Map<String, dynamic> decodedMessageRM = jsonDecode(messageFromCMBuffer);
       String rM = decodedMessageRM['RM'];
 
       if (rM != 'RM') {
-        dataBuffer.push(messageFromCMBuffer);
+        dataBuffer.pushrmbuffer(messageFromCMBuffer);
       } else {
         rMessageRM(messageFromCMBuffer);
       }

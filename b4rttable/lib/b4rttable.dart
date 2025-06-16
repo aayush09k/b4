@@ -8,8 +8,6 @@ import 'dart:math';
 import 'package:nodeid/nodeid.dart';
 //import 'package:geolocator/geolocator.dart';
 
-:q
-::wq
 class B4RoutingTable {
   Map<NodeID, int>? onHoldNodes; //NodeId & attemptsCounter
   Map<String, Duration> mRtt = {};
