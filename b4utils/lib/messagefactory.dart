@@ -126,7 +126,7 @@ class MessageFactory {
       'hash_id': hashID, // The hash ID of the index to be deleted
       'source_endpoint': sourceEndpoint, 
       'key_copy_number': keyCopyNumber, // Key copy number
-      'signature': signature, /
+      'signature': signature, // signature
       'copy_number': copyNumber, // Copy number for index deletion
     });
   }
@@ -181,7 +181,7 @@ class MessageFactory {
   }
 
   // Method to wrap message with DHT routing if needed
-  Map<String, dynamic> wrapDHTMessageIfNeeded(
+  static Map<String, dynamic> wrapDHTMessageIfNeeded(
       Map<String, dynamic> message, bool useDHT, String? hashID) {
     if (useDHT && hashID != null && hashID.isNotEmpty) {
       // Wrap the message in DHT format if DHT is required

@@ -245,7 +245,7 @@ class CommunicationManager {
                 }else {
                     //if destination hash not matched with node
                     //get the next hop hash from rm for destination node
-                    List<Map<String, dynamic>> localRoutingTable = RoutingManager.getRT(selfNodeHash, BaselayerID);
+                    List<List<Map<String, dynamic>>> localRoutingTable = RoutingManager.getRT(selfNodeHash, BaselayerID);
                     dynamic nexthop=B4RoutingTable().nextHop(dhash,localRoutingTable) ;
                     //get the next hop hash
                     dynamic nexthophash= nexthop.nodeID.nodeID;
