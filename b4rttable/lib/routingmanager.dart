@@ -463,7 +463,7 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
       String rM = decodedMessageRM['RM'];
 
       if (rM != 'RM') {
-        dataBuffer.pushrmbuffer(messageFromCMBuffer);
+        dataBuffer.pushToRMBuffer(messageFromCMBuffer);
       } else {
         rMessageRM(messageFromCMBuffer);
       }

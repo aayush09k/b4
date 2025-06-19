@@ -1,9 +1,11 @@
 // call database initalise here from the index manager package code  in test and check if it exists
 //// import 'package:collection/collection.dart';
-import 'package:test/test.dart';
+//import 'package:test/test.dart';
+
 import 'dart:io';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:indexmgr/indexmgr.dart';
 import 'package:indexmgr/cachemgr.dart';
@@ -336,7 +338,7 @@ Future<void> main() async {
       'lastUpdateTime': timestamp.toIso8601String(),
     };
 
-    await indexManager.publishIndex(indexData, serverSignedCertificate);
+    await indexManager.publishIndex(indexData, serverSignedCertificate,null);
     final cachedData = cacheManager.getFromCache('testKeyToPublish');
 
     expect(cachedData, isNotNull);

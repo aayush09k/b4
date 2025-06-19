@@ -90,7 +90,8 @@ class B4connection {
                 if (!active) {
                   close();
                 } else{
-                dataBuffer.push(text['message']);
+
+                dataBuffer.pushIntemp(text['message']);
                 _resetTimer();
                 }
             }, _nodeIdSocket!);
@@ -114,11 +115,11 @@ class B4connection {
                     eliminate[socket]=message['myNodeID'];
                     store =socket;
                     if((message['type']==null)){
-                dataBuffer.push(message['message']);}
+                        dataBuffer.pushIntemp(message['message']);}
                     else{
                         if(message['type']=='TP'){}
                         else{
-                            dataBuffer.push(message['message']);
+                            dataBuffer.pushToPeerBuffer(message['message']);
                         }
                     }
 
