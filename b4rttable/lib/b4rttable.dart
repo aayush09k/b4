@@ -194,8 +194,8 @@ class B4RoutingTable {
 
 // nextHop function receives a node map and local RT and then  returns the next hop destination(nodeID) based on node entries in local RT.
 
-  //String nextHop(String hashID, List<List<NodeID?>> localRTtable) {
-  String nextHop(String hashID, List<List<Map<String, dynamic>>> localRTtable) {
+  String nextHop(String hashID, List<List<NodeID?>> localRTtable) {
+  //String nextHop(String hashID, List<List<Map<String, dynamic>>> localRTtable) {
       // if hashID matches with local nodeID then return local nodeID as root nodeID.Otherwise proceed to else condition of the code.
       if (localIdb!.nodeid.hashID == hashID) {
         return localIdb!.nodeid.hashID; // current node is the root node
@@ -566,4 +566,4 @@ class B4RoutingTable {
 //   }
 // }
 
-}
+//}
