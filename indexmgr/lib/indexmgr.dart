@@ -3,24 +3,25 @@
 ///name:indexmgr
 ///
 ///author:
-
-/// core library
-/// Provides a logging framework.
-/// Provides an interface to SQLite databases.
-/// Provides support for asynchronous programming with classes like Future and Stream.
 import 'dart:io';
-import 'dart:async';
-import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:logging/logging.dart';
+
+/// Provides a logging framework.
+
 import 'package:sqlite3/sqlite3.dart';
 
-
-/// Imports the custom Cache Manager module.
+/// Provides an interface to SQLite databases.
 
 import 'cachemgr.dart';
 
+/// Imports the custom Cache Manager module.
 
+import 'dart:async';
+
+/// Provides support for asynchronous programming with classes like Future and Stream.
+
+import 'dart:convert';
 
 /// Initializes a logger for the B4IndexManager class.
 
@@ -713,26 +714,27 @@ class B4IndexManager {
 
   Future<void> _moveToPurgeTable(
       Map<String, dynamic> index, String status) async {
-    final DateTime now = DateTime.now();
-    try {
-      _database.execute(
-        'INSERT INTO purge (keyword, location, replicationFactor, copyNo, layerID, status, entryDateTime, expirationDate, publishTime, republishTime, deletedAt) '
+        try {
+            final DateTime now = DateTime.now();
+          _database.execute(
+            'INSERT INTO purge (keyword, location, replicationFactor, copyNo, layerID, status, entryDateTime, expirationDate, publishTime, republishTime, deletedAt) '
             'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [
-          index['keyword'],
-          index['location'],
-          index['replicationFactor'],
-          index['copyNo'],
-          index['layerID'],
-          status,
-          index['entryDateTime'],
-          index['expirationDate'],
-          index['publishTime'],
-          index['republishTime'],
-          dateToString(now),
+          [
+            index['keyword'],
+            index['location'],
+            index['replicationFactor'],
+            index['copyNo'],
+            index['layerID'],
+            status,
+            index['entryDateTime'],
+            index['expirationDate'],
+            index['publishTime'],
+            index['republishTime'],
+            dateToString(now),
         ],
       );
-    } catch (e) {
+    }
+    catch (e) {
       _logger.severe('Failed to move index to purge table. Error: $e');
     }
   }
@@ -940,6 +942,36 @@ class B4IndexManager {
     } catch (e) {
       _logger.severe(
           'Failed to restore index from purge for keyword "$keyword". Error: $e');
+    }
+
+  }
+  /// added to manually remove from the purge table for test case purpose
+  ///
+  /// Manually removes an index entry from the 'purge' table based on the keyword.
+  ///
+  /// Returns a [Future] that completes when the operation is done.
+  /// It will log whether the deletion was successful or if the keyword was not found.
+  Future<void> manuallyRemoveFromPurgeByKeyword(String keyword) async {
+    try {
+      /// First, check if the keyword exists in the purge table to provide better logging
+      final existingEntry = _database.select(
+        'SELECT keyword FROM purge WHERE keyword = ?',
+        [keyword],
+      );
+
+      if (existingEntry.isNotEmpty) {
+        _database.execute(
+          'DELETE FROM purge WHERE keyword = ?',
+          [keyword],
+        );
+        _logger.info('Manually removed entry with keyword "$keyword" from the purge table.');
+      } else {
+        _logger.info('Keyword "$keyword" not found in the purge table. No entry removed.');
+      }
+    } catch (e) {
+      _logger.severe('Failed to manually remove entry with keyword "$keyword" from purge table. Error: $e');
+      // Optionally, rethrow the error if you want the caller to handle it
+      // throw e;
     }
   }
 }
