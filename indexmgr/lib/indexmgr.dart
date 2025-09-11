@@ -33,6 +33,9 @@ final Logger _logger = Logger('B4IndexManager');
 ///
 /// Adds a listener to the root logger that prints each log record's level, time, and message.
 
+
+
+//same both places but it is private there at package
 void _initializeLogging() {
   /// Sets the root logger's level to capture all log messages (finest to severe).
 
@@ -52,6 +55,7 @@ class B4IndexManager {
 
   late final Database _database;
 
+
   /// Declares a late final variable to hold an instance of the cache manager.
 
   late final B4CacheManager _cacheManager;
@@ -69,6 +73,7 @@ class B4IndexManager {
   /// Schedules a task to periodically purge old data.
 
   B4IndexManager(String dbPath) {
+    _initializeLogging();
     _initializeDatabase(dbPath).then((_) {
       /// Asynchronously initializes the database using the provided path.
 
@@ -86,7 +91,6 @@ class B4IndexManager {
 
       /// Logs a severe error if initialization fails.
     });
-    _initializeLogging();
 
     /// Initializes the logging system for the B4IndexManager.
   }
@@ -167,6 +171,9 @@ class B4IndexManager {
     }
   }
 
+  // calling private function _initializeDatabase
+  Future<void> initializeDatabase (String dbPath) async { await _initializeDatabase(dbPath);}
+
   /// Returns the current date and time.
   ///
   /// Returns a [DateTime] object representing the current date and time.
@@ -185,9 +192,16 @@ class B4IndexManager {
 
   DateTime stringToDate(String dateStr) => DateTime.parse(dateStr);
 
+  //modification to add public function of [_initializeLogging]
+  ///
+  /// Function to call private [initializeLogging] function
+  Future <void> initializeLogging() async{
+    return _initializeLogging();
+  }
   /// Computes a SHA256 hash for a given location string and compute the first hash from a location
   ///
   /// Returns the SHA256 hash as a hexadecimal string.
+
 
   String computeHash1(String location) {
     return sha256.convert(utf8.encode(location)).toString();
@@ -523,7 +537,6 @@ class B4IndexManager {
           stackTrace);
     }
   }
-
   /// Adds 24 hours to a given DateTime.
   ///
   /// Helper function to add 24 hours to a DateTime
@@ -559,7 +572,8 @@ class B4IndexManager {
   /// Returns a [Future] that completes when the index is published.
 
   Future<void> publishIndex(Map<String, dynamic> indexData,
-      String serverSignedCertificate, payload) async {
+      String serverSignedCertificate, payload) async
+  {
     try {
       final DateTime now = getDateTime();
       final String nowStr = dateToString(now);

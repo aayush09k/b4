@@ -80,7 +80,7 @@ class B4CacheManager {
   bool addToCache(
       String keyword, Map<String, dynamic> data, String expirationDate) {
     try {
-      /// Check if the cache is full and evict the oldest entry if necessary
+      /// Check if the cache is full THEN evict the oldest entry if necessary
       if (_cache.length >= maxCacheSize) {
         _evictOldestCacheEntry();
       }
