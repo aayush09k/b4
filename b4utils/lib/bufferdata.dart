@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:io';
 
 /// Singleton DataBuffer class to manage different types of queues (buffers).
 class DataBuffer {
@@ -19,8 +20,51 @@ class DataBuffer {
       Queue<Map<String, dynamic>>();
   final Queue<Map<String, dynamic>> _connectPeerBuffer = Queue();
   final Queue<dynamic> _registerBuffer = Queue<dynamic>();
-  final Queue<dynamic> _imbuffer = Queue<dynamic>();
-  final Queue<dynamic> _rmbuffer = Queue<dynamic>();
+  final Queue<dynamic> _imBuffer = Queue<dynamic>();
+  final Queue<dynamic> _rmBuffer = Queue<dynamic>();
+  final Queue<dynamic> _cmBuffer = Queue<dynamic>();
+  final Queue<dynamic> _inBuffer = Queue<dynamic>();
+  final Queue<dynamic> _outBuffer = Queue<dynamic>();
+  final Map<String, Socket> _clientSockets = <String, Socket>{};
+
+  //===== client socket =====
+  void addClientSocket(String node, Socket sock) {
+    _clientSockets[node] = sock;
+  }
+
+  Socket? pullClientSocket(String node) {
+    return _clientSockets.remove(node);
+  }
+
+  // ===== inBuffer =====
+  void pushinBuffer(dynamic data) => _inBuffer.addLast(data);
+  dynamic pullinBuffer() =>
+      _inBuffer.isNotEmpty ? _inBuffer.removeFirst() : null;
+  bool isinBufferEmpty() => _inBuffer.isEmpty;
+
+  // ===== outBuffer =====
+  void pushoutBuffer(dynamic data) => _outBuffer.addLast(data);
+  dynamic pulloutBuffer() =>
+      _outBuffer.isNotEmpty ? _outBuffer.removeFirst() : null;
+  bool isoutBufferEmpty() => _outBuffer.isEmpty;
+
+    // ===== cmBuffer  =====
+  void pushcmBuffer(dynamic data) => _cmBuffer.addLast(data);
+  dynamic pullcmBuffer() =>
+      _cmBuffer.isNotEmpty ? _cmBuffer.removeFirst() : null;
+  bool iscmBufferEmpty() => _cmBuffer.isEmpty;
+
+  // ===== rmBuffer =====
+  void pushrmBuffer(dynamic data) => _rmBuffer.addLast(data);
+  dynamic pullrmBuffer() =>
+      _rmBuffer.isNotEmpty ? _rmBuffer.removeFirst() : null;
+  bool isrmBufferEmpty() => _rmBuffer.isEmpty;
+
+  //===== imBuffer =====
+  void pushimBuffer(dynamic data) => _imBuffer.addLast(data);
+  dynamic pullimBuffer() =>
+      _imBuffer.isNotEmpty ? _imBuffer.removeFirst() : null;
+  bool isimBufferEmpty() => _imBuffer.isEmpty;
 
   // ==== Input Temporary Buffer ====
 
@@ -49,8 +93,12 @@ class DataBuffer {
   bool isRootNodeBufferEmpty() => _rootNodeBuffer.isEmpty;
 
   // ==== Peer Buffer ====
-
-  void pushToPeerBuffer(Map<String, dynamic> CreateMessage) {
+  void pushToPeerBuffer(
+      String destinationNode_hashID, Map<String, dynamic> Message) {
+    _connectPeerBuffer
+        .add({"destination": destinationNode_hashID, "message": Message});
+  }
+  void pushToPeerBuffer1(Map<String, dynamic> CreateMessage) {
     _connectPeerBuffer.add({
       "destination": CreateMessage['destinationNode']['hashID'],
       "message": CreateMessage
@@ -72,7 +120,7 @@ class DataBuffer {
   bool isRegisterBufferEmpty() => _registerBuffer.isEmpty;
 
   // ==== IM Buffer ====
-  void pushToIMBuffer(dynamic data) => _imbuffer.addLast(data);
+/*  void pushToIMBuffer(dynamic data) => _imbuffer.addLast(data);
   dynamic pullFromIMBuffer() =>
       _imbuffer.isNotEmpty ? _imbuffer.removeFirst() : null;
 
@@ -80,6 +128,7 @@ class DataBuffer {
   void pushToRMBuffer(dynamic data) => _rmbuffer.addLast(data);
   dynamic pullFromRMBuffer() =>
       _rmbuffer.isNotEmpty ? _rmbuffer.removeFirst() : null;
+  */
   // ==== Global Clear ====
 
   /// Clears all the buffers. Use with caution!
@@ -89,6 +138,8 @@ class DataBuffer {
     _rootNodeBuffer.clear();
     _connectPeerBuffer.clear();
     _registerBuffer.clear();
+     _imBuffer.clear();
+    _rmBuffer.clear();
   }
 }
 

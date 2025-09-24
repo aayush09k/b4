@@ -14,7 +14,7 @@ import 'package:b4commgr/b4commgr.dart';
 import 'package:b4rttable/b4rttable.dart';
 import 'package:b4utils/bufferdata.dart';
 import 'package:b4utils/connectivity_monitor.dart';
-import 'package:b4rttable/config.dart';
+//import 'package:b4rttable/config.dart';
 
 class RoutingManager {
 
@@ -33,8 +33,8 @@ class RoutingManager {
     3 - IPv4/IPv6 dual stack non-NATed layer
     4 - file storage layer
     5 - file storage reputation layer
-
     */
+
   Map<String, B4RoutingTable> neighbourTables = {};
   Map<String, B4RoutingTable> latLongTables = {};
   CommunicationManager manager = CommunicationManager();
@@ -108,8 +108,9 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
       bsNode['bSListeningPort']);
     }
 
+    // not required this can be taken place when socket opens in com mgr
     if (flag == true) {
-      manager.activateNode(null, null, localNodeID.nodeid.listeningPort, 1, null,null);
+        manager.activateNode(null, null, localNodeID.nodeid.listeningPort, 1, null,null);
     }
 
     // un comment this line for normal nodes.This line will remain comment for bootstrap.
@@ -216,7 +217,6 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
       'communicatorPort': nodeID.communicatorPort.toString(),
       'listeningPort': nodeID.listeningPort.toString(),
 
-
     };
     String jsonNodesString = jsonEncode(jsonRT);
     String jsonStringNodeToSend = jsonEncode(jsonNodeIdToSend);
@@ -249,8 +249,6 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
       'communicatorIP': myNodeID.publicIpv6Port.toString(),
       'communicatorPort': myNodeID.communicatorPort.toString(),
       'listeningPort': myNodeID.listeningPort.toString(),
-
-
     };
 
     String jsonStringMyNode = jsonEncode(jsonMyNodeId);
@@ -275,8 +273,6 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
     String jsonMessageRM = jsonEncode(messageRM);
     return jsonMessageRM;
   }
-
-
 
   Future<void> sendMessageRM(String rM,
       String reLay,
@@ -456,18 +452,21 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
   }
 
   void handleForMessages() {
-    dynamic messageFromCMBuffer = dataBuffer.pullFromRMBuffer();
+    //dynamic messageFromCMBuffer = dataBuffer.pullIntemp();
+    dynamic messageFromCMBuffer = dataBuffer.pullrmBuffer();
     print(messageFromCMBuffer);
     if (messageFromCMBuffer != null) {
       Map<String, dynamic> decodedMessageRM = jsonDecode(messageFromCMBuffer);
       String rM = decodedMessageRM['RM'];
 
       if (rM != 'RM') {
-        dataBuffer.pushToRMBuffer(messageFromCMBuffer);
+        dataBuffer.pushrmBuffer(messageFromCMBuffer);
       } else {
         rMessageRM(messageFromCMBuffer);
       }
-    } else {}
+    } else {
+      // In RM buffer messsage is null
+    }
   }
 
   B4RoutingTable? getFullRT(String layerID) {

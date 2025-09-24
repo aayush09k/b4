@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:convert/convert.dart';
 import 'package:basic_utils/basic_utils.dart';
@@ -30,6 +31,36 @@ class NodeID {
     dynamic pvtKey = keyPair.privateKey;
     sign = CryptoUtils.ecSign(pvtKey, unit8List);
   }
+
+  /// Creates an instance from a JSON object.
+  ///
+  // Named constructor from raw fields (fromJson)
+  NodeID.fromRaw({
+    required this.hashID,
+    required this.pubKey,
+    required this.sign,
+  });
+
+  /// Creates an instance from a JSON object.
+  factory NodeID.fromJson(Map<String, dynamic> json) {
+    return NodeID.fromRaw(
+      hashID: json['nodeID'] as String,
+      pubKey: json['publicKey'] as String,
+      sign: json['sign'],
+    );
+  }
+
+  /// Converts the instance to a JSON object.
+  Map<String, dynamic> toJson() => {
+    'nodeID': hashID,
+    'publicKey': pubKey,
+    'sign': sign,
+  };
+
+  /// Override the toString() method to define how the object should be printed
+  @override
+  String toString() => jsonEncode(toJson());
+
 
   NodeID.createFromTable(this.publicKeyPem,this.sign,this.hashID,this.pubKey,this.localIpv4,this.publicIpv4,this.publicIpv6,this.natStatus,this.localIpv4Port,this.publicIpv4Port,this.publicIpv6Port,this.communicatorIP,this.communicatorPort,this.listeningPort);
 }

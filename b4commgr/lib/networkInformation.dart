@@ -688,7 +688,61 @@ class NetworkDetails {
       final ipv6Regex = RegExp(r'^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$');
       return ipv6Regex.hasMatch(address);
     }
-    
+    /*
+    // code used in future
+    String getAddressType(String IP) {
+    if (IP.split('.').length - 1 == 3) {
+      return validateIPv4(IP);
+    } else if (IP.split(':').length - 1 == 7) {
+      return validateIPv6(IP);
+    } else {
+      return "Invalid";
+    }
+  }
+String validateIPv4(String IP) {
+    List<String> nums = IP.split('.');
+    if (nums.length != 4){
+      return 'Invalid';
+    }
+    for (String x in nums) {
+      if (x.length == 0 || x.length > 3) {
+        return "Invalid";
+      }
+      if (x[0] == '0' && x.length != 1) {
+        return "Invalid";
+      }
+      for (int i = 0; i < x.length; i++) {
+        if (!isDigit(x[i])) {
+          return "Invalid";
+        }
+      }
+       if (int.parse(x) > 255) {
+        return "Invalid";
+      }
+    }
+    return "IPv4";
+  }
+
+  String validateIPv6(String IP) {
+    List<String> nums = IP.split(':');
+    String hexdigits = "0123456789abcdefABCDEF";
+    for (String x in nums) {
+      if (x.length == 0 || x.length > 4) {
+        return "Invalid";
+      }
+      for (int i = 0; i < x.length; i++) {
+        if (!hexdigits.contains(x[i])) {
+          return "Invalid";
+        }
+      }
+    }
+    return "IPv6";
+  }
+  bool isDigit(String char) {
+    return char.codeUnitAt(0) >= 48 && char.codeUnitAt(0) <= 57;
+  }
+   */
+
   /*
                 extra code
                      EndpointAddress endpoint = pnode.endpointAddress;

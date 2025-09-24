@@ -69,6 +69,51 @@ class MessageFactory {
     });
   }
 
+  Map<String, dynamic> createInnerMessage({
+    required Map<String, dynamic> sourceNode,
+    required Map<String, dynamic> destinationNode,
+    required String msg,
+  }) {
+    final message = createMessage('innermost_message', {
+      "sourceModule": "CM",
+      "destinationModule": "CM",
+      "query": msg,
+      "layerID": 0,
+      "response": ""
+    });
+    return wrapInnerMsgWithDestination(
+        sourceNode: sourceNode,
+        destinationNode: destinationNode,
+        message: message);
+
+    // "destinationNodeHash": destinationNode["hashID"],
+    // "sourceNode": sourceNode,
+    // "destinationNode": destinationNode,
+  }
+  static Map<String, dynamic> wrapProxyDestination({
+    required String proxyHash,
+    required Map<String, dynamic> message,
+  }) {
+    return createMessage("proxy_destination", {
+      "ProxyHash": proxyHash,
+      "Data": message,
+    });
+  }
+
+  Map<String, dynamic> wrapInnerMsgWithDestination({
+    required Map<String, dynamic> sourceNode,
+    required Map<String, dynamic> destinationNode,
+    required Map<String, dynamic> message,
+  }) {
+    return createMessage("destination", {
+      "destinationNodeHash": destinationNode["hashID"],
+      "sourceNode": sourceNode,
+      "destinationNode": destinationNode,
+      "message": message
+    });
+  }
+
+
   // Static method to create a publish request message
   static Map<String, dynamic> createPublish(
       String nodeID, String endpoint, List<Map<String, String>> kvPairs) {
@@ -167,16 +212,17 @@ class MessageFactory {
   static Map<String, dynamic> wrapTransportMessage(
       {required bool useRelay,
       required Map<String, dynamic> message,
+      required String? hashID,
       String? relayIP,
       int? relayPort,
       String? destIP,
       int? destPort}) {
     if (useRelay) {
       // Wrap message in relay flag if relay is used
-      return {'relay_flag': 'yes', 'payload': message};
+      return {'relay_flag': 'yes','nodeid':hashID, 'payload': message};
     } else {
       // If no relay is used, just return the message
-      return {'relay_flag': 'no', 'payload': message};
+      return {'relay_flag': 'no','nodeid':hashID, 'payload': message};
     }
   }
 
