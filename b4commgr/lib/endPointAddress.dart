@@ -1,126 +1,180 @@
-/// Define a EndpointAddress class that describes endpoint address information.
+import 'dart:convert';
+import 'package:nodeid/src/nodeid_base.dart';
+
+/// Represents the network endpoint address of a node.
 class EndpointAddress {
+  /// Unique node ID associated with this endpoint.
+  //final String? nodeID;
 
-  /// The node id of this endpoint.
-  final String? nodeID;
-
-  /// The IPv4 of this endpoint. May not be loopback (127.0.0.0/8 or ::1), link-local (169.254.0.0/16 or fe80::/10), or link-local multicast (224.0.0.0/24 or ff02::/16).
+  /// Public IPv4 address. Should not be loopback, link-local, or multicast.
+  /// (May not be loopback (127.0.0.0/8 or ::1), link-local (169.254.0.0/16 or fe80::/10), or link-local multicast (224.0.0.0/24 or ff02::/16).)
   final String? publicipv4;
 
-  /// The IPv6  of this endpoint. May not be loopback (127.0.0.0/8 or ::1), link-local (169.254.0.0/16 or fe80::/10), or link-local multicast (224.0.0.0/24 or ff02::/16).
+  /// Public IPv6 address. Should not be loopback, link-local, or multicast.
+  /// (May not be loopback (127.0.0.0/8 or ::1), link-local (169.254.0.0/16 or fe80::/10), or link-local multicast (224.0.0.0/24 or ff02::/16).)
   final String? publicipv6;
 
-  /// The ipv4 port number of the endpoint.
+  /// Port number for public IPv4 communication.
   final int? publicipv4port;
 
-  /// The ipv6 port number of the endpoint.
+  /// Port number for public IPv6 communication.
   final int? publicipv6port;
 
-  /// The proxyipv4 of the endpoint.
+  /// Indicates whether IPv4 is being proxied.
   final bool? proxyipv4;
 
-  /// The proxyipv6 of the endpoint.
+  /// Indicates whether IPv6 is being proxied.
   final bool? proxyipv6;
 
-  /// The IP protocol for this port. Must be UDP, TCP. Default is TCP.
-  final String? protocol;
+  /// Communication protocol (UDP or TCP). Defaults to TCP.
+  final String protocol;
 
+  /// Constructor for [EndpointAddress].
   /// Default constructor.
   const EndpointAddress({
-    required this.nodeID,
+    required NodeID nodeID,
     this.publicipv4,
     this.publicipv6,
     this.publicipv4port,
     this.publicipv6port,
     this.proxyipv4,
     this.proxyipv6,
-    this.protocol,
+    this.protocol = 'TCP',
   });
 
-// Override the toString() method to define how the object should be printed
-  @override
-  String toString() {
-    return 'nodeid: $nodeID, pubip4: $publicipv4, pubip6 : $publicipv6, '
-        'pubip4port : $publicipv4port, pubip6port : $publicipv6port, '
-        'proxyipv4 : $proxyipv4, proxyipv6 : $proxyipv6, proto : $protocol ';
+  /// Creates an instance from a JSON object.
+  factory EndpointAddress.fromJson(Map<String, dynamic> json) {
+    return EndpointAddress(
+      nodeID: json['nodeID'],
+      publicipv4: json['publicipv4'] as String?,
+      publicipv6: json['publicipv6'] as String?,
+      publicipv4port: json['publicipv4port'] as int?,
+      publicipv6port: json['publicipv6port'] as int?,
+      proxyipv4: json['proxyipv4'] as bool?,
+      proxyipv6: json['proxyipv6'] as bool?,
+      protocol: json['protocol'] as String? ?? 'TCP',
+    );
   }
+
+  /// Converts the instance to a JSON object.
+  Map<String, dynamic> toJson() => {
+    'nodeID': NodeID,
+    'publicipv4': publicipv4,
+    'publicipv6': publicipv6,
+    'publicipv4port': publicipv4port,
+    'publicipv6port': publicipv6port,
+    'proxyipv4': proxyipv4,
+    'proxyipv6': proxyipv6,
+    'protocol': protocol,
+  };
+
+/// Override the toString() method to define how the object should be printed
+  @override
+  String toString() => jsonEncode(toJson());
 }
-// inplace of node id class we use nodeid package
-/// Define the NodeID class
+/*
+/// inplace of node id class we use nodeid package
+/// Represents the identity of a node.
 class NodeID {
-  /// The unique identifier of the node
+  /// Node identifier of the node.
   final String nodeID;
 
-  /// Public key associated with the node
+  /// Public key associated with the node.
   final String publicKey;
 
-  /// Signature for verification (e.g., digital signature)
+  /// Digital signature for this node.
   final String sign;
 
-  /// Default constructor.
+  /// Constructor for [NodeID].
   const NodeID({
     required this.nodeID,
     required this.publicKey,
     required this.sign,
   });
 
-  // Override the toString() method to define how the object should be printed
-  @override
-  String toString() {
-    return 'nodeid: $nodeID, pubkey: $publicKey';
+  /// Creates an instance from a JSON object.
+  factory NodeID.fromJson(Map<String, dynamic> json) {
+    return NodeID(
+      nodeID: json['nodeID'] as String,
+      publicKey: json['publicKey'] as String,
+      sign: json['sign'] as String,
+    );
   }
-}
 
+  /// Converts the instance to a JSON object.
+  Map<String, dynamic> toJson() => {
+    'nodeID': nodeID,
+    'publicKey': publicKey,
+    'sign': sign,
+  };
+
+  /// Override the toString() method to define how the object should be printed
+  @override
+  String toString() => jsonEncode(toJson());
+}
+*/
+/// Represents a full node with identity and network address.
 /// Define the Node class that combines NodeID and EndpointAddress
 class Node {
   /// Node's unique identity information
   final NodeID nodeID;
 
-  /// Node's network-related information
+  /// Network address information.
   final EndpointAddress endpointAddress;
 
-  /// Constructor for Node which takes both NodeID and EndpointAddress
+  /// Constructor for [Node].
   const Node({
     required this.nodeID,
     required this.endpointAddress,
   });
 
-  // Override the toString() method to define how the object should be printed
-  @override
-  String toString() {
-    return 'nodeid: ${nodeID.toString()}, endpointadd: ${endpointAddress.toString()}';
+  /// Creates an instance from a JSON object.
+  factory Node.fromJson(Map<String, dynamic> json) {
+    return Node(
+      nodeID: NodeID.fromJson(json['nodeID'] as Map<String, dynamic>),
+      endpointAddress: EndpointAddress.fromJson(json['endpointAddress'] as Map<String, dynamic>),
+    );
   }
+
+  /// Converts the instance to a JSON object.
+  Map<String, dynamic> toJson() => {
+    'nodeID': nodeID.toJson(),
+    'endpointAddress': endpointAddress.toJson(),
+  };
+
+  /// Override the toString() method to define how the object should be printed
+  @override
+  String toString() => jsonEncode(toJson());
 }
 
-/// Define the Message class
+/// Represents a structured communication message between nodes.
 class CreateMessage {
-  /// A hash of the destination node id
+  /// Hash of the destination node's ID.
   final String destinationNodeHash;
 
-  /// The source node object
+  /// Source node object.
   final Node sourceNode;
 
-  /// The destination node object
+  /// Destination node object.
   final Node destinationNode;
 
-  /// The module that is sending the message
+  /// Originating module name.
   final String sourceModule;
 
-  /// The module that is receiving the message
+  /// Receiving module name.
   final String destinationModule;
 
-  /// The query or request being sent
+  /// Query payload.
   final String query;
 
-  /// The layer ID of the communication
+  /// Communication layer identifier.
   final int layerID;
 
-  /// The response, if any, from the destination node
+  /// Optional response message from the destination node.
   String? response;
 
-
-  /// Default Constructor for the Message class
-   CreateMessage({
+  /// Constructor for [CreateMessage].
+  CreateMessage({
     required this.destinationNodeHash,
     required this.sourceNode,
     required this.destinationNode,
@@ -130,10 +184,42 @@ class CreateMessage {
     required this.layerID,
     this.response,
   });
-  // Override the toString() method to define how the object should be printed
+
+  /// Creates an instance from a JSON object.
+  factory CreateMessage.fromJson(Map<String, dynamic> json) {
+    return CreateMessage(
+      destinationNodeHash: json['destinationNodeHash'] as String,
+      sourceNode: Node.fromJson(json['sourceNode'] as Map<String, dynamic>),
+      destinationNode: Node.fromJson(json['destinationNode'] as Map<String, dynamic>),
+      sourceModule: json['sourceModule'] as String,
+      destinationModule: json['destinationModule'] as String,
+      query: json['query'] as String,
+      layerID: json['layerID'] as int,
+      response: json['response'] as String?,
+    );
+  }
+
+  /// Converts the instance to a JSON object.
+  Map<String, dynamic> toJson() => {
+    'destinationNodeHash': destinationNodeHash,
+    'sourceNode': sourceNode.toJson(),
+    'destinationNode': destinationNode.toJson(),
+    'sourceModule': sourceModule,
+    'destinationModule': destinationModule,
+    'query': query,
+    'layerID': layerID,
+    'response': response,
+  };
+
+  /// Override the toString() method to define how the object should be printed
   @override
+  String toString() => jsonEncode(toJson());
+
+  // Override the toString() method to define how the object should be printed
+ /* @override
   String toString() {
     return 'destnodehash: $destinationNodeHash, srcnode: $sourceNode, destnode : $destinationNode, '
         'srcmod : $sourceModule, desctmod : $destinationModule, query : $query, layerid : $layerID, resp : $response ';
   }
+  */
 }

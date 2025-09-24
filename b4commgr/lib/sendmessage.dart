@@ -1,3 +1,9 @@
+//Message between two neighbors (with or without relay),if direct TCP link send directly if not use relay, Key , Nodes behind NAT} Present in this send message
+//Message Formate , Routing related message(RT Update, DHT message),Query Response , Node behind NAT, Each node maintain multiple RTs for different Layer, message querry publish ,} these all are in Message Factory
+//missing part cache management(Catch Expiry).
+//Q. Certificate Renewal (1month pre-expiry logic)is to be implemented?
+//Q. Is Layerd Routing to be implemented ?
+
 import 'dart:typed_data';
 
 //import 'package:b4_olm/index_mgr/messagefactory.dart';
@@ -13,18 +19,25 @@ import 'dart:io';
 import 'dart:async';
 
 class Node {
-  nodeid.NodeID nodeID;
-  EndpointAddress endpoint;
-  bool isBehindNAT;
-  String? proxyAddress;
-  int? proxyPort;
-  String? sessionKey;
-  TcpConnection? tcpConnection;
-  final B4RoutingTable _b4RoutingTable;
+  //this node class is made to collect data from all places, represent a network node which can send a message to another node , via a relay.
+  nodeid.NodeID
+  nodeID; //node id is defined inside Node and get detailes of NodeID , unique ID of node which come from library of nodeid_base
+  EndpointAddress
+  endpoint; //to get data form endpoint , IP and Port info, were node exit in network
+  bool
+  isBehindNAT; //we get it from the other module , tells is T/F that is node behind NAT,not direct access
+  String?
+  proxyAddress; //IP address of proxy server , if behind NAT then IP and port will save here , connect through proxy
+  int? proxyPort; //port number of proxy server
+  String? sessionKey; //for encrypted communication
+  TcpConnection? tcpConnection; //active TCP connection object
+  final B4RoutingTable
+  _b4RoutingTable; //routing table is required for making nextHop
 
   Node({
+    //this conctructor initilize the node data either direct or behind NAT and inject RT use for lookup
     required this.nodeID,
-    required this.endpoint,
+    required this.endpoint,//Node ip /port info
     required B4RoutingTable b4RoutingTable,
     this.isBehindNAT = false,
     this.proxyAddress,
@@ -56,13 +69,13 @@ class Node {
 
 // Uint8List encoded = Uint8List.fromList(utf8.encode(framed));
 // socket.write(encoded);
-
+/*
   double computeDistance(nodeid.NodeID localID, String remoteNodeID) {
     var localBigInt = BigInt.parse(localID.hashID, radix: 16);
     var remoteBigInt = BigInt.parse(remoteNodeID, radix: 16);
     return (localBigInt ^ remoteBigInt).toDouble();
   }
-
+*/
   String _signPayloadContent(Map<String, dynamic> payload) {
     final contentToSign = jsonEncode(payload);
     var signature = CryptoUtils.ecSign(
@@ -91,26 +104,30 @@ class Node {
     final nextHopNodeId = _b4RoutingTable.nextHop(
       targetHash,
       _b4RoutingTable.RoutingTable,
-      useDHT: useDHT,
+
     );
+    // useDHT: useDHT,
 
     // Step 2: Lookup node details
-    final nextHopNode = _b4RoutingTable.findNode(nextHopNodeId);
+    final nextHopNode = _b4RoutingTable.findNode(nextHopNodeId, _b4RoutingTable.RoutingTable);
     if (nextHopNode == null) {
       print("No route to $targetHash");
       return;
     }
 
     // Step 3: Determine relay usage (override passed `relayRequired` if needed)
-    final useRelay = nextHopNode.natStatus != 0;
+    final useRelay = nextHopNode.nodeID.natStatus != 0;
 
     // Step 4: Prepare endpoint
-    final ip =
-        useRelay ? nextHopNode.endpoint.relayIP : nextHopNode.endpoint.directIP;
+    //final ip = useRelay ? nextHopNode.endpointAddress.relayIP : nextHopNode.endpointAddress.directIP;
+    final ip = useRelay ? nextHopNode.endpointAddress.publicipv4 : nextHopNode.endpointAddress.publicipv6;
 
     final port = useRelay
-        ? nextHopNode.endpoint.relayPort
-        : nextHopNode.endpoint.directPort;
+        ? nextHopNode.endpointAddress.publicipv4port
+        : nextHopNode.endpointAddress.publicipv6port;
+  //  final port = useRelay
+  //      ? nextHopNode.endpointAddress.relayPort
+  //      : nextHopNode.endpointAddress.directPort;
     if (ip == null || port == null) {
       print("Invalid endpoint information for node $nextHopNodeId");
       return;
@@ -139,7 +156,7 @@ class Node {
     final transportMessage = MessageFactory.wrapTransportMessage(
       useRelay: useRelay,
       message: wrapped,
-      nodeID: nodeID.hashID,
+      hashID: nodeID.hashID,
     );
 
     // ---- AMENDMENT: Add endpoint address as header ----
@@ -176,7 +193,8 @@ class Node {
       print("✅ Message sent to $ip:$port via ${useRelay ? 'relay' : 'direct'}");
     } catch (e) {
       print("❌ Failed to send message to $ip:$port — $e");
-      _b4RoutingTable.removeNode(nextHopNodeId);
+
+    /* //_b4RoutingTable.removeNode(nextHopNodeId); */
     }
   }
 }

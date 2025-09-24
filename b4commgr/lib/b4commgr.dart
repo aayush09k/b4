@@ -12,12 +12,17 @@ import 'dart:typed_data';
 
 // Importing libraries from our packages
 //import 'package:b4connection/B4connection.dart';
-import 'package:b4commgr/udpPkg.dart';
+import 'package:b4utils/bufferdata.dart'; // =====> all the buffer data in one instance
+import 'package:b4utils/messagefactory.dart'; // ====> Message creation and packaging
+
 import 'package:b4rttable/routingmanager.dart';
 import 'package:b4rttable/b4rttable.dart';
 import 'package:nodeid/src/nodeid_base.dart';
-import 'endPointAddress.dart';
-import 'networkInformation.dart';
+import 'package:b4commgr/udpPkg.dart';
+import 'package:b4commgr/networkInformation.dart';
+import 'package:b4commgr/config.dart';
+import 'package:b4connection/TcpConnection.dart';
+
 
 // A Queue to act as the RM buffer
 Queue<List> rmBufferQueue = Queue<List>();
@@ -31,25 +36,49 @@ class CommunicationManager {
 
     // For each of the other nodeIDs,
     // a separate connection instance is to be created, as connections are bound to nodeIDs of the other nodes.
-
+    static late final LocalNodeID _localNodeID;
+    late final B4RoutingTable rt;
+    LocalNodeID localNodeID;
     // Private static instance of the CommunicationManager
-    static final CommunicationManager _instance = CommunicationManager._internal();
-
+ //   static final CommunicationManager _instance = CommunicationManager._internal();
+    static final CommunicationManager _instance = CommunicationManager._internal(_localNodeID);
     // Private constructor
-    CommunicationManager._internal();
+ //   CommunicationManager._internal();
+    CommunicationManager._internal(this.localNodeID) {
+    rt = B4RoutingTable(localNodeID);
+  }
 
     // Factory constructor to access the singleton instance
-    factory CommunicationManager() {
+   // factory CommunicationManager() {
+   //     return _instance;
+  //  }
+    factory CommunicationManager(LocalNodeID localNodeID) {
+        _localNodeID = localNodeID;
         return _instance;
     }
+
+    // Objects of other classes
+    final messagefactory = MessageFactory();
+    var buffer = DataBuffer();
+    Map<String, Socket> connectedClients =
+    {}; // proxy table    {node_I D: Socket}
+    var netinfo = NetworkDetails();
+
+    Socket? relaySocket;
     Socket? _socket;
+    RawDatagramSocket? _udpsocket;
+    Queue<String> messageQueue = Queue<String>();
+    bool isProxy = false;
+
+    bool cond = true;
+    final Map<String, DateTime> lastSeen = {};
     bool useProxy = false;
     Socket? _localSocket;
 
     int BaselayerID=0;
-    int Proxy4layerID=6;
-    int Proxy6layerID=7;
-    int ProxyDual46layerID=8;
+    int Proxy4layerID=1;
+    int Proxy6layerID=2;
+    int ProxyDual46layerID=3;
 
 
     // get from config
@@ -68,15 +97,16 @@ class CommunicationManager {
         // Initialize an empty list to store information about active IPs
         List<List<dynamic>> activeIPInfo = await NetworkDetails().getNetworkInfo(stunServer, stunPort);
             // Iterate through each address in the active IP list
-            for(var lst1 in activeIPInfo) {
+            for(var addr in activeIPInfo) {
                 // Iterate through each address in the active IP list
-                for(var addr in lst1) {
+           //     for(var addr in lst1) {
                     // get the collected data for each IP: [IP type, IP address, private status, public IP, public port]
                     ipType = addr[0];
                     ipAddr = addr[1];
                     pvtStat = addr[2];
                     publicIP = addr[3];
                     publicPort = addr[4];
+                    print('ipType: $ipType, ipAddr: $ipAddr, pvtStat: $pvtStat, publicIP: $publicIP, publicPort: $publicPort');
 
 
                     // If the IP address is private, try to get the public IP using the STUN server
@@ -106,8 +136,11 @@ class CommunicationManager {
                         // String before the last colon
                         String part1 = pnode.substring(0, lastColonIndex);
                         // String after the last colon
-                        int part2 = pnode.substring(lastColonIndex + 1) as int;
-                        //get the ip address type
+                     //   int part2 = pnode.substring(lastColonIndex + 1) as int;
+                        int part2 = int.parse(pnode.substring(lastColonIndex + 1));
+                        registerWithRelay(part1, part2, selfNodeHash);
+
+                      /*  //get the ip address type
                         String addtype = getAddressType(part1);
                         // set endpoint address for self node
 
@@ -118,22 +151,41 @@ class CommunicationManager {
                         _socket!.listen(_messageHandler);
 
                         // Ensure that a messageHandler is registered with TCP socket to received the incoming bytes and parse the received messages.
+
+                       */
                     }
 // TBD - 20250225-1914 : proxy forwarding table related protocol on a TCP server socket is to be created.
+
+
                     // If the IP address is not private, treat it as a public IP
 
                     else if (pvtStat.startsWith("N")) {
                         // For IPv4 and IPv6, bind a UDP socket to determine the public port
                         if (ipType == "IPv4") {
-                            String ipadd4 = InternetAddress.anyIPv4 as String;
+                            print("Binding UDP socket on IPv4...");
+                            UDPSocket myServer = await UDPSocket.bind(InternetAddress.anyIPv4, publicPort);
+                            publicPort = myServer.rawSocket.port;
+                            for (var interface in await NetworkInterface.list()) {
+                                for (var addr in interface.addresses) {
+                                     if (addr.type == InternetAddressType.IPv4 && !addr.isLoopback) {
+                                        print('Local IP: ${addr.address}');
+                                    }
+                                 }
+                            }
+                            print(
+                                  "UDP socket bound to: ${myServer.rawSocket.address.address}:${publicPort}");
+                                _udpsocket = myServer.rawSocket;
+                               _udpsocket!.listen((event) => udpEventHandler(event, _udpsocket!));
+ /*                           String ipadd4 = InternetAddress.anyIPv4 as String;
                             UDPSocket myServer = await UDPSocket.bind(
                                 InternetAddress.anyIPv4, 0);
                             publicPort = myServer.rawSocket.port;
                             _socket = await connect(ipadd4, publicPort);
                             _socket!.listen(_messageHandler);
                             //     myServer.handler((message){   });
-
+*/
                         } else if (ipType == "IPv6") {
+                             print("udp socket bound Ipv6");
                             String ipadd6 = InternetAddress.anyIPv6 as String;
                             publicPort =
                                 (await UDPSocket.bind(
@@ -143,7 +195,7 @@ class CommunicationManager {
                             _socket!.listen(_messageHandler);
                         }
                     }
-                }
+               // }
 
 
             }//for2
@@ -155,14 +207,549 @@ class CommunicationManager {
 
     }
 
+    void udpEventHandler(RawSocketEvent event, RawDatagramSocket socket) {
+        if (event == RawSocketEvent.read) {
+            final datagram = socket.receive();
+            if (datagram != null) {
+                final data = datagram.data;
+                final senderIP = datagram.address.address;
+                final senderPort = datagram.port;
+
+                try {
+                    final message = utf8.decode(data);
+                    print("Received from $senderIP:$senderPort → $message");
+
+                    if (_isValidJson(message)) {
+                        print("good message");
+                        buffer.pushIntemp(data);
+                        processIntemp();
+                    } else {
+                        print("Ignored non-JSON message: $message");
+                    }
+                } catch (e) {
+                    print("Error decoding UDP data: $e");
+                }
+            }
+        }
+    }
+
+    bool _isValidJson(String str) {
+        try {
+            jsonDecode(str);
+            return true;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    Future<Socket> connect(String ip, int port) {
+        return Socket.connect(ip, port);
+    }
+
+    // this function is for sending the message to respective buffer.
+    void _messageHandler(Uint8List data) {
+        String mess = utf8.decode(data);
+        buffer.pushIntemp(data);
+        processIntemp();
+    }
+
+    Future<void> processOuttemp() async {
+        print("Processing out temp");
+        try {
+            if (buffer.isOuttempEmpty()) {
+                print("out temp empty hence returned");
+                return;
+            }
+            print("processing outtemp");
+            dynamic raw = buffer.pullOuttemp();
+            late Map<String, dynamic> message;
+
+            if (raw is String) {
+                message = jsonDecode(raw);
+            } else if (raw is Map<String, dynamic>) {
+                message = raw;
+            } else {
+                print("Unsupported type in Outtemp buffer: ${raw.runtimeType}");
+                return;
+            }
+            print("message to be sent _outtemp(${message}");
+            String destinationId = message['payload']['destinationNodeHash'];
+            print("Destination ID _outtemp:${destinationId}");
+            print("got dest id");
+
+            if (!isProxy) {
+                print("isproxy");
+                try {
+                    // Use routing table to find next hop
+                    String nextHopId = rt.nextHop(destinationId, rt.RoutingTable);
+                    NodeID? nextHopNode = rt.findNode(nextHopId, rt.RoutingTable);
+                    //no next hop
+                    if (nextHopNode == null) {
+                        print("Next hop node not found in routing table.");
+                        return;
+                    }
+                    //next hop os self
+                    if (nextHopId == rt.localIdb!.nodeid.hashID) {
+                        buffer.pushToPeerBuffer(destinationId, message);
+                        print(
+                            "No next hop. Message added to peer buffer for $destinationId");
+                    } else {
+                        final ip = nextHopNode.publicIpv4;
+                        final port = nextHopNode.listeningPort;
+                        if (ip == null) {
+                            print("Invalid endpoint information for node $nextHopId");
+                            return;
+                        }
+                        try {
+                            final tcpConnection = TcpConnection();
+                            Socket? socket = await tcpConnection.connect(ip, port);
+                            final encodedMessage = jsonEncode(message);
+                            await tcpConnection.send(encodedMessage, socket!);
+                        } catch (e) {
+                            print(" Failed to send message to $ip:$port — $e");
+                        }
+                    }
+                } catch (e) {
+                    print("Error finding next hop or sending message: $e");
+                }
+            } else {
+                print(" proxy");
+                // proxy node logic
+                if (message['type'] == "relay_registration_request") {
+                    NodeID? destNode =
+                    await rt.findNodeByHash('rttable1.json', destinationId);
+                    if (destNode == null) {
+                        print("next hop node is null");
+                        return;
+                    }
+                    print("destination = ${destNode.hashID}");
+                    print("${destNode!.publicIpv4!}::${destNode.publicIpv4Port!}");
+                    //-------
+                    final raw = RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+                    raw.then((socket) {
+                        print('UDP sender using port ${socket.port}');
+                        int sent = socket.send(
+                            utf8.encode(jsonEncode(message)),
+                            InternetAddress(destNode!.publicIpv4!),
+                            destNode!.publicIpv4Port!);
+                        print('Message sent:${sent}');
+                        socket.close();
+                    });
+
+                } else if (message["response"].toString().isEmpty) {
+                    relaySocket?.write(jsonEncode(message));
+                    print("Message sent to relay");
+                } else {
+                    relaySocket?.write(jsonEncode(message));
+                    print("Reply sent to relay: ${jsonEncode(message)}");
+                }
+            }
+        } catch (e) {
+            print("Error in processOuttemp: $e");
+        }
+    }
+
+    Future<void> processIntemp() async {
+        // check the destinationnode name
+        if (buffer.isIntempEmpty()) {
+            print("intemp empty hence return");
+
+            return;
+        }
+        print("processing in temp");
+        List<int> data = buffer.pullIntemp();
+        print(data);
+        String message = utf8.decode(data);
+        if (data == null) {
+            print("data is nul");
+            return;
+        }
+        print("print message _intemp :${message}");
+        Map<String, dynamic> receivedData = jsonDecode(message);
+        print("print recieved data _intemp :${receivedData}");
+        String dhash = receivedData['payload']["destinationNodeHash"];
+        print("dhash:${dhash}");
+        if (isProxy) {
+            if (receivedData['type'] == 'relay_registration_request') {
+                String relayIP = '1';
+                int relayPort = 1;
+                String nodeID = receivedData['payload']['node_id'] ??
+                    receivedData['payload']['hashID'];
+                Map<String, dynamic> acknowledgeMessage =
+                MessageFactory.createRelayRegistrationResponse(
+                    nodeID, relayIP, relayPort);
+                Socket? maybeSocket = buffer.pullClientSocket(nodeID);
+                if (maybeSocket == null) {
+                    print("Error: No socket found for nodeID: $nodeID");
+                    return;
+                }
+                Socket socket = maybeSocket;
+                if (!connectedClients.containsKey(nodeID)) {
+                    connectedClients[nodeID] = socket;
+                }
+                socket.write(jsonEncode(acknowledgeMessage));
+                lastSeen[nodeID] = DateTime.now();
+                print("Acknowledgment Message for Register Sent");
+            } else {
+                print("not proxy_intemp");
+                String dhash = receivedData['payload']['destinationNodeHash'];
+                if (dhash == selfNodeHash) {
+                    Map<String, dynamic> innerMessage =
+                    receivedData['payload']['message'];
+                    print("innerMessage:${innerMessage}");
+                    print("innner message ${innerMessage}");
+                    String destinationModule =
+                    innerMessage['payload']['destinationModule'];
+                    print("destination module ${destinationModule}");
+                    if (destinationModule == "RM") {
+                        buffer.pushrmBuffer(receivedData);
+                        print("Message sent to RM Buffer \n");
+                    } else if (destinationModule == "IM") {
+                        buffer.pushimBuffer(receivedData);
+                        print("Messaage sent to IM Buffer \n");
+                    } else if (destinationModule == "CM") {
+                        print("Message for this proxy received \n");
+                    }
+                } else if (connectedClients.containsKey(dhash)) {
+                    try {
+                        connectedClients[dhash]!.write(jsonEncode(receivedData));
+                        lastSeen[dhash] = DateTime.now();
+                        print("Relayed message to Node $dhash \n");
+                    } catch (e) {
+                        buffer.pushToPeerBuffer(dhash, receivedData);
+                        print(
+                            "Failed to send message to $dhash directly, keeping in peer buffer.");
+                    }
+                } else {
+                    //if destination hash not matched with node
+
+                    String nexthophash = rt.nextHop(dhash, rt.RoutingTable);
+                    Map<String, dynamic> proxyMessage =
+                    MessageFactory.wrapProxyDestination(
+                        proxyHash: nexthophash, message: receivedData);
+                    buffer.pushOuttemp(proxyMessage);
+                    processOuttemp();
+                }
+            }
+        } else {
+            print("normal node logic");
+            // normal node logic
+            print("normal mode logic");
+            if (dhash == selfNodeHash) {
+                print("self node _ began");
+                Map<String, dynamic> innerMessage = receivedData['payload']['message'];
+                print("innner message ${innerMessage}");
+                String destinationModule = innerMessage['payload']['destinationModule'];
+                print("destination module ${destinationModule}");
+                if (destinationModule == "RM") {
+                    buffer.pushrmBuffer(receivedData);
+                    print("Message sent to RM Buffer \n");
+                } else if (destinationModule == "IM") {
+                    buffer.pushimBuffer(receivedData);
+                    print("Messaage sent to IM Buffer \n");
+                } else if (destinationModule == "CM") {
+                    print("message:${innerMessage["payload"]["message"]}");
+                    print("reached objective");
+                } else if (connectedClients.containsKey(dhash)) {
+                    try {
+                        connectedClients[dhash]!.write(jsonEncode(receivedData));
+                        lastSeen[dhash] = DateTime.now();
+                        print("Relayed message to Node $dhash \n");
+                    } catch (e) {
+                        buffer.pushToPeerBuffer(dhash, receivedData);
+                        print(
+                            "Failed to send message to $dhash directly, keeping in peer buffer.");
+                    }
+                } else {
+                    buffer.pushOuttemp(receivedData);
+                    processOuttemp();
+                }
+            }
+        }
+    }
+
+    Future<void> startRelayServer({int port = 8888}) async {
+        try {
+            final server = await ServerSocket.bind(InternetAddress.anyIPv4, port);
+            print('Relay Server is listening on port $port');
+
+            await for (var socket in server) {
+                socket.listen(
+                        (data) async {
+                        List<int> data = buffer.pullIntemp();
+                        String message = utf8.decode(data);
+                        Map<String, dynamic> receivedData = jsonDecode(message);
+                        String node_ID = receivedData['payload']['node_ID'] ??
+                            receivedData['payload']['hashID'];
+                        if (!connectedClients.containsValue(socket)) {
+                            buffer.addClientSocket(node_ID, socket);
+                        }
+                        buffer.pushIntemp(data);
+                        processIntemp();
+                    },
+                    onDone: () {
+                        // _removeClient(socket);
+                    },
+                    onError: (error) {
+                        print('Error: $error');
+                        // _removeClient(socket);
+                    },
+                );
+            }
+        } catch (e) {
+            print('Error starting relay server: $e');
+        }
+    }
+
+    Future<void> registerWithRelay(
+        String relayIp, int relayPort, String myNodehash) async {
+        Map<String, dynamic> registrationMessage =
+        MessageFactory.createRelayRegistrationRequest(myNodehash);
+        try {
+            relaySocket = await Socket.connect(relayIp, relayPort);
+            print('Registered with relay: $relayIp:$relayPort \n');
+            buffer.pushOuttemp(registrationMessage);
+            processOuttemp();
+            relaySocket!.listen(
+                    (data) {
+                    buffer.pushIntemp(data);
+                    try {
+                        processIntemp();
+                    } catch (e) {
+                        print("Error decoding received message: $e");
+                    }
+                },
+                onDone: () {
+                    print('Disconnected from relay.');
+                    relaySocket = null;
+                },
+                onError: (error) {
+                    print('Relay socket error: $error');
+                    relaySocket = null;
+                },
+            );
+        } catch (e) {
+            print('Failed to register with relay since its offline');
+
+            // Store message in buffer for retry
+            Map<String, dynamic> destination = {
+                'relayip': relayIp,
+                'relayport': relayPort,
+                'mynode': selfNodeHash
+            };
+            buffer.pushToRegisterBuffer(destination);
+            print("Stored registration message in buffer for retry.");
+            processRegisterBuffer();
+        }
+    }
+
+    //Local Behind NAT
+    Future<void> sendMessageViaRelay(Map<String, dynamic> sourceNode,
+        Map<String, dynamic> destinationNode, String message) async {
+        //what is this map<string,dynamic>
+        try {
+            Map<String, dynamic> createMessage = messagefactory.createInnerMessage(
+                sourceNode: sourceNode,
+                destinationNode: destinationNode,
+                msg: message);
+            // Map<String, dynamic> CreateMessage =
+            //     createRelayMessage(sourceNode, destinationNode, message);
+            if (relaySocket != null) {
+                await Future.delayed(TimingConstants.sendMessageViaRelayDelay);
+                buffer.pushOuttemp(createMessage);
+                processOuttemp();
+            } else {
+                buffer.pushToPeerBuffer(destinationNode.keys.first, createMessage);
+
+                ///
+                cond = true;
+                print(
+                    'Message stored in buffer because relay connection is not established.');
+                processPeerBuffer();
+            }
+        } catch (e) {
+            print('Failed to send message via relay: $e');
+        }
+    }
+
+    Future<void> _sendViaProxy(
+        Map<String, dynamic> proxyNode,
+        Map<String, dynamic> message,
+        ) async {
+        try {
+            Socket proxySocket = await Socket.connect(
+                proxyNode['publicIpv4'], proxyNode['listeningPort'],
+                timeout: TimingConstants.proxySocketTimeout);
+            Map<String, dynamic> proxymessage = MessageFactory.wrapProxyDestination(
+                proxyHash: proxyNode['hashID'], message: message);
+            proxySocket.write(jsonEncode(proxymessage));
+            print('Relayed message to next proxy: ${proxyNode['hashID']}');
+        } catch (e) {
+            final wrapped = {"proxy": proxyNode, "message": message};
+            buffer.pushRootNode(wrapped);
+
+            print(
+                "Couldn't send message to closest proxy: ${proxyNode['hashID']}. Keeping in rootNodebuffer.",
+            );
+            processRootNodeBuffer();
+        }
+    }
+
+    Future<void> processRegisterBuffer() async {
+        while (!buffer.isRegisterBufferEmpty()) {
+            Map<String, dynamic> destination = buffer.pullFromRegisterBuffer();
+            print("Trying to connect to relay, every 30 seconds...... \n");
+            await Future.delayed(TimingConstants.registerBufferRetryInterval);
+            Map<String, dynamic> myNode = destination['mynode'];
+            String myNodehash = myNode['hashID'];
+
+            String relayIp = destination['relayip'];
+            int relayport = destination['relayport'];
+            registerWithRelay(relayIp, relayport, myNodehash);
+        }
+    }
+
+    //Proxy
+    Future<void> processRootNodeBuffer() async {
+        while (!buffer.isRootNodeBufferEmpty()) {
+            print("Processing RootNodeBuffer every 30 sec.....");
+            await Future.delayed(TimingConstants.rootNodeBufferRetryInterval);
+            Map<String, dynamic> mess = buffer.pullRootNode();
+            Map<String, dynamic> proxyNode = mess['proxy'];
+            Map<String, dynamic> message = mess['message'];
+            _sendViaProxy(proxyNode, message);
+            break;
+        }
+    }
+
+    Future<void> processPeerBuffer() async {
+        while (cond == true) {
+            print("Retrying peerbuffer every 35 seconds..... \n");
+            await Future.delayed(TimingConstants.peerBufferRetryInterval);
+
+            if (isProxy) {
+                final List<MapEntry<String, Map<String, dynamic>>> requeue = [];
+
+                while (!buffer.isPeerBufferEmpty()) {
+                    final item = buffer.pullFromPeerBuffer();
+                    if (item == null) continue;
+
+                    String nodeId = item["destination"];
+                    Map<String, dynamic> message = item["message"];
+
+                    if (connectedClients.containsKey(nodeId)) {
+                        try {
+                            connectedClients[nodeId]!.write(jsonEncode(message));
+                            lastSeen[nodeId] = DateTime.now();
+                            print("Sent buffered message to Node $nodeId - $message\n");
+                        } catch (e) {
+                            print("Error sending to $nodeId. Will retry.");
+                            requeue.add(MapEntry(nodeId, message));
+                        }
+                    } else {
+                        print("$nodeId is not online, putting back in Peerbuffer \n");
+                        requeue.add(MapEntry(nodeId, message));
+                    }
+                }
+
+                // Re-add undelivered messages
+                for (var entry in requeue) {
+                    buffer.pushToPeerBuffer(entry.key, entry.value);
+                }
+            } else {
+                while (!buffer.isPeerBufferEmpty()) {
+                    final item = buffer.pullFromPeerBuffer();
+                    if (item == null) continue;
+
+                    Map<String, dynamic> message = item['message'];
+                    Map<String, dynamic> snode = message['sourceNode'];
+                    Map<String, dynamic> dnode = message['destinationNode'];
+                    String query = message['query'];
+
+                    sendMessageViaRelay(snode, dnode, query);
+
+                    cond = false;
+                    break; // send one message per cycle (remove if you want to send all)
+                }
+            }
+        }
+    }
+
+    /// ***************************************************************************
+    Future<List<Map<String, dynamic>>> readJsonFile(String filePath) async {
+        try {
+            final file = File(filePath);
+
+            if (!await file.exists()) {
+                print("Error: File does not exist.");
+                return [];
+            }
+
+            String jsonString = await file.readAsString();
+
+            if (jsonString.trim().isEmpty) {
+                print("Error: JSON file is empty.");
+                return [];
+            }
+
+            List<dynamic> jsonData = jsonDecode(jsonString);
+
+            if (jsonData is! List) {
+                print("Error: JSON structure is invalid. Expected a list.");
+                return [];
+            }
+
+            return List<Map<String, dynamic>>.from(jsonData);
+        } catch (e) {
+            print("Error reading JSON file: $e");
+            return [];
+        }
+    }
+
+    //use it if node does not come for a long time
+    void _removeClient(String nodeId) {
+        if (connectedClients.containsKey(nodeId)) {
+            connectedClients.remove(nodeId);
+            print("Client $nodeId disconnected.");
+        }
+    }
+
+    void removeInactiveClients() {
+        final now = DateTime.now();
+        final List<String> inactiveNodes = [];
+
+        lastSeen.forEach((nodeId, lastActive) {
+            final duration = now.difference(lastActive);
+            if (duration.inDays >= 5) {
+                inactiveNodes.add(nodeId);
+            }
+        });
+
+        for (var nodeId in inactiveNodes) {
+            _removeClient(nodeId);
+            lastSeen.remove(nodeId);
+            print("Removed $nodeId due to 2+ days of inactivity.");
+        }
+    }
+
+    void startCleanupTimer() {
+        Timer.periodic(Duration(days: 1), (timer) {
+            print("Running inactive client cleanup...");
+            removeInactiveClients();
+        });
+    }
+
     // Utility function to find the closest node based on XOR distance
     //closestNode = proxy['ip'] + ':' + proxy['port'].toString();
     String findClosestFromPRT(List<Map<String, dynamic>> proxyRoutingTable) {
         String closestNode = '';
         int closestDistance = 160; // Max distance for 160-bit node ID
-
+/// Max distance for 160-bit node ID
         for (var proxy in proxyRoutingTable) {
-            String proxyNodeId = proxy['node_id']; // 160-bit hexadecimal node ID
+          //  String proxyNodeId = proxy['node_id'];
+            /// 160-bit hexadecimal node ID
+            String proxyNodeId = proxy['node_id'] ?? proxy['hashID'] ?? '';
+            if (proxyNodeId == '') continue;
             int distance = calculateDistance(selfNodeHash, proxyNodeId);
 
             if (distance < closestDistance) {
@@ -174,17 +761,17 @@ class CommunicationManager {
         return closestNode;
     }
 
-    // Function to calculate XOR distance between two node IDs
+    /// Function to calculate XOR distance between two node IDs
     int calculateDistance(String nodeId, String proxyNodeId) {
-        // Convert hex node IDs to BigInt for comparison
+        /// Convert hex node IDs to BigInt for comparison
         BigInt nodeBigInt = BigInt.parse(nodeId, radix: 16);
         BigInt proxyBigInt = BigInt.parse(proxyNodeId, radix: 16);
         int dist=(nodeBigInt ^ proxyBigInt).toInt();
-        return dist; // XOR and convert to integer distance
+        return dist; /// XOR and convert to integer distance
     }
 
-    // Main loop to iteratively find the closest node
-    //closestNode = proxy['ip'] + ':' + proxy['port'].toString();
+    /// Main loop to iteratively find the closest node
+    /// closestNode = proxy['ip'] + ':' + proxy['port'].toString();
     Future<String> findClosestProxyNodeRecursively(String bootstrapServer, int Proxy4layerID) async {
         // Start with the Bootstrap Server (BS) as the closest node
         String closest = bootstrapServer;
@@ -194,9 +781,16 @@ class CommunicationManager {
             cnode = closest;
             print('Current Node: $cnode');
 
-            // Get the routing table for the Proxy4LayerID from the current closest node
+            /// Get the routing table for the Proxy4LayerID from the current closest node
             //List<Map<String, dynamic>> routingTable = await routingtable.getRT(Proxy4layerID, node);
-            List<Map<String, dynamic>> proxyRoutingTable = await RoutingManager.getRT(cnode, Proxy4layerID);
+
+           // List<Map<String, dynamic>> proxyRoutingTable = await RoutingManager.getRT(cnode, Proxy4layerID);
+            // create a function in rt manager for getting the proxy table entries
+            final file = File('proxy_routing_table.json');
+            final jsonString = await file.readAsString();
+            final List<dynamic> jsonData = json.decode(jsonString);
+            List<Map<String, dynamic>> proxyRoutingTable = List<Map<String, dynamic>>.from(jsonData);
+
             //getRT(Proxy4layerID, node);
             // Find the closest node from the routing table
             closest = findClosestFromPRT(proxyRoutingTable);
@@ -208,12 +802,14 @@ class CommunicationManager {
         return closest;
     }
 
-    // Connect to this proxy server and return the socket.
+
+ /*   // Connect to this proxy server and return the socket.
     Future<Socket> connect(String proxyIP, int proxyPort) async {
         return await Socket.connect(proxyIP, proxyPort);
     }
+*/
 
-    // Message handler to process incoming messages from the proxy
+    /**   // Message handler to process incoming messages from the proxy
     void _messageHandler(List<int> data) {
         String message = utf8.decode(data);
 
@@ -264,7 +860,7 @@ class CommunicationManager {
             print("Error processing message: $e");
         }
     }
-
+*/
     // Function to check if an IP address type
     String getAddressType(String address) {
       // Check if it's IPv4
