@@ -146,7 +146,7 @@ class Node {
   @override
   String toString() => jsonEncode(toJson());
 }
-
+/*
 /// Represents a structured communication message between nodes.
 class CreateMessage {
   /// Hash of the destination node's ID.
@@ -214,7 +214,7 @@ class CreateMessage {
   /// Override the toString() method to define how the object should be printed
   @override
   String toString() => jsonEncode(toJson());
-
+*/
   // Override the toString() method to define how the object should be printed
  /* @override
   String toString() {
@@ -222,4 +222,4 @@ class CreateMessage {
         'srcmod : $sourceModule, desctmod : $destinationModule, query : $query, layerid : $layerID, resp : $response ';
   }
   */
-}
+//}
