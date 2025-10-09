@@ -22,8 +22,7 @@ class B4RoutingTable {
   Map<Node, int>? onHoldNodes;
   Map<String, Duration> mRtt = {};
   String? LayerID;
-  LocalNodeID?
-  localIdb; //this is just a variable of type LocalNodeID: NOT an OBJECT
+  LocalNodeID?   localIdb; //this is just a variable of type LocalNodeID: NOT an OBJECT
   // localIdb gets initialied when the B4RoutingTable's Object is created ie. Constructor is Called
   // and this constructor is called after the peer joins the Network and its LocalNodeID is created.
 
@@ -560,8 +559,8 @@ class B4RoutingTable {
   }
 
 
-
-Future<NodeID?> findNodeByHash(String filePath, String targetHashID) async {
+// change this function as per node
+Future<Node?> findNodeByHash(String filePath, String targetHashID) async {
   try {
     final file = File(filePath);
 
@@ -575,7 +574,9 @@ Future<NodeID?> findNodeByHash(String filePath, String targetHashID) async {
 
     for (final item in jsonData) {
       if (item['hashID'] == targetHashID) {
-        return NodeID.createFromTable(
+        return item; //need to check the value of items
+         /*
+          NodeID.createFromTable(
           item['publicKeyPem'] ?? '',
           ECSignature(BigInt.zero, BigInt.zero),
           item['hashID'] ?? '',
@@ -591,6 +592,7 @@ Future<NodeID?> findNodeByHash(String filePath, String targetHashID) async {
           int.tryParse(item['communicatorPort'].toString()) ?? 0,
           int.tryParse(item['listeningPort'].toString()) ?? 22800,
         );
+        */
       }
     }
 

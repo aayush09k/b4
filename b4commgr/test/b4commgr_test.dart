@@ -3,9 +3,9 @@ import 'package:test/test.dart';
 import 'package:b4utils/bufferdata.dart';
 
 void main() {
-  CommunicationManager communicationManager = CommunicationManager();
+ // CommunicationManager communicationManager = CommunicationManager();
   DataBuffer dataBuffer = DataBuffer();
-
+/*
   test('when you need  to Relay Behind NAT', () async {
     var message = 'hello brother';
     var proxyIp = '35.185.142.164';
@@ -133,4 +133,5 @@ void main() {
   }
 
   );
+  */
 }

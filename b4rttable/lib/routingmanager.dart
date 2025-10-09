@@ -14,6 +14,7 @@ import 'package:b4commgr/b4commgr.dart';
 import 'package:b4rttable/b4rttable.dart';
 import 'package:b4utils/bufferdata.dart';
 import 'package:b4utils/connectivity_monitor.dart';
+import 'package:b4commgr/endPointAddress.dart';
 //import 'package:b4rttable/config.dart';
 
 class RoutingManager {
@@ -23,7 +24,7 @@ class RoutingManager {
   String? rtFilePath; //
   int? natStatus;
   int? layers;
-  late LocalNodeID _localNodeID;
+  late Node _localNode;
   Map<String, B4RoutingTable> routingTables = {};
 
   /*
@@ -46,26 +47,35 @@ class RoutingManager {
   RoutingManager._internal(String filePath,int layers,int port, String nodeId,dynamic nodeIdSign, dynamic nodeIdPubK, dynamic publicIpv4, dynamic publicIpv6, dynamic localIpv4, Map bsNode) {
     rtFilePath = "${filePath}rtTable.json"; // the path where routing table file will be stored as json.
     // comment the code 
-    _localNodeID = LocalNodeID();
-    _localNodeID.nodeid.listeningPort = port;
-    _localNodeID.nodeid.hashID = nodeId;
+    //_localNodeID = LocalNodeID();
+    _localNode.nodeID.hashID = nodeId;
+    _localNode.nodeID.pubKey=nodeIdPubK;
+    _localNode.nodeID.sign=nodeIdSign;
+
+    //_localNodeID.nodeid.listeningPort = port;
+
     layers=layers;
 //flag for bootstrap
     if (flag == true) {
       // we have to get this from auth manager, for testing change this ib b4rtTable class also at line no. 30
       // Call the init() function when the instance is created
-      _localNodeID.nodeid.sign =nodeIdSign;
-      _localNodeID.nodeid.publicKeyPem ="-----BEGIN PUBLIC KEY-----\n${nodeIdPubK}\n-----END PUBLIC KEY-----";
-      _localNodeID.nodeid.publicIpv4 = publicIpv4;
-      _localNodeID.nodeid.natStatus = 1;
-      _localNodeID.nodeid.publicIpv6 = publicIpv6;
-      _localNodeID.nodeid.localIpv4 =  localIpv4;
+   //   _localNodeID.nodeid.sign =nodeIdSign;
+      _localNode.nodeID.publicKeyPem ="-----BEGIN PUBLIC KEY-----\n${nodeIdPubK}\n-----END PUBLIC KEY-----";
+      _localNode.endpointAddress.publicipv4 = publicIpv4;
+      _localNode.endpointAddress.publicipv4port = port;
+      _localNode.endpointAddress.publicipv6 = publicIpv6;
+      _localNode.endpointAddress.publicipv6port=port;
+      _localNode.endpointAddress.proxyipv4=true;
+      _localNode.endpointAddress.proxyipv6=false;
+      _localNode.endpointAddress.protocol="TCP";
+
     }
 //the above code  for setting the bootstrap node id
     init(rtFilePath!, layers, bsNode);
   }
 
-  LocalNodeID get localNodeID => _localNodeID;
+  Node get localNode => _localNode;
+ // LocalNodeID get localNodeID => _localNodeID;
   static RoutingManager? _instance;
   // Getter to access the singleton instance
 factory RoutingManager(String filePath,int layers,int port, String nodeId, dynamic nodeIdSign, dynamic nodeIdPubK, dynamic publicIpv4, dynamic publicIpv6, dynamic localIpv4, Map bsNode) {
@@ -85,7 +95,7 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
     } else {
 
       for (int i = 0; i <= layers; i++) {
-        routingTables[i.toString()] = B4RoutingTable(localNodeID);
+        routingTables[i.toString()] = B4RoutingTable(_localNode.nodeID as LocalNodeID?);
       }
     }
 
@@ -110,13 +120,13 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
 
     // not required this can be taken place when socket opens in com mgr
     if (flag == true) {
-        manager.activateNode(null, null, localNodeID.nodeid.listeningPort, 1, null,null);
+      //  manager.activateNode(null, null, localNodeID.nodeid.listeningPort, 1, null,null);
     }
 
     // un comment this line for normal nodes.This line will remain comment for bootstrap.
     if (flag == false) {
 
-      await manager.activateNode(bootStrapNodeID!.publicIpv4,bootStrapNodeID.listeningPort,localNodeID.nodeid.listeningPort, natStatus, bootStrapNodeID.hashID,null); // hard code boots
+    //  await manager.activateNode(bootStrapNodeID!.publicIpv4,bootStrapNodeID.listeningPort,localNodeID.nodeid.listeningPort, natStatus, bootStrapNodeID.hashID,null); // hard code boots
       await Future.delayed(const Duration(seconds: 3));
       await sendMessageRM(
           'RM',
@@ -451,7 +461,7 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
     });
   }
 
-  void handleForMessages() {
+  Future<void> handleForMessages() async {
     //dynamic messageFromCMBuffer = dataBuffer.pullIntemp();
     dynamic messageFromCMBuffer = dataBuffer.pullrmBuffer();
     print(messageFromCMBuffer);
@@ -466,6 +476,7 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
       }
     } else {
       // In RM buffer messsage is null
+      await Future.delayed(Duration(seconds: 20));
     }
   }
 
@@ -473,8 +484,8 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
     return routingTables[layerID];
   }
 
-  void mergeTables(List<List<NodeID?>> newRoutingTable, String layerId) {
-    List<List<NodeID?>> localRT = routingTables[layerId]!.RoutingTable;
+  void mergeTables(List<List<Node?>> newRoutingTable, String layerId) {
+    List<List<Node?>> localRT = routingTables[layerId]!.RoutingTable;
 
     routingTables[layerId]!.updateRtTable( newRoutingTable);
   }
@@ -538,18 +549,18 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
 
   void checkNodeAliveness(){
 
-
+  print("code is there");
 
 
   }
 
-  bool checkRTTableForSpoof(List<List<NodeID?>> rtTable, String node) {
+  bool checkRTTableForSpoof(List<List<Node?>> rtTable, String node) {
     List<String> nodeIdC = node.split('');
     bool flag = true;
     for (int i = 0; i <= 2; i++) {
       for (int j = 0; j <= 39; j++) {
         if (rtTable[i][j] != null) {
-          List<String> tableNodeIdC = rtTable[i][j]!.hashID.split('');
+          List<String> tableNodeIdC = rtTable[i][j]!.nodeID.hashID.split('');
           if (j == 0) {
             if (nodeIdC[0] == tableNodeIdC[0]) {
               flag = false;
