@@ -18,30 +18,25 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 
-class Node {
+class SMNode {
   //this node class is made to collect data from all places, represent a network node which can send a message to another node , via a relay.
-  nodeid.NodeID
-  nodeID; //node id is defined inside Node and get detailes of NodeID , unique ID of node which come from library of nodeid_base
-  EndpointAddress
-  endpoint; //to get data form endpoint , IP and Port info, were node exit in network
-  bool
-  isBehindNAT; //we get it from the other module , tells is T/F that is node behind NAT,not direct access
-  String?
-  proxyAddress; //IP address of proxy server , if behind NAT then IP and port will save here , connect through proxy
-  int? proxyPort; //port number of proxy server
+  nodeid.NodeID   nodeID; //node id is defined inside Node and get detailes of NodeID , unique ID of node which come from library of nodeid_base
+  EndpointAddress   endpoint; //to get data form endpoint , IP and Port info, were node exit in network
+  //bool   isBehindNAT; //we get it from the other module , tells is T/F that is node behind NAT,not direct access
+ // String?   proxyAddress; //IP address of proxy server , if behind NAT then IP and port will save here , connect through proxy
+ // int? proxyPort; //port number of proxy server
   String? sessionKey; //for encrypted communication
   TcpConnection? tcpConnection; //active TCP connection object
-  final B4RoutingTable
-  _b4RoutingTable; //routing table is required for making nextHop
+  final B4RoutingTable   _b4RoutingTable; //routing table is required for making nextHop
 
-  Node({
+  SMNode({
     //this conctructor initilize the node data either direct or behind NAT and inject RT use for lookup
     required this.nodeID,
     required this.endpoint,//Node ip /port info
     required B4RoutingTable b4RoutingTable,
-    this.isBehindNAT = false,
-    this.proxyAddress,
-    this.proxyPort,
+  //  this.isBehindNAT = false,
+  //  this.proxyAddress,
+  //  this.proxyPort,
   }) : _b4RoutingTable = b4RoutingTable;
   
   // //escaping is being done here so when we put /s in start and /e at end. 
@@ -116,15 +111,14 @@ class Node {
     }
 
     // Step 3: Determine relay usage (override passed `relayRequired` if needed)
-    final useRelay = nextHopNode.nodeID.natStatus != 0;
+   // final useRelay = nextHopNode.nodeID.natStatus != 0;
+    final useRelay = nextHopNode.endpointAddress.proxyipv4;
 
     // Step 4: Prepare endpoint
     //final ip = useRelay ? nextHopNode.endpointAddress.relayIP : nextHopNode.endpointAddress.directIP;
-    final ip = useRelay ? nextHopNode.endpointAddress.publicipv4 : nextHopNode.endpointAddress.publicipv6;
+    final ip = useRelay! ? nextHopNode.endpointAddress.publicipv4 : nextHopNode.endpointAddress.publicipv6;
 
-    final port = useRelay
-        ? nextHopNode.endpointAddress.publicipv4port
-        : nextHopNode.endpointAddress.publicipv6port;
+    final port = useRelay ? nextHopNode.endpointAddress.publicipv4port : nextHopNode.endpointAddress.publicipv6port;
   //  final port = useRelay
   //      ? nextHopNode.endpointAddress.relayPort
   //      : nextHopNode.endpointAddress.directPort;

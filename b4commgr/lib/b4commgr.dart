@@ -15,13 +15,14 @@ import 'dart:typed_data';
 import 'package:b4utils/bufferdata.dart'; // =====> all the buffer data in one instance
 import 'package:b4utils/messagefactory.dart'; // ====> Message creation and packaging
 
-import 'package:b4rttable/routingmanager.dart';
 import 'package:b4rttable/b4rttable.dart';
 import 'package:nodeid/src/nodeid_base.dart';
 import 'package:b4commgr/udpPkg.dart';
 import 'package:b4commgr/networkInformation.dart';
 import 'package:b4commgr/config.dart';
 import 'package:b4connection/TcpConnection.dart';
+
+import 'endPointAddress.dart';
 
 
 // A Queue to act as the RM buffer
@@ -282,7 +283,7 @@ class CommunicationManager {
                 try {
                     // Use routing table to find next hop
                     String nextHopId = rt.nextHop(destinationId, rt.RoutingTable);
-                    NodeID? nextHopNode = rt.findNode(nextHopId, rt.RoutingTable);
+                    Node? nextHopNode = rt.findNode(nextHopId, rt.RoutingTable);
                     //no next hop
                     if (nextHopNode == null) {
                         print("Next hop node not found in routing table.");
@@ -294,8 +295,8 @@ class CommunicationManager {
                         print(
                             "No next hop. Message added to peer buffer for $destinationId");
                     } else {
-                        final ip = nextHopNode.publicIpv4;
-                        final port = nextHopNode.listeningPort;
+                        final ip = nextHopNode.endpointAddress.publicipv4;
+                        final port = nextHopNode.endpointAddress.publicipv4port;
                         if (ip == null) {
                             print("Invalid endpoint information for node $nextHopId");
                             return;
@@ -316,22 +317,21 @@ class CommunicationManager {
                 print(" proxy");
                 // proxy node logic
                 if (message['type'] == "relay_registration_request") {
-                    NodeID? destNode =
-                    await rt.findNodeByHash('rttable1.json', destinationId);
+                    Node? destNode = await rt.findNodeByHash('rttable1.json', destinationId);
                     if (destNode == null) {
                         print("next hop node is null");
                         return;
                     }
-                    print("destination = ${destNode.hashID}");
-                    print("${destNode!.publicIpv4!}::${destNode.publicIpv4Port!}");
+                    print("destination = ${destNode.nodeID.hashID}");
+                    print("${destNode.endpointAddress.publicipv4!}::${destNode.endpointAddress.publicipv4port!}");
                     //-------
                     final raw = RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
                     raw.then((socket) {
                         print('UDP sender using port ${socket.port}');
                         int sent = socket.send(
                             utf8.encode(jsonEncode(message)),
-                            InternetAddress(destNode!.publicIpv4!),
-                            destNode!.publicIpv4Port!);
+                            InternetAddress(destNode.endpointAddress.publicipv4!),
+                            destNode.endpointAddress.publicipv4port!);
                         print('Message sent:${sent}');
                         socket.close();
                     });

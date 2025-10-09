@@ -8,16 +8,16 @@ class NodeID {
   late String hashID;
   late ECSignature sign;
   late String publicKeyPem ;
-  late String? localIpv4=null;
-  late String? publicIpv4=null;
-  late String? publicIpv6=null;
-  late int? natStatus=null;
-  late int? localIpv4Port=null;
-  late int? publicIpv4Port=null;
-  late int? publicIpv6Port=null;
-  late String? communicatorIP=null;
-  late int? communicatorPort=null;
-  late int listeningPort=22800;
+  //late String? localIpv4=null;
+ // late String? publicIpv4=null;
+ // late String? publicIpv6=null;
+//  late int? natStatus=null;
+//  late int? localIpv4Port=null;
+//  late int? publicIpv4Port=null;
+ // late int? publicIpv6Port=null;
+//  late String? communicatorIP=null;
+//  late int? communicatorPort=null;
+ // late int listeningPort=22800;
   var keyp;
 
   NodeID(AsymmetricKeyPair keyPair) {
@@ -58,11 +58,11 @@ class NodeID {
   };
 
   /// Override the toString() method to define how the object should be printed
-  @override
-  String toString() => jsonEncode(toJson());
+//  @override
+ // String toString() => jsonEncode(toJson());
 
 
-  NodeID.createFromTable(this.publicKeyPem,this.sign,this.hashID,this.pubKey,this.localIpv4,this.publicIpv4,this.publicIpv6,this.natStatus,this.localIpv4Port,this.publicIpv4Port,this.publicIpv6Port,this.communicatorIP,this.communicatorPort,this.listeningPort);
+ // NodeID.createFromTable(this.publicKeyPem,this.sign,this.hashID,this.pubKey,this.localIpv4,this.publicIpv4,this.publicIpv6,this.natStatus,this.localIpv4Port,this.publicIpv4Port,this.publicIpv6Port,this.communicatorIP,this.communicatorPort,this.listeningPort);
 }
 
 class LocalNodeID {

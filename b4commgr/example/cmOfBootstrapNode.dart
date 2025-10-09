@@ -4,7 +4,7 @@ import 'package:b4rttable/routingmanager.dart';
 
 void main () async {
 
-  RoutingManager routingManager=RoutingManager.instance;
+  //RoutingManager routingManager=RoutingManager.instance;
 
 
 // // Then give the stunIp and Port to identify the network environment.

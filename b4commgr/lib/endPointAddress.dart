@@ -8,30 +8,30 @@ class EndpointAddress {
 
   /// Public IPv4 address. Should not be loopback, link-local, or multicast.
   /// (May not be loopback (127.0.0.0/8 or ::1), link-local (169.254.0.0/16 or fe80::/10), or link-local multicast (224.0.0.0/24 or ff02::/16).)
-  final String? publicipv4;
+  String? publicipv4;
 
   /// Public IPv6 address. Should not be loopback, link-local, or multicast.
   /// (May not be loopback (127.0.0.0/8 or ::1), link-local (169.254.0.0/16 or fe80::/10), or link-local multicast (224.0.0.0/24 or ff02::/16).)
-  final String? publicipv6;
+  String? publicipv6;
 
   /// Port number for public IPv4 communication.
-  final int? publicipv4port;
+  int? publicipv4port;
 
   /// Port number for public IPv6 communication.
-  final int? publicipv6port;
+  int? publicipv6port;
 
   /// Indicates whether IPv4 is being proxied.
-  final bool? proxyipv4;
+  bool? proxyipv4;
 
   /// Indicates whether IPv6 is being proxied.
-  final bool? proxyipv6;
+  bool? proxyipv6;
 
   /// Communication protocol (UDP or TCP). Defaults to TCP.
-  final String protocol;
+  String protocol;
 
   /// Constructor for [EndpointAddress].
   /// Default constructor.
-  const EndpointAddress({
+  EndpointAddress({
     required NodeID nodeID,
     this.publicipv4,
     this.publicipv6,
