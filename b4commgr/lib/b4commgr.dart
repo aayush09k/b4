@@ -21,7 +21,7 @@ import 'package:b4commgr/udpPkg.dart';
 import 'package:b4commgr/networkInformation.dart';
 import 'package:b4commgr/config.dart';
 import 'package:b4connection/TcpConnection.dart';
-
+import 'package:b4rttable/routingmanager.dart';
 import 'endPointAddress.dart';
 
 
@@ -35,28 +35,31 @@ Queue<List> cmInternalBufferQueue = Queue<List>();
 // A class for node to node communication.
 class CommunicationManager {
 
+
     // For each of the other nodeIDs,
     // a separate connection instance is to be created, as connections are bound to nodeIDs of the other nodes.
-    static late final LocalNodeID _localNodeID;
-    late final B4RoutingTable rt;
-    LocalNodeID localNodeID;
+ //   static late final NodeID _localNodeID;
+ //   late final B4RoutingTable rt;
+ //   NodeID localNodeID;
     // Private static instance of the CommunicationManager
- //   static final CommunicationManager _instance = CommunicationManager._internal();
-    static final CommunicationManager _instance = CommunicationManager._internal(_localNodeID);
+    static final CommunicationManager _instance = CommunicationManager._internal();
+ //   static final CommunicationManager _instance = CommunicationManager._internal(_localNodeID);
     // Private constructor
- //   CommunicationManager._internal();
-    CommunicationManager._internal(this.localNodeID) {
-    rt = B4RoutingTable(localNodeID);
-  }
+    CommunicationManager._internal();
+ //   CommunicationManager._internal(this.localNodeID) {
+ //   rt = B4RoutingTable(localNodeID);
+  //}
 
     // Factory constructor to access the singleton instance
-   // factory CommunicationManager() {
-   //     return _instance;
-  //  }
-    factory CommunicationManager(LocalNodeID localNodeID) {
-        _localNodeID = localNodeID;
+    factory CommunicationManager() {
         return _instance;
     }
+  //  factory CommunicationManager(NodeID localNodeID) {
+ //       _localNodeID = localNodeID;
+ //       return _instance;
+ //   }
+    //Load the basic RT table
+    List<List<Node>> rt = RoutingManager.routingTables[0] as List<List<Node>>;
 
     // Objects of other classes
     final messagefactory = MessageFactory();
@@ -282,15 +285,19 @@ class CommunicationManager {
                 print("isproxy");
                 try {
                     // Use routing table to find next hop
-                    String nextHopId = rt.nextHop(destinationId, rt.RoutingTable);
-                    Node? nextHopNode = rt.findNode(nextHopId, rt.RoutingTable);
+                    String nextHopId = B4RoutingTable.empty().nextHop(destinationId, rt);
+                    Node? nextHopNode = B4RoutingTable.empty().findNode(destinationId, rt);
+                 //   String nextHopId = rt.nextHop(destinationId, rt.RoutingTable);
+                  //  Node? nextHopNode = rt.findNode(nextHopId, rt.RoutingTable);
                     //no next hop
                     if (nextHopNode == null) {
                         print("Next hop node not found in routing table.");
                         return;
                     }
                     //next hop os self
-                    if (nextHopId == rt.localIdb!.nodeid.hashID) {
+                  //  if (nextHopId == rt.localIdb!.nodeid.hashID) {
+                //    if (nextHopId == rt.localIdb!.hashID) {
+                    if (nextHopId == B4RoutingTable.empty().localIdb!.hashID) {
                         buffer.pushToPeerBuffer(destinationId, message);
                         print(
                             "No next hop. Message added to peer buffer for $destinationId");
@@ -317,7 +324,8 @@ class CommunicationManager {
                 print(" proxy");
                 // proxy node logic
                 if (message['type'] == "relay_registration_request") {
-                    Node? destNode = await rt.findNodeByHash('rttable1.json', destinationId);
+                    Node? destNode = await B4RoutingTable.empty().findNodeByHash('rttable1.json', destinationId);
+                //    Node? destNode = await rt.findNodeByHash('rttable1.json', destinationId);
                     if (destNode == null) {
                         print("next hop node is null");
                         return;
@@ -422,8 +430,8 @@ class CommunicationManager {
                     }
                 } else {
                     //if destination hash not matched with node
-
-                    String nexthophash = rt.nextHop(dhash, rt.RoutingTable);
+                    String nexthophash = B4RoutingTable.empty().nextHop(dhash, rt);
+                 //   String nexthophash = rt.nextHop(dhash, rt.RoutingTable);
                     Map<String, dynamic> proxyMessage =
                     MessageFactory.wrapProxyDestination(
                         proxyHash: nexthophash, message: receivedData);
