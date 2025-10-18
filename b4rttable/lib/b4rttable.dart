@@ -22,11 +22,12 @@ class B4RoutingTable {
   Map<Node, int>? onHoldNodes;
   Map<String, Duration> mRtt = {};
   String? LayerID;
-  LocalNodeID?   localIdb; //this is just a variable of type LocalNodeID: NOT an OBJECT
+  NodeID?   localIdb; //this is just a variable of type LocalNodeID: NOT an OBJECT
   // localIdb gets initialied when the B4RoutingTable's Object is created ie. Constructor is Called
   // and this constructor is called after the peer joins the Network and its LocalNodeID is created.
 
   ///creating a sample Routing Table with 3 rows and 40 columns: each column represents a node at different level
+  //List<List<Node?>> RoutingTable =
   List<List<Node?>> RoutingTable = List.generate(3, (_) => List.filled(40, null)); // To be removed later.
   List<Node?> neibhourTable = List.generate(16, (index) => null);
   List<Node?> latLongTable = List.generate(16, (index) => null);
@@ -39,6 +40,7 @@ class B4RoutingTable {
   ///
   /// it is constructor in which local node is passed as a parameter.
   B4RoutingTable(this.localIdb) : onHoldNodes = {};
+  B4RoutingTable.empty() : onHoldNodes = {};
 
   /// This function receives Routing table of other node and has access to the local Routing table.
   /// It checks for each nodeID in RT and update it's own local Routing table, based on the routing algorithm(chord-tapestry).
@@ -62,7 +64,8 @@ class B4RoutingTable {
         }
         Node? node = rtTable[i][j];
         //check if the node is not NULL and is not the local node
-        if (node != null && node.nodeID.hashID != localIdb!.nodeid.hashID) {
+      //  if (node != null && node.nodeID.hashID != localIdb!.nodeid.hashID) {
+        if (node != null && node.nodeID.hashID != localIdb!.hashID) {
           // Check if the node is present in the onHoldNodes map
           // If yes: ping it: if it replies, add it to the mainList
           // If no: do not add it to the mainList
@@ -111,7 +114,8 @@ class B4RoutingTable {
     // 2. add the nodes to the local routing table
     // 3. move to the next nibble
     for (int i = 0; i < 40; i++) {
-      String prefix = localIdb!.nodeid.hashID.substring(0, i + 1);
+     // String prefix = localIdb!.nodeid.hashID.substring(0, i + 1);
+      String prefix = localIdb!.hashID.substring(0, i + 1);
       List<List<Node>> splitList = helper_updateRtTable(mainList, prefix);
 
       mainList = splitList[0]; //updated mainList with matching nodes
@@ -130,8 +134,8 @@ class B4RoutingTable {
               .compareTo(BigInt.parse(b.nodeID.hashID, radix: 16)));
       // Now we have a SORTED list of nodes that DONOT match the prefix
       // We will now update the local routing table COLUMN i with these nodes
-
-      int insertPosition = helper_updateRtTable_findInsertPosition(nonMatching, localIdb!.nodeid.hashID); //passing the local nodeID hashID
+    //  int insertPosition = helper_updateRtTable_findInsertPosition(nonMatching, localIdb!.nodeid.hashID);
+      int insertPosition = helper_updateRtTable_findInsertPosition(nonMatching, localIdb!.hashID); //passing the local nodeID hashID
       int mid = nonMatching.length ~/ 2;
       // ~/ : integer division
       // / : floating point division
@@ -151,24 +155,25 @@ class B4RoutingTable {
         RoutingTable[2][i] = nonMatching[finalMid];
       } else {
         // If the column is not null, we need to compare the distance
+        //localIdb!.nodeid.hashID is used here as localIdb!.hashID
         if (calculateDistanceHopbyHashId(nonMatching[insertPosition - 1].nodeID.hashID,
-            localIdb!.nodeid.hashID) <
+            localIdb!.hashID) <
             calculateDistanceHopbyHashId(
-                RoutingTable[0][i]!.nodeID.hashID, localIdb!.nodeid.hashID)) {
+                RoutingTable[0][i]!.nodeID.hashID, localIdb!.hashID)) {
           // If the distance of the new node is less than the existing node, replace it
           RoutingTable[0][i] = nonMatching[insertPosition - 1];
         }
         if (calculateDistanceHopbyHashId(
-            nonMatching[insertPosition].nodeID.hashID, localIdb!.nodeid.hashID) <
+            nonMatching[insertPosition].nodeID.hashID, localIdb!.hashID) <
             calculateDistanceHopbyHashId(
-                RoutingTable[1][i]!.nodeID.hashID, localIdb!.nodeid.hashID)) {
+                RoutingTable[1][i]!.nodeID.hashID, localIdb!.hashID)) {
           // If the distance of the new node is less than the existing node, replace it
           RoutingTable[1][i] = nonMatching[insertPosition];
         }
         if (calculateDistanceHopbyHashId(
-            nonMatching[finalMid].nodeID.hashID, localIdb!.nodeid.hashID) <
+            nonMatching[finalMid].nodeID.hashID, localIdb!.hashID) <
             calculateDistanceHopbyHashId(
-                RoutingTable[2][i]!.nodeID.hashID, localIdb!.nodeid.hashID)) {
+                RoutingTable[2][i]!.nodeID.hashID, localIdb!.hashID)) {
           // If the distance of the new node is less than the existing node, replace it
           RoutingTable[2][i] = nonMatching[finalMid];
         }
@@ -304,7 +309,8 @@ class B4RoutingTable {
 
     // Remove node from routing table with backup node replacement
     List<String> nodeIdChars = node.nodeID.hashID.split('');
-    List<String> localNodeIdChars = localIdb!.nodeid.hashID.split('');
+    //List<String> localNodeIdChars = localIdb!.nodeid.hashID.split('');
+    List<String> localNodeIdChars = localIdb!.hashID.split('');
 
     // Find the first differing digit between the nodes
     for (int i = 0; i < 40; i++) {
@@ -436,12 +442,14 @@ class B4RoutingTable {
   //String nextHop(String hashID, List<List<NodeID?>> localRTtable, {required bool useDHT}) {
   String nextHop(String hashID, List<List<Node?>> localRTtable) {
     // if hashID matches with local nodeID then return local nodeID as root nodeID.Otherwise proceed to else condition of the code.
-    if (localIdb!.nodeid.hashID == hashID) {
-      return localIdb!.nodeid.hashID; // current node is the Destination node
+    //if (localIdb!.nodeid.hashID == hashID) {
+    if (localIdb!.hashID == hashID) {
+      return localIdb!.hashID; // current node is the Destination node
     }
 
     List<String> hashIdC = hashID.split('');
-    String localNodeId = localIdb!.nodeid.hashID;
+    //String localNodeId = localIdb!.nodeid.hashID;
+    String localNodeId = localIdb!.hashID;
     List<String> localNodeIdC = localNodeId.split('');
     List<int>? distanceHashId = [
       0,

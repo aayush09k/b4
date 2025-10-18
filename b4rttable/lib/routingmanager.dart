@@ -3,7 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:core';
 import 'dart:io';
-
+import 'dart:math';
 // Importing libraries from external packages
 import 'package:basic_utils/basic_utils.dart';
 import 'package:path/path.dart' as p;
@@ -25,7 +25,11 @@ class RoutingManager {
   int? natStatus;
   int? layers;
   late Node _localNode;
-  Map<String, B4RoutingTable> routingTables = {};
+  late Node bootStrapNodeID;
+  //CommunicationManager manager;
+   static Map<String, B4RoutingTable> routingTables = {};
+  //Map<String, List<List<Node?>>> routingTables = {};
+  //List<List<Node?>>routingTables=null;
 
   /*
     0 - Base layer
@@ -38,14 +42,15 @@ class RoutingManager {
 
   Map<String, B4RoutingTable> neighbourTables = {};
   Map<String, B4RoutingTable> latLongTables = {};
-  CommunicationManager manager = CommunicationManager();
+
+  //CommunicationManager manager = CommunicationManager();
   ConnectivityMonitor monitor = ConnectivityMonitor();
   DataBuffer dataBuffer = DataBuffer();
 
   bool flag = false;
 
   RoutingManager._internal(String filePath,int layers,int port, String nodeId,dynamic nodeIdSign, dynamic nodeIdPubK, dynamic publicIpv4, dynamic publicIpv6, dynamic localIpv4, Map bsNode) {
-    rtFilePath = "${filePath}rtTable.json"; // the path where routing table file will be stored as json.
+    rtFilePath = "${filePath}rtTable0.json"; // the path where routing table file will be stored as json.
     // comment the code 
     //_localNodeID = LocalNodeID();
     _localNode.nodeID.hashID = nodeId;
@@ -70,6 +75,8 @@ class RoutingManager {
       _localNode.endpointAddress.protocol="TCP";
 
     }
+ //   CommunicationManager manager = CommunicationManager();
+
 //the above code  for setting the bootstrap node id
     init(rtFilePath!, layers, bsNode);
   }
@@ -87,21 +94,33 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
 
   Future<void> init(String filePath, int layers, Map bsNode) async {
     // Check if the file exists;
-    NodeID? bootStrapNodeID;
+  //  late Node bootStrapNodeID;
 
     if (File(filePath).existsSync()) {
-
+         // load the all rt file
       // Perform actions related to the existing file,check liveliness of nodes.
     } else {
-
+      // Initialize routing tables for all layers
       for (int i = 0; i <= layers; i++) {
-        routingTables[i.toString()] = B4RoutingTable(_localNode.nodeID as LocalNodeID?);
+        routingTables[i.toString()] = B4RoutingTable(_localNode.nodeID);
+         // routingTables[i.toString()] = List.generate(3, (_) => List.filled(40, null));
       }
     }
-
     // Skip as flag=true for botsTrapNode.
     if (flag == false) {
-      bootStrapNodeID = NodeID.createFromTable(
+      bootStrapNodeID.nodeID.hashID=bsNode['bSHash'];
+      bootStrapNodeID.nodeID.pubKey=bsNode['bSPub'];
+      bootStrapNodeID.nodeID.publicKeyPem=bsNode['bSPublicKeyPem'];
+      bootStrapNodeID.nodeID.sign=bsNode['bSNodeIdSign'];
+      bootStrapNodeID.endpointAddress.publicipv4=bsNode['bSPublicIpv4'];
+      bootStrapNodeID.endpointAddress.publicipv4port=bsNode['bSpublicIpv4Port'];
+      bootStrapNodeID.endpointAddress.publicipv6=bsNode['bSPublicIpv6'];
+      bootStrapNodeID.endpointAddress.publicipv6port=bsNode['bSpublicIpv6Port'];
+      bootStrapNodeID.endpointAddress.proxyipv4=bsNode['bSnatStatus'];
+      bootStrapNodeID.endpointAddress.proxyipv6=bsNode['bSnatStatus'];
+      bootStrapNodeID.endpointAddress.protocol="TCP";
+
+    /*  bootStrapNodeID = NodeID.createFromTable(
       bsNode['bSPublicKeyPem'],
       bsNode['bSNodeIdSign'],
       bsNode['bSHash'],
@@ -116,10 +135,12 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
       bsNode['bSCommunicatorIP'],
       bsNode['bSCommunicatorPort'],
       bsNode['bSListeningPort']);
+      */
     }
 
     // not required this can be taken place when socket opens in com mgr
     if (flag == true) {
+      //start cm port to listen mode to write message to in buffer
       //  manager.activateNode(null, null, localNodeID.nodeid.listeningPort, 1, null,null);
     }
 
@@ -128,15 +149,17 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
 
     //  await manager.activateNode(bootStrapNodeID!.publicIpv4,bootStrapNodeID.listeningPort,localNodeID.nodeid.listeningPort, natStatus, bootStrapNodeID.hashID,null); // hard code boots
       await Future.delayed(const Duration(seconds: 3));
+
+      // create message RM via message factory and send messgae RM via write message to cm out buffer. cm send to bootstrap node
       await sendMessageRM(
           'RM',
           "D",
-          localNodeID.nodeid,
+          _localNode.nodeID,
           "hashID",
           "s",
           "current",
           "natStatus",
-          bootStrapNodeID!,
+          bootStrapNodeID.nodeID,
           "myEndpoint",
           "0",
           'Y');
@@ -146,7 +169,8 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
     Timer.periodic(const Duration(minutes: 5),
             (Timer t) => sendPeriodicUpdate(routingTables["0"]!.RoutingTable));
   }
-
+/*
+  // Create message RM
   String createMessageRM(String rM,
       String reLay,
       NodeID myNodeID,
@@ -264,7 +288,6 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
     String jsonStringMyNode = jsonEncode(jsonMyNodeId);
 
     // Convert to JSON String
-
     Map<String, dynamic> messageRM = {
       'RM': "RM",
       'Relay': "R",
@@ -284,6 +307,8 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
     return jsonMessageRM;
   }
 
+
+  //send message RM
   Future<void> sendMessageRM(String rM,
       String reLay,
       NodeID myNodeID,
@@ -340,7 +365,9 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
     // await Future.delayed(Duration(milliseconds: 500));
     //  checkForMessagesCMExecution();
   }
-
+  //Sens Message rM
+  */
+/*
   Future<void> rMessageRM(dynamic rcvdMessage) async {
     Map<String, dynamic> decodedMessageRM = jsonDecode(rcvdMessage);
 
@@ -427,17 +454,17 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
     if (reqRT == 'P') {
       for (int i = 0; i < 40; i++) {
         if (sendersNodeID.hashID.split('') !=
-            localNodeID.nodeid.hashID.split('')[i]) {
+            _localNode.nodeID.hashID.split('')[i]) {
           if (!((nodeList[0][i] != null &&
-              nodeList[0][i]!.hashID == localNodeID.nodeid.hashID) ||
+              nodeList[0][i]!.hashID ==  _localNode.nodeID.hashID) ||
               (nodeList[1][i] != null &&
-                  nodeList[1][i]!.hashID == localNodeID.nodeid.hashID) ||
+                  nodeList[1][i]!.hashID ==  _localNode.nodeID.hashID) ||
               (nodeList[2][i] != null &&
-                  nodeList[2][i] == localNodeID.nodeid.hashID))) {
+                  nodeList[2][i] ==  _localNode.nodeID.hashID))) {
             await sendMessageRM(
                 'RM',
                 "D",
-                localNodeID.nodeid,
+                _localNode.nodeID,
                 "hashID",
                 "s",
                 "current",
@@ -452,7 +479,8 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
       }
     }
   }
-
+// end rmessage
+  */
   Future<void> checkForMessagesCMExecution() async {
     const duration = Duration(seconds: 2); // Adjust duration as needed
     Timer.periodic(duration, (timer) {
@@ -463,6 +491,7 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
 
   Future<void> handleForMessages() async {
     //dynamic messageFromCMBuffer = dataBuffer.pullIntemp();
+   // Read message from rm buffer and process
     dynamic messageFromCMBuffer = dataBuffer.pullrmBuffer();
     print(messageFromCMBuffer);
     if (messageFromCMBuffer != null) {
@@ -472,6 +501,7 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
       if (rM != 'RM') {
         dataBuffer.pushrmBuffer(messageFromCMBuffer);
       } else {
+        //write message to cm out buffer send to next node
         rMessageRM(messageFromCMBuffer);
       }
     } else {
@@ -490,55 +520,63 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
     routingTables[layerId]!.updateRtTable( newRoutingTable);
   }
 
-  void sendPeriodicUpdate(List<List<NodeID?>> rtTable) {
+  void sendPeriodicUpdate(List<List<Node?>> rtTable) {
     for (int i = 0; i <= 39; i++) {
       for (int j = 0; j <= 39; j++) {
         if (rtTable[i][j] != null) {
-          if (rtTable[i][j]!.natStatus == 0) {
+          if (rtTable[i][j]!.endpointAddress.proxyipv4 == 0) {
+
+            // create message RM  periodic update via message factory and write message to cm out buffer.
+
             String message = createMessageRM(
                 "RM",
                 "Relay",
-                localNodeID.nodeid,
+                _localNode.nodeID,
                 "hashID",
                 "s",
                 "current",
                 "R",
-                rtTable[i][j]!,
+                rtTable[i][j]!.nodeID,
                 "myEndpoint",
                 "0",
                 "P");
+            //send message via calling CM
             manager.communicate(
-                rtTable[i][j]!.communicatorIP,
-                rtTable[i][j]!.communicatorPort,
+                rtTable[i][j]!.endpointAddress.publicipv4,
+               // rtTable[i][j]!.communicatorPort,
+                rtTable[i][j]!.endpointAddress.publicipv4port,
                 "TP",
                 message,
-                rtTable[i][j]!.hashID);
+                rtTable[i][j]!.nodeID.hashID);
           } else {
             if (rtTable[i][j] != null) {
               int? port;
               String? ip;
-              if (rtTable[i][j]!.natStatus != 0) {
+              if (rtTable[i][j]!.endpointAddress.proxyipv4 != 0) {
+
+                // create message RM  periodic update via message factory and write message to cm out buffer.
+
                 String message = createMessageRM(
                     "RM",
                     "Relay",
-                    localNodeID.nodeid,
+                    _localNode.nodeID,
                     "hashID",
                     "s",
                     "current",
                     "R",
-                    rtTable[i][j]!,
+                    rtTable[i][j]!.nodeID,
                     "myEndpoint",
                     "0",
                     "P");
-                if (rtTable[i][j]!.publicIpv6 == null) {
-                  ip = rtTable[i][j]!.publicIpv4;
-                  port = rtTable[i][j]!.publicIpv4Port;
+                if (rtTable[i][j]!.endpointAddress.publicipv6 == null) {
+                  ip = rtTable[i][j]!.endpointAddress.publicipv4;
+                  port = rtTable[i][j]!.endpointAddress.publicipv4port;
                 } else {
-                  ip = rtTable[i][j]!.publicIpv6;
-                  port = rtTable[i][j]!.publicIpv6Port;
+                  ip = rtTable[i][j]!.endpointAddress.publicipv6;
+                  port = rtTable[i][j]!.endpointAddress.publicipv6port;
                 }
                 manager.communicate(
-                    ip, port, "D", message, rtTable[i][j]!.hashID);
+                    ip, port, "D", message, rtTable[i][j]!.nodeID.hashID);
               }
             }
           }
@@ -598,7 +636,7 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
       //B4RoutingTable newRoutingTable = B4RoutingTable(localNodeID);
       for (int i = 0; i <= layers; i++) {
         //print("$i ......");
-        routingTables[i.toString()] = B4RoutingTable(localNodeID);
+        routingTables[i.toString()] = B4RoutingTable(_localNode.nodeID);
       }
       print(routingTables);
 
