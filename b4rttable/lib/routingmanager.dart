@@ -98,13 +98,16 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
 
     if (File(filePath).existsSync()) {
          // load the all rt file
+
       // Perform actions related to the existing file,check liveliness of nodes.
     } else {
       // Initialize routing tables for all layers
       for (int i = 0; i <= layers; i++) {
         routingTables[i.toString()] = B4RoutingTable(_localNode.nodeID);
          // routingTables[i.toString()] = List.generate(3, (_) => List.filled(40, null));
+
       }
+
     }
     // Skip as flag=true for botsTrapNode.
     if (flag == false) {
@@ -481,6 +484,7 @@ factory RoutingManager(String filePath,int layers,int port, String nodeId, dynam
   }
 // end rmessage
   */
+
   Future<void> checkForMessagesCMExecution() async {
     const duration = Duration(seconds: 2); // Adjust duration as needed
     Timer.periodic(duration, (timer) {
