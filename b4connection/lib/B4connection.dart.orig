@@ -1,0 +1,179 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:b4utils/bufferdata.dart';
+import 'TcpConnection.dart';
+
+class B4connection {
+// This class is used to
+// 1. Establish a complete communication pathway between nodes,
+//    either with direct connections or by utilising their reRouter nodes.
+// 2. to setup a server.
+// 3. setup a listener for sockets and corresponding nodeId.
+// 3. Setup a listener to receive incoming messages, either directly or through a reRouter node.
+// 5. Send message to other node as configured in the connection.
+// 6. Receive message from other node as configured in the connection and add received messages in the common buffer of cm module.
+
+
+
+    //Declaration of all required variables.
+
+    Timer? _inactivityTimer; // Timer used to delete the b4connection instance if the connection is not used before the timer expiry.
+
+    String? _type;
+    //It stores the input from the user.It helps in connection and messaging.
+    // type can be 'TP=when someone wants to relay to NATed node via proxy(relay=yes)',
+    // 'MP=when you are NATed node and you need to connect to your proxy(relay registration)',
+    // 'D and else anything= for public nodes . for direct connection to each other(relay=no)'.
+
+
+
+    // Below two very important variable for each instance of b4connection.
+    String? _remoteNodeID; // The remote node ID to whom one want to send the message or relay the message.
+    Socket? _nodeIdSocket; // it will be fixed and unique after creating the b4connection instance.
+    String? _myNodeId; // For each of b4connection instance you need to set this.
+
+    Function? onClosed; // Callback to execute when the connection is closed.
+    Map <Socket,dynamic> eliminate={};
+
+
+    //Instance of class used.
+    TcpConnection tcpClient =TcpConnection();
+    DataBuffer dataBuffer = DataBuffer();
+
+
+    void setMyNodeId(NodeID id) {
+        _myNodeId = id;
+    }
+
+    // When you receive or else you send you need to reset the timer for existence of the b4connection instance.
+    void _resetTimer() {
+        _inactivityTimer?.cancel();
+        _inactivityTimer = Timer(const Duration(minutes: 5), () {
+            // This code will execute after 5 minutes of inactivity
+            close();
+        });
+    }
+
+
+    //Below function can be use to connect with other peer.Here you have to give the type of connection 'TP(To proxy)','MP(be my proxy)','D'(direct connection).
+    Future<Socket?> startConnection(targetIp, targetPort, typeOfConnection,
+        remoteNodeId) async {
+        _remoteNodeID = remoteNodeId;
+        _type = typeOfConnection;
+
+        _nodeIdSocket = await tcpClient.connect(targetIp, targetPort);
+
+        await _bufferReceivingData();
+
+        return _nodeIdSocket;
+    }
+
+    //It is used to close the socket and triggers the callback function.
+    void close() {
+
+        if (_nodeIdSocket != null) {
+            tcpClient.closeConnection(_nodeIdSocket!);
+            if (onClosed != null) {
+                onClosed!(); // Trigger the callback when closing.
+            }
+        }
+
+        _inactivityTimer?.cancel();
+    }
+
+
+
+    // Listen data on socket.Received data put in common buffer of the CM module.
+    Future _bufferReceivingData() async {
+        if (_nodeIdSocket != null) {
+            await tcpClient.invokeListening((dynamic text, active) {
+                if (!active) {
+                  close();
+                } else{
+                dataBuffer.push(text['message']);
+                _resetTimer();
+                }
+            }, _nodeIdSocket!);
+        }
+    }
+
+
+    void setNodeSocket(Socket socket) {
+        _nodeIdSocket = socket;
+    }
+
+    // It listen for the receiving socket and Corresponding NodeId and help CM to create new instance correspond to the received nodeId.
+    Future receiveSocketAndCorrespondingNodeID(
+        Function(dynamic message, Socket socket,bool active) onDataReceived) async {
+        Socket? store;
+        await tcpClient.receiveSocketsFromCNode((socket) async {
+
+            await tcpClient.invokeListening((message, active) {
+
+                if(active){
+                    eliminate[socket]=message['myNodeID'];
+                    store =socket;
+                    if((message['type']==null)){
+                dataBuffer.push(message['message']);}
+                    else{
+                        if(message['type']=='TP'){}
+                        else{
+                            dataBuffer.push(message['message']);
+                        }
+                    }
+
+                onDataReceived(message['myNodeID'], socket,active);}
+                else{
+
+                    onDataReceived(eliminate[store], socket,active);
+                }
+
+            }, socket);
+        });
+    }
+
+
+    //sendMessage is used to sent message to any node either relayed msg or normal message.
+    //For different scenarios message function is developed in such a way that you can send your message to any node.
+    Future<void> sendMessage(message, typeOfConnection, remoteNodeID) async {
+        _type = typeOfConnection;
+        _remoteNodeID = remoteNodeID;
+
+        if (_nodeIdSocket != null) {
+            _resetTimer();
+            if (_type == 'TP') {
+                if (_remoteNodeID != null) {
+                    String toSend = tcpClient.createMessageJson(
+                        _type, _remoteNodeID, _myNodeId, message);
+                    await tcpClient.send(toSend, _nodeIdSocket!);
+                }
+                else {
+                    print('no relay connection exits');
+                }
+            }
+            else if (_type == 'D') {
+                String toSend = tcpClient.createMessageJson(
+                    _type,_remoteNodeID, _myNodeId, message);
+                await tcpClient.send(toSend, _nodeIdSocket!);
+            }
+            else if (_type == 'MP') {
+                String toSend = tcpClient.createMessageJson(
+                    _type,_remoteNodeID ,_myNodeId,message
+                    );
+
+                await tcpClient.send(toSend, _nodeIdSocket!);
+            }
+        }
+        else {
+            print('_nodeSocket is null');
+
+        }
+    }
+
+  //Use to start server .
+    Future<void> startNodeLiseNing(listeningPort) async {
+         await tcpClient.startASsNode(listeningPort);
+    }
+
+
+}

@@ -1,4 +1,3 @@
-
 //import 'package:b4rttable/routingmanager.dart';
 //import 'package:b4commgr/b4commgr.dart';
 
@@ -8,7 +7,7 @@ import 'package:nodeid/nodeid.dart';
 import 'package:basic_utils/basic_utils.dart';
 import 'package:pointycastle/ecc/api.dart';
 
-import '../lib/b4commgr.dart';
+import '../lib/testcomm.dart';
 
 // Example demonstrating access to Node fields
 void main() {
@@ -23,8 +22,12 @@ void main() {
     's': BigInt.parse('987654321087654321098765432109876543210'),
    };
    */
-   dynamic signature= (BigInt.parse('59113115870259811539959274853633452658244023164923021678175195815962387543400'),
-   BigInt.parse('82286668277613101558052527540933406110085242196986137870735735549510749303569'));
+  dynamic signature = (
+    BigInt.parse(
+        '59113115870259811539959274853633452658244023164923021678175195815962387543400'),
+    BigInt.parse(
+        '82286668277613101558052527540933406110085242196986137870735735549510749303569')
+  );
   // Create a NodeID with sample values
   final nodeID = NodeID.fromRaw(
     hashID: '24b7cced2e92a3a782698f59218c14e76e567f38',

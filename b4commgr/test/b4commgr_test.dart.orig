@@ -1,11 +1,11 @@
-import 'package:b4commgr/testcomm.dart';
+import 'package:b4commgr/b4commgr.dart';
 import 'package:test/test.dart';
 import 'package:b4utils/bufferdata.dart';
 
 void main() {
-  // CommunicationManager communicationManager = CommunicationManager();
+  CommunicationManager communicationManager = CommunicationManager();
   DataBuffer dataBuffer = DataBuffer();
-/*
+
   test('when you need  to Relay Behind NAT', () async {
     var message = 'hello brother';
     var proxyIp = '35.185.142.164';
@@ -125,7 +125,7 @@ void main() {
     var proxyPort = 22355;
     var remoteNodeId2 = 'macbook';
     await communicationManager.activateNode(
-        proxyIp, proxyPort, listeningPort, natStatus, remoteNodeId2,"");
+        proxyIp, proxyPort, listeningPort, natStatus, remoteNodeId2);
 
     //Now further you can send messages to any nodeID.
     //So here we have simulated the main purpose of communication manager.
@@ -133,5 +133,4 @@ void main() {
   }
 
   );
-  */
 }
