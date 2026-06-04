@@ -19,6 +19,7 @@ import 'package:b4rttable/b4rttable.dart';
 import 'package:nodeid/src/nodeid_base.dart';
 import 'package:b4commgr/udpPkg.dart';
 import 'package:b4commgr/networkInformation.dart';
+import 'package:b4commgr/stungetip.dart';
 import 'package:b4commgr/config.dart';
 import 'package:b4connection/TcpConnection.dart';
 import 'package:b4rttable/routingmanager.dart';
@@ -898,6 +899,135 @@ class CommunicationManager {
   bool isIPv6(String address) {
     final ipv6Regex = RegExp(r'^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$');
     return ipv6Regex.hasMatch(address);
+  }
+  // ── New functions added to implement professor's pseudocode ──────────────
+
+  Future<String> startServer(
+    int mode,
+    String localIPAddr,
+    int localPort,
+    String proxyIPAddr,
+    int proxyPort,
+  ) async {
+    if (mode == 0) {
+      return await _startNoCheck(localIPAddr, localPort);
+    } else {
+      return await _startWithStunCheck(
+          localIPAddr, localPort, proxyIPAddr, proxyPort);
+    }
+  }
+
+  void setMessageHandler(void Function(dynamic message) handler) {
+    _cmMessageHandler = handler;
+  }
+
+  void Function(dynamic message)? _cmMessageHandler;
+
+  Future<void> stopServer() async {
+    await _serverSocket?.close();
+    _serverSocket = null;
+  }
+
+  ServerSocket? _serverSocket;
+
+  Future<String> _startNoCheck(String ip, int port) async {
+    try {
+      final tcp = TcpConnection();
+      final serverSocket = await tcp.startASsNode(port);
+      if (serverSocket == null)
+        return 'FAIL: could not start server on $ip:$port';
+      _serverSocket = serverSocket as ServerSocket?;
+      print('[CM] Server started (no-check) on $ip:$port');
+      _listenForConnections(tcp);
+      return 'OK:$ip:$port';
+    } catch (e) {
+      return 'FAIL:$e';
+    }
+  }
+
+  Future<String> _startWithStunCheck(
+      String localIP, int localPort, String proxyIP, int proxyPort) async {
+    final stun = StunClient();
+    try {
+      await stun.initializeIpv4();
+      await stun.fetchPublicIPIpv4('stun.l.google.com', 19302);
+    } catch (e) {
+      return 'FAIL: STUN error — $e';
+    }
+    final publicIPAddr = stun.getPublicIPv4();
+    final publicPortNum = stun.getPublicPortIPv4();
+    final isNATed = !stun.NATcheckIpv4();
+    await stun.closeIpv4();
+
+    if (publicIPAddr == null || publicPortNum == null) {
+      return 'FAIL: STUN returned no address';
+    }
+
+    if (!isNATed) {
+      try {
+        final tcp = TcpConnection();
+        final serverSocket = await tcp.startASsNode(publicPortNum);
+        if (serverSocket == null) return 'FAIL: could not start server';
+        _serverSocket = serverSocket as ServerSocket?;
+        print(
+            '[CM] Server started (direct) on ${publicIPAddr.address}:$publicPortNum');
+        _listenForConnections(tcp);
+        return 'OK:${publicIPAddr.address}:$publicPortNum';
+      } catch (e) {
+        return 'FAIL:$e';
+      }
+    }
+    return await _proxySetup(proxyIP, proxyPort);
+  }
+
+  Future<String> _proxySetup(String proxyIP, int proxyPort) async {
+    try {
+      final socket = await Socket.connect(proxyIP, proxyPort)
+          .timeout(TimingConstants.proxySocketTimeout);
+      print('[CM] Connected to proxy $proxyIP:$proxyPort');
+      final regMessage = jsonEncode({'type': 'MP', 'action': 'register'});
+      socket.write(regMessage);
+      await socket.flush();
+      final completer = Completer<String>();
+      final buf = StringBuffer();
+      socket.listen(
+        (data) {
+          buf.write(utf8.decode(data));
+          try {
+            final decoded = jsonDecode(buf.toString()) as Map<String, dynamic>;
+            if (decoded.containsKey('pubIP') &&
+                decoded.containsKey('pubPort')) {
+              if (!completer.isCompleted)
+                completer
+                    .complete('OK:${decoded['pubIP']}:${decoded['pubPort']}');
+            }
+          } catch (_) {}
+        },
+        onError: (e) {
+          if (!completer.isCompleted) completer.complete('FAIL:$e');
+        },
+        onDone: () {
+          if (!completer.isCompleted)
+            completer.complete('FAIL: proxy closed without response');
+        },
+      );
+      return await completer.future.timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => 'FAIL: proxy registration timed out',
+      );
+    } catch (e) {
+      return 'FAIL:$e';
+    }
+  }
+
+  void _listenForConnections(TcpConnection tcp) {
+    tcp.receiveSocketsFromCNode((Socket socket) async {
+      print(
+          '[CM] Incoming from ${socket.remoteAddress.address}:${socket.remotePort}');
+      await tcp.invokeListening((message, active) {
+        if (active) _cmMessageHandler?.call(message);
+      }, socket);
+    });
   }
 
   /*
