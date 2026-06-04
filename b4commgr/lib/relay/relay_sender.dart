@@ -204,6 +204,7 @@ void main() async {
   );
 
   await sender.connect();
+  await Future.delayed(const Duration(seconds: 3));
 
   // Example: send a message every 5 seconds
   Timer.periodic(const Duration(seconds: 5), (_) async {
