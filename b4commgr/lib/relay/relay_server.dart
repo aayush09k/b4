@@ -37,20 +37,19 @@ import 'package:b4connection/TcpConnection.dart';
 // ── Config ─────────────────────────────────────────────────────────────────────
 
 class RelayServerConfig {
-  final int port;
-  final String? sharedSecret; // null = auth disabled (dev only)
-  final Duration
-      nodeTimeout; // silence → eviction (should be > heartbeat interval)
-  final int maxNodes;
-  final int maxConnectionsPerIp;
-  final int maxMessagesPerSecond;
+  final int    port;
+  final String? sharedSecret;        // null = auth disabled (dev only)
+  final Duration nodeTimeout;        // silence → eviction (should be > heartbeat interval)
+  final int    maxNodes;
+  final int    maxConnectionsPerIp;
+  final int    maxMessagesPerSecond;
 
   const RelayServerConfig({
-    this.port = 9000,
+    this.port                 = 9000,
     this.sharedSecret,
-    this.nodeTimeout = const Duration(seconds: 35),
-    this.maxNodes = 100,
-    this.maxConnectionsPerIp = 5,
+    this.nodeTimeout          = const Duration(seconds: 35),
+    this.maxNodes             = 100,
+    this.maxConnectionsPerIp  = 5,
     this.maxMessagesPerSecond = 50,
   });
 }
@@ -58,16 +57,16 @@ class RelayServerConfig {
 // ── Per-node record ────────────────────────────────────────────────────────────
 
 class _NodeRecord {
-  final String nodeId;
-  final Socket socket;
-  final String remoteAddr;
-  final String remoteIp;
+  final String   nodeId;
+  final Socket   socket;
+  final String   remoteAddr;
+  final String   remoteIp;
   final DateTime connectedAt = DateTime.now();
-  DateTime lastSeen = DateTime.now();
-  Timer? timeoutTimer;
+  DateTime       lastSeen    = DateTime.now();
+  Timer?         timeoutTimer;
 
   // Rate-limit state
-  int _msgCount = 0;
+  int    _msgCount      = 0;
   Timer? _rateResetTimer;
 
   _NodeRecord({
@@ -134,16 +133,11 @@ class RelayServer {
     // Copy to lists first — destroying sockets fires onClosed callbacks which
     // call _onSocketClosed → modifies _nodes. Iterating while modifying throws
     // "Concurrent modification during iteration".
-    final records = _nodes.values.toList();
+    final records  = _nodes.values.toList();
     final deadlines = _pendingDeadlines.values.toList();
 
-    for (final r in records) {
-      r.cancelTimers();
-      _destroySocket(r.socket);
-    }
-    for (final t in deadlines) {
-      t.cancel();
-    }
+    for (final r in records)   { r.cancelTimers(); _destroySocket(r.socket); }
+    for (final t in deadlines) { t.cancel(); }
 
     _nodes.clear();
     _ipCount.clear();
@@ -152,27 +146,25 @@ class RelayServer {
     _log('Stopped.');
   }
 
-  bool get isRunning => _running;
-  int get nodeCount => _nodes.length;
+  bool get isRunning  => _running;
+  int  get nodeCount  => _nodes.length;
 
   // ── New socket ─────────────────────────────────────────────────────────────
 
   Future<void> _onNewSocket(Socket socket) async {
     final remoteAddr = '${socket.remoteAddress.address}:${socket.remotePort}';
-    final remoteIp = socket.remoteAddress.address;
+    final remoteIp   = socket.remoteAddress.address;
 
     // Per-IP cap
     if ((_ipCount[remoteIp] ?? 0) >= config.maxConnectionsPerIp) {
       _log('✗ Reject $remoteAddr — too many from $remoteIp');
-      _destroySocket(socket);
-      return;
+      _destroySocket(socket); return;
     }
 
     // Global cap
     if (_nodes.length >= config.maxNodes) {
       _log('✗ Reject $remoteAddr — server full');
-      _destroySocket(socket);
-      return;
+      _destroySocket(socket); return;
     }
 
     _ipCount[remoteIp] = (_ipCount[remoteIp] ?? 0) + 1;
@@ -199,12 +191,11 @@ class RelayServer {
 
   // ── Message dispatch ───────────────────────────────────────────────────────
 
-  void _onMessage(
-      dynamic msg, Socket socket, String remoteAddr, String remoteIp) {
-    final type = msg['type'] as String?;
-    final nodeId = msg['myNodeID'] as String?;
+  void _onMessage(dynamic msg, Socket socket, String remoteAddr, String remoteIp) {
+    final type   = msg['type']         as String?;
+    final nodeId = msg['myNodeID']     as String?;
     final target = msg['remoteNodeID'] as String?;
-    final payload = msg['message']; // String or Map depending on message type
+    final payload = msg['message'];    // String or Map depending on message type
 
     // Registered nodes: check rate limit and refresh timeout
     if (nodeId != null && _nodes.containsKey(nodeId)) {
@@ -217,15 +208,9 @@ class RelayServer {
     }
 
     switch (type) {
-      case 'MP':
-        _onRegister(msg, socket, remoteAddr, remoteIp, nodeId, payload);
-        break;
-      case 'TP':
-        _onForward(nodeId, target);
-        break;
-      case 'D':
-        _onDirect(nodeId, socket, remoteAddr, remoteIp);
-        break;
+      case 'MP': _onRegister(msg, socket, remoteAddr, remoteIp, nodeId, payload); break;
+      case 'TP': _onForward(nodeId, target); break;
+      case 'D':  _onDirect(nodeId, socket, remoteAddr, remoteIp); break;
       default:
         // Heartbeat (or anything else) — timeout already refreshed above
         break;
@@ -235,12 +220,8 @@ class RelayServer {
   // ── Registration ──────────────────────────────────────────────────────────
 
   void _onRegister(
-    dynamic msg,
-    Socket socket,
-    String remoteAddr,
-    String remoteIp,
-    String? nodeId,
-    dynamic payload,
+    dynamic msg, Socket socket, String remoteAddr, String remoteIp,
+    String? nodeId, dynamic payload,
   ) {
     if (nodeId == null || nodeId.trim().isEmpty) {
       _log('✗ MP with no nodeId from $remoteAddr — rejected');
@@ -283,10 +264,8 @@ class RelayServer {
     }
 
     final rec = _NodeRecord(
-      nodeId: nodeId,
-      socket: socket,
-      remoteAddr: remoteAddr,
-      remoteIp: remoteIp,
+      nodeId: nodeId, socket: socket,
+      remoteAddr: remoteAddr, remoteIp: remoteIp,
     );
     _nodes[nodeId] = rec;
     _startTimeout(rec);
@@ -307,8 +286,7 @@ class RelayServer {
 
   // ── Direct ────────────────────────────────────────────────────────────────
 
-  void _onDirect(
-      String? nodeId, Socket socket, String remoteAddr, String remoteIp) {
+  void _onDirect(String? nodeId, Socket socket, String remoteAddr, String remoteIp) {
     _pendingDeadlines.remove(remoteAddr)?.cancel();
     if (nodeId != null) _log('ℹ Direct from "$nodeId"');
   }
@@ -318,8 +296,9 @@ class RelayServer {
   void _onClosed(Socket socket, String remoteAddr, String remoteIp) {
     _pendingDeadlines.remove(remoteAddr)?.cancel();
 
-    final entry =
-        _nodes.entries.where((e) => e.value.socket == socket).firstOrNull;
+    final entry = _nodes.entries
+        .where((e) => e.value.socket == socket)
+        .firstOrNull;
 
     if (entry != null) {
       entry.value.cancelTimers();
@@ -338,8 +317,7 @@ class RelayServer {
   void _startTimeout(_NodeRecord rec) {
     rec.timeoutTimer?.cancel();
     rec.timeoutTimer = Timer(config.nodeTimeout, () {
-      _log(
-          '✗ Timeout: evicting "${rec.nodeId}" (silent >${config.nodeTimeout.inSeconds}s)');
+      _log('✗ Timeout: evicting "${rec.nodeId}" (silent >${config.nodeTimeout.inSeconds}s)');
       _evictNode(rec.nodeId);
     });
   }
@@ -360,30 +338,20 @@ class RelayServer {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  void _destroySocket(Socket s) {
-    try {
-      s.destroy();
-    } catch (_) {}
-  }
+  void _destroySocket(Socket s) { try { s.destroy(); } catch (_) {} }
 
   void _decrementIp(String ip) {
     final n = (_ipCount[ip] ?? 1) - 1;
-    if (n <= 0)
-      _ipCount.remove(ip);
-    else
-      _ipCount[ip] = n;
+    if (n <= 0) _ipCount.remove(ip); else _ipCount[ip] = n;
   }
 
   void _printTable() {
-    if (_nodes.isEmpty) {
-      _log('  relay table: (empty)');
-      return;
-    }
+    if (_nodes.isEmpty) { _log('  relay table: (empty)'); return; }
     _log('  relay table: [${_nodes.keys.join(', ')}]');
   }
 
-  void _log(String m) => print(
-      '[RelayServer ${DateTime.now().toIso8601String().substring(11, 23)}] $m');
+  void _log(String m) =>
+      print('[RelayServer ${DateTime.now().toIso8601String().substring(11, 23)}] $m');
 }
 
 // ── main ──────────────────────────────────────────────────────────────────────
@@ -391,10 +359,10 @@ class RelayServer {
 void main() async {
   final server = RelayServer(
     config: RelayServerConfig(
-      port: 9000,
-      sharedSecret: 'your-secret-key-change-me', // ← CHANGE THIS
-      nodeTimeout: const Duration(seconds: 35),
-      maxNodes: 100,
+      port:                9000,
+      sharedSecret:        'your-secret-key-change-me', // ← CHANGE THIS
+      nodeTimeout:         const Duration(seconds: 35),
+      maxNodes:            100,
       maxConnectionsPerIp: 5,
       maxMessagesPerSecond: 50,
     ),
